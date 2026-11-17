@@ -1,233 +1,76 @@
 import unreal_engine as ue
 import unreal_engine.classes
 from unreal_engine_tools import *
+import unreal_engine_tools
 import numpy as np
-import os, sys, subprocess, importlib, urllib.request, socket, math, sympy, fast_autocomplete, numba, kingdon #numba_cuda
+import warnings as _warnings
+with _warnings.catch_warnings():
+    _warnings.filterwarnings('ignore', message='pkg_resources is deprecated', category=UserWarning)
+    import fast_autocomplete
+import os, sys, subprocess, importlib, socket, struct, math, sympy, numba, kingdon, asyncio, time, random
 from unreal_engine import FVector, FRotator, FTransform, FHitResult, CLASS_CONFIG, CLASS_DEFAULT_CONFIG, CPF_CONFIG, CPF_GLOBAL_CONFIG, CPF_EXPOSE_ON_SPAWN, CPF_NET, CPF_REP_NOTIFY
-from unreal_engine.classes import Actor, Character, PlayerController, StaticMeshActor, KismetMathLibrary, KismetSystemLibrary, Object, StrProperty, IntProperty, Blueprint, Material, Texture, LargeStringAsync, LargeStringRPCActor, StaticMesh, StaticMeshActor
+from unreal_engine.classes import Actor, Character, PlayerController, StaticMeshActor, KismetMathLibrary, KismetSystemLibrary, Object, StrProperty, IntProperty, Blueprint, Material, Texture, LargeStringAsync, LargeStringRPCActor, StaticMesh, StaticMeshActor, AudioComponent
 from unreal_engine.enums import EInputEvent, ETraceTypeQuery, EDrawDebugTrace, EComponentMobility, EMouseCursor, ECollisionChannel
-from constants import Constants, WorldSize
 import constants, windowtool
+from constants import Constants, WorldSize
 from languages import *
 from cli import *
-from hotreload import *
-import hotreload, unreal_engine_tools
-import asyncio, time
 from typing import List, Dict, Union, Optional
-import random
-
-from nd_table.examples import example_unreal_rendering
 from input_devices import Keyboard, Mouse, HotkeyManager, TraceHelper
-
 from ue_spawn import spawn_icon
 from icon_to_image import extract_icon
+from test_spawn import test_spawn_all
 
-from gizmo import test_gizmos, setup_gizmo_interaction
 
-ue.log('Hello i am a Python module.')
-# Code placed outside the Main class will not run when connecting to a server.
+# Warning:
+# BUG: imported classes are not reloaded, you need to restart the editor
+# Code placed outside the Main class will not run when connecting to a server and may run twice
+# You can ignore and delete .uasset files as you'd like. They are regenerated on run
 
-# TODO: Cleanup 0,0,0. Merge all dfb PR branches: https://github.com/dfb/UnrealEnginePython/tree/modus
+ue.log('I am a Python module.')
 
-# # Keep track of the current index
-# current_bg_index = 0
-
-change_background("white_less_emissive")
-
-def spawn_icon2(pil_image, location=FVector(0, 0, 0), rotation=FRotator(0, 0, 0), scale=FVector(1, 1, 1),
-                material_path='/Game/Materials/M_Icon.M_Icon',
-                param_name='Texture',
-                bp_path='/Game/Blueprints/Assets/BP_Icon.BP_Icon',
-                component_name='Sphere'):
-    """
-    Spawn a BP_Icon actor and apply *pil_image* as *param_name* texture.
-
-    BP_Icon should have:
-      • A StaticMeshComponent (sphere or any mesh)
-      • A Python component pointing to ue_components.IconHoverComponent
-        (hover-shrink effect is handled there)
-
-    The IconHoverComponent class is kept in ue_components.py but is also
-    defined below for reference — do not attach it again here.
-
-    Requires Pillow and a material at *material_path* with a
-    TextureSampleParameter2D named *param_name*.
-    """
-    world = get_world()
-    # print("ue_spawn.py world", world)
-
-    actor = None
-
-    # Spawn BP_Icon (hover effect comes from its Python component)
+#TODO: Completely empty main.py
+def get_public_ip_via_dns(resolver="8.8.4.4", timeout=3.0):
+    """Ask Google Public DNS for our public IP by querying the special TXT
+    record o-o.myaddr.l.google.com, which the resolver answers with the
+    client's egress IP. In-process UDP DNS, no HTTP server hop."""
+    # serious shit below
+    # identity function be like
+    qname = b"".join(struct.pack("B", len(p)) + p
+                     for p in b"o-o.myaddr.l.google.com".split(b".")) + b"\x00"
+    # Header: id=0x1234, RD flag set, 1 question; QTYPE=16 (TXT), QCLASS=1 (IN)
+    query = struct.pack(">HHHHHH", 0x1234, 0x0100, 1, 0, 0, 0) + qname + struct.pack(">HH", 16, 1)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        bp = ue.load_object(Blueprint, bp_path)
-        actor = world.actor_spawn(bp.GeneratedClass)  # , location)
-        print("PRINTING ACTOR", actor)
-        actor.set_actor_transform(FTransform(location, rotation, scale))
-        target_comp = find_component(actor, component_name)
-    except Exception as e:
-        ue.log_warning(f'spawn_icon: could not load BP_Icon at "{bp_path}": {e}. '
-                       'Make sure BP_Icon exists in your project.')
-        return None
-
-    try:
-        tex = pil_image_to_texture(pil_image)
-    except Exception as e:
-        ue.log_warning(f'spawn_icon: could not convert that pil_image to texture: {e}')
-        return None
-
-    if tex:
-        mat = ue.load_object(Material, "/Game/Materials/M_Icon.M_Icon")
-        if not mat:
-            ue.log_warning(f"Material not found: {material_path}")
-
-        mid = target_comp.create_material_instance_dynamic(mat)
-
-        mid.set_material_texture_parameter(param_name, tex)
-        target_comp.set_material(0, mid)
-    else:
-        ue.log_warning(f"Could not load texture for param: {param_name}")
-
-    # tmp_path = os.path.join(tempfile.gettempdir(), 'ue_icon_tmp.png')
-    # pil_image.save(tmp_path)
-    #
-    # texture = None
-    # try:
-    #     from unreal_engine.classes import TextureFactory
-    #     tex_name = 'IconTex_' + str(abs(hash(tmp_path)))[:8]
-    #     texture = TextureFactory().factory_import_object(
-    #         tmp_path, f'/Game/IconTextures/{tex_name}')
-    # except Exception as e:
-    #     ue.log_warning(f'spawn_icon: texture import failed: {e}')
-
-    # Apply material + texture via dynamic material instance
-    # mat = ue.load_object(Material, material_path)
-    # if mat and texture:
-    #     try:
-    #         smc = actor.StaticMeshComponent
-    #         dmi = smc.CreateAndSetMaterialInstanceDynamic(0)
-    #         dmi.SetTextureParameterValue(param_name, texture)
-    #     except Exception as e:
-    #         ue.log_warning(f'spawn_icon: texture param failed: {e}')
-
-    # loc = location if location is not None else FVector(0, 0, 0)
-    # rot = rotation if rotation is not None else FRotator(0, 0, 0)
-    # scl = scale if scale is not None else FVector(1, 1, 1)
-    # actor.set_actor_location(loc)
-    # actor.set_actor_rotation(rot)
-    # actor.set_actor_scale(scl)
-
-    # _set_transform(actor, location, rotation, scale)
-    return actor
-
-
-
-
-# Stop the background music
-# find_actor("CellDriftLoop").SetActorHiddenInGame(True)
+        sock.settimeout(timeout)
+        sock.sendto(query, (resolver, 53))
+        resp, _ = sock.recvfrom(512)
+    finally:
+        sock.close()
+    # Skip the echoed header(12) + question, then walk to the TXT rdata.
+    idx = 12
+    while resp[idx] != 0:
+        idx += resp[idx] + 1
+    idx += 5  # null label byte + QTYPE(2) + QCLASS(2)
+    # Answer RR: name(2, compressed ptr) type(2) class(2) ttl(4) rdlen(2)
+    idx += 12
+    txt_len = resp[idx]  # first byte of TXT rdata is the string length
+    return resp[idx + 1: idx + 1 + txt_len].decode("ascii")
 
 # Use this if you want to rebuild the unreal_engine intellisense(.pyi, etc.) and cli
-# rebuild_generated_modules()
+rebuild_generated_modules()
 
-# reload_all_modules() # TODO: Unstable. look into ue.load_package() or get_or_create()
-
-# reset_pyactor()
-
-
-# ret = ue.message_dialog_open(ue.APP_MSG_TYPE_YES_NO, "Do you want to shot ?")
+# ret = ue.message_dialog_open(ue.APP_MSG_TYPE_YES_NO, "Do you want to test dialogs?")
 # if ret == ue.APP_RETURN_TYPE_YES:
 #     ue.log('You choose "YES"')
 
-
 # help_cmd("ls")
 
-
-# Global Vars
-RPC_ACTOR = None
-SERVER_HELPER = None  # Server-side helper
-CLIENT_HELPER = None  # Client-side helper
-
 class Main:
-    # # this event will be run on the server and in reliable mode
-    # def server_event(self):
-    #     ue.log('server event called')
-    #     ue.log("hello from server")
-    #     print("hello from server" + self.uobject.get_uproperty('StringHelloWorldProperty'))
-    #     print("hello from server" + self.uobject.get_uproperty(
-    #         'StringHelloWorldProperty2'))  # .set_metadata('Category', 'CategoryTest001')
-    # server_event.event = True # expose event
-    # server_event.server = True
-    # server_event.reliable = True
-    # server_event.multicast = True # you can also simulate multicast like below:
-    # server_event.static = True # static methods will be available to blueprints
-    # server_event.pure = True # pure methods will be available to blueprints
-
-    # FooWorld = [IntProperty]
-    # FooWorld = [17, 22, 30]
-
-    # # ------------------------------------------------------------
-    # # MULTICAST FLAG TEST
-    # # ------------------------------------------------------------
-    # def test_multicast_flag(self, msg):
-    #     """
-    #     If .multicast works, this should run on:
-    #     - Dedicated Server
-    #     - All connected Clients
-    #
-    #     In practice (UE4Python), this usually runs server-only.
-    #     """
-    #     if KismetSystemLibrary.IsDedicatedServer():
-    #         ue.log(f"[multicast flag] SERVER executed: {msg}")
-    #     else:
-    #         ue.log(f"[multicast flag] CLIENT executed: {msg}")
-    #
-    # # Register as RPC
-    # test_multicast_flag.event = True
-    # test_multicast_flag.multicast = True
-    # test_multicast_flag.reliable = True
-    #
-    # # ------------------------------------------------------------
-    # # SERVER RPC – MANUAL MULTICAST
-    # # ------------------------------------------------------------
-    # def server_manual_multicast(self, msg):
-    #     """
-    #     Authoritative server RPC.
-    #     Explicitly calls a client RPC on every PlayerController.
-    #     """
-    #     ue.log("[manual multicast] SERVER executing")
-    #
-    #     for pc in self.uobject.get_world().all_actors():
-    #         if pc:
-    #             pc.client_receive_manual(msg)
-    #
-    # # Register as Server RPC
-    # server_manual_multicast.event = True
-    # server_manual_multicast.server = True
-    # server_manual_multicast.reliable = True
-    #
-    # # ------------------------------------------------------------
-    # # CLIENT RPC – MANUAL MULTICAST TARGET
-    # # ------------------------------------------------------------
-    # def client_receive_manual(self, msg):
-    #     """
-    #     Should only ever run on clients.
-    #     """
-    #     if KismetSystemLibrary.IsDedicatedServer():
-    #         ue.log("[manual multicast] ERROR: executed on server")
-    #     else:
-    #         ue.log(f"[manual multicast] CLIENT executed: {msg}")
-    #
-    # # Register as Client RPC
-    # client_receive_manual.event = True
-    # client_receive_manual.client = True
-    # client_receive_manual.reliable = True
-
-    def set_global_time_dilation(self, time_dilation = 1):
-        self.uobject.TimeDilation = time_dilation
-        self.uobject.call_function('EventRunBlueprintFunctions')
-
     def end_play(self, reason):
         ue.log("Ending play")
+        import unreal_engine_tools
+        unreal_engine_tools.invalidate_world_cache()
         for i, ticker in enumerate(tickers):
             ue.remove_ticker(ticker)
             del tickers[i]
@@ -236,28 +79,26 @@ class Main:
         if hasattr(self, 'input'):
             self.input.shutdown()
 
-    # def say_hi(self):
-    #     ue.log("Pressed G")
-    #
-    # def ctrl_shift_b(self):
-    #     ue.log("Pressed Ctrl+Shift+B")
-    #
-    # def left_click(self):
-    #     ue.log("Left mouse button")
-    #
-    # def mouse_wheel(self, value):
-    #     ue.log("Wheel: {}".format(value))
-    #
-    # def sequence_action(self):
-    #     ue.log("Sequence fired: Ctrl+K → MouseX → Click")
-    #
-    # def print_mouse_world(self):
-    #     data = self.input.get_mouse_position(deproject=True)
-    #     if not data:
-    #         return
-    #     x, y, world, dir = data
-    #     ue.log(f"Mouse {x},{y}")
-    #     ue.log(f"World {world} Dir {dir}")
+    def ctrl_shift_b(self):
+        ue.log("Pressed Ctrl+Shift+B")
+
+    def left_click(self):
+        ue.log("Left mouse button")
+
+    def mouse_wheel(self, value):
+        ue.log("Wheel: {}".format(value))
+
+    def sequence_action(self):
+        ue.log("Sequence fired: Ctrl+K → MouseX → Click")
+
+    def print_mouse_world(self):
+        data = self.input.get_mouse_position(deproject=True)
+        if not data:
+            return
+        x, y, world, dir = data
+        ue.log(f"Mouse {x},{y}")
+        ue.log(f"World {world} Dir {dir}")
+
     def on_move_forward(self, value):
         """Handle analog movement input"""
         if value != 0:
@@ -268,6 +109,32 @@ class Main:
         """Interaction bound to multiple keys"""
         ue.log("Interact!")
         # Perform interaction
+
+    def toggle_window_transparency(self):
+        """T-key: flip the game window between per-pixel transparent (DWM) and opaque.
+        First call lazily resolves UWindowTransparencyLibrary and caches a transient
+        instance — UEP's pattern for invoking static UFUNCTIONs on a
+        UBlueprintFunctionLibrary (matches ue_spawn.spawn_gltf_runtime's lib usage).
+        No-op in PIE / editor — the underlying library guards on GIsEditor."""
+        if not hasattr(self, "_wt_lib") or self._wt_lib is None:
+            wt_cls = ue.find_class("WindowTransparencyLibrary")
+            if wt_cls is None:
+                ue.log_warning(
+                    "toggle_window_transparency: WindowTransparencyLibrary not found — "
+                    "is the WindowTransparency plugin enabled and compiled?")
+                return
+            self._wt_lib = ue.new_object(wt_cls)
+            self._window_transparent = False
+
+        if self._window_transparent:
+            self._wt_lib.call_function("DisableWindowTransparency")
+            self._window_transparent = False
+            ue.log("Window transparency: OFF")
+        else:
+            # bKeepBorder=True matches the C++ default; flip to False for borderless.
+            self._wt_lib.call_function("EnableWindowTransparency", True)
+            self._window_transparent = True
+            ue.log("Window transparency: ON")
 
     def shift_click(self):
         """Shift + Click action"""
@@ -359,15 +226,24 @@ class Main:
             ue.log(f"  Type: {binding['type']}, Keys: {binding['keys']}, Callback: {binding['callback']}")
 
     def move_icon(self):
-        # self.icon.get_actor_component('PhysicsHandle').SetTargetLocation(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100)))
-        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(False)
+        # self.icon.get_actor_component('PhysicsHandle').SetTargetLocation(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100))) # not needed
+        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(False) # not needed
         self.icon.set_actor_transform(FTransform(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100)), FRotator(0, 0, 0), FVector(1, 1, 1)))
-        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(True)
+        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(True) # not needed
 
     # this is called on game start
     def begin_play(self):
         ue.log('Begin Play on Main class')
-        #change_background("video", os.path.join(os.path.abspath(ue.get_content_dir()),"Movies", "psychedelic.mp4"))
+        change_background("transparent")  # window-transparency test — green sky punches through to desktop
+        ue.log('Running startup')
+        startup()
+
+        # Stop the background music
+        bg_music = find_actor("BackgroundMusic")
+        if bg_music is not None:
+            for ac in bg_music.get_components_by_type(AudioComponent):
+                ac.call('Stop')
+
         global world
         world = get_world()
         print("begin_play found world", world)
@@ -376,190 +252,28 @@ class Main:
         global tickers
         tickers = []
 
-        global RPC_ACTOR, CLIENT_HELPER
+        is_dedicated_server = KismetSystemLibrary.IsDedicatedServer(self.uobject)
 
-        RPC_ACTOR = None
-        CLIENT_HELPER = None
+        if not is_dedicated_server:
+            self.uobject.enable_input()
 
-        self.uobject.enable_input()
+            self.keyboard = Keyboard()
+            self.mouse = Mouse()
 
-        self.keyboard = Keyboard()
-        self.mouse = Mouse()
+            self.input = HotkeyManager(self.uobject, self.keyboard, self.mouse)
+            self.trace = TraceHelper(self.uobject)
 
-        self.input = HotkeyManager(self.uobject, self.keyboard, self.mouse)
-        self.trace = TraceHelper(self.uobject)
-        #
-        # # Enable mouse features
-        # self.input.enable_mouse_events(True, True)
-        # # self.input.show_cursor(True)
-        # # self.input.set_cursor(EMouseCursor.GrabHand)
-        # print("CURSOR INFO:")
-        #
-        #
-        # pc = self.uobject.get_player_controller()
-        # pc.bind_axis("TurnRate", lambda v: v != 0 and ue.log(f"TurnRate {v}"))
-        # pc.bind_axis("LookUpRate", lambda v: v != 0 and ue.log(f"LookUpRate {v}"))
-        #
-        # pc.bind_axis("MouseX", lambda v: v != 0 and ue.log(f"MouseX {v}"))
-        # pc.bind_axis("MouseY", lambda v: v != 0 and ue.log(f"MouseY {v}"))
-        # pc.bind_axis("MouseWheelAxis", lambda v: v != 0 and ue.log(f"MouseWheel {v}"))
-        #
-        # # Mouse delta via timer
-        # self.input.log_mouse_delta_timer()
-        #
-        # # self.uobject.bind_key('K', ue.IE_PRESSED, self.you_pressed_K)
-        #
-        # # Hotkeys
-        # self.input.bind_press("Ctrl+Shift+B", lambda: ue.log("Ctrl+Shift+B"))
-        # self.input.bind_press("Ctrl+Shift+A", lambda: ue.log("Ctrl+Shift+A"))
-        #
-        self.input.bind_press("M", self.input.toggle_cursor)
-        #
-        # # Repeat
-        # self.input.bind_repeat("W", lambda: ue.log("Holding W"))
-        #
-        # # Actions
-        # self.input.bind_action(
-        #     "Jump",
-        #     pressed_cb=lambda: ue.log("Jump pressed"),
-        #     released_cb=lambda: ue.log("Jump released")
-        # )
-        #
-        # # Mouse helpers
-        # self.input.bind_press("G", self.print_mouse_world)
-        # self.input.bind_press("H", lambda: self.input.set_mouse_position(200, 200))
+            self.input.bind_press("M", self.input.toggle_cursor)
+            # self.input.bind_press("T", self.toggle_window_transparency)
 
-
-
-        # self.uobject.enable_input()
-        #
-        # self.keyboard = Keyboard()
-        # self.mouse = Mouse()
-        # self.input = HotkeyManager(self.uobject, self.keyboard, self.mouse)
-        # self.trace = TraceHelper(self.uobject)
-        #
-        # # Analog movement with deadzone
-        # # self.input.bind_axis_poll(
-        # #     "MoveForward",
-        # #     self.on_move_forward,
-        # #     deadzone=0.1,
-        # #     rate=0.016  # ~60 FPS
-        # # )
-        #
-        # # Multiple keys to same action
-        # self.input.bind_press("F", self.interact)
-        self.input.bind_press("L", self.move_icon)
-        #
-        # # Complex chord
-        # self.input.bind_press("Ctrl+Alt+Delete", lambda: ue.log("The forbidden combo!"))
-        #
-        # self.input.bind_press("Ctrl+MouseScrollUp", lambda: ue.log("The forbidden combB!"))
-        # self.input.bind_press("Shift+MouseScrollUp", lambda: ue.log("The forbidden combA!"))
-        #
-        # # Mouse button combinations
-        # self.input.bind_press("Shift+LeftMouseButton", self.shift_click)
-        #
-        #
-        #
-        # # ============== CURSOR SETUP ==============
-        # self.input.enable_mouse_events(True, True)
-        # # self.input.show_cursor(True)
-        # # self.input.set_cursor(EMouseCursor.GrabHand)
-        #
-        # print("=== CURSOR INFO ===")
-        # self.input.print_cursor_info()
-        #
-        # # ============== MOUSE AXIS TRACKING ==============
-        # # IMPORTANT: Use bind_axis_poll for MouseX/MouseY as bind_axis may not work reliably
-        # # These will now properly track mouse movement
-        # # self.input.bind_axis_poll("MouseX", lambda v: ue.log(f"MouseX: {v:.3f}"))
-        # # self.input.bind_axis_poll("MouseY", lambda v: ue.log(f"MouseY: {v:.3f}"))
-        # # self.input.bind_axis_poll("MouseWheelAxis", lambda v: ue.log(f"MouseWheel: {v:.3f}"))
-        # #
-        # # # These might work depending on your project's input settings
-        # # # If you have TurnRate and LookUpRate defined in your Input Settings, these should work
-        # # try:
-        # #     self.input.bind_axis_poll("TurnRate", lambda v: ue.log(f"TurnRate: {v:.3f}"))
-        # #     self.input.bind_axis_poll("LookUpRate", lambda v: ue.log(f"LookUpRate: {v:.3f}"))
-        # # except:
-        # #     ue.log_warning("TurnRate/LookUpRate axes not available in project settings")
-        #
-        # # Mouse delta logging (uses timer)
-        # self.input.log_mouse_delta_timer(rate=0.1)
-        #
-        # # ============== BASIC KEY BINDINGS ==============
-        # # Simple press bindings
-        # # self.input.bind_press("K", self.on_key_k_pressed)
-        # self.input.bind_press("L", lambda: ue.log("Pressed L"))
-        #
-        # # Chord bindings (key combinations)
-        # self.input.bind_press("Ctrl+Shift+B", self.on_ctrl_shift_b)
-        # self.input.bind_press("Ctrl+G", self.print_mouse_world)
-        #
-        # # Toggle cursor with M key
-        # self.input.bind_press("M", self.input.toggle_cursor)
-        #
-        # # ============== MOUSE BINDINGS ==============
-        # self.input.bind_press("LeftMouseButton", self.on_left_click)
-        # self.input.bind_press("RightMouseButton", lambda: ue.log("Right click"))
-        # self.input.bind_double_click("LeftMouseButton", lambda: ue.log("Double click!"))
-        #
-        # # ============== REPEAT BINDINGS ==============
-        # # These fire repeatedly while key is held
-        # self.input.bind_repeat("W", lambda: ue.log("Holding W"))
-        # self.input.bind_repeat("Ctrl+R", lambda: ue.log("Ctrl+R held"))
-        #
-        # # ============== POLL-BASED CHECKING ==============
-        # # IMPORTANT: Use bind_poll for keys that have engine actions (like SpaceBar for Jump)
-        # # This checks key state without binding, so it won't override Jump
-        # self.input.bind_poll("SpaceBar", lambda: ue.log("Space is down (non-binding)"), rate=0.1)
-        #
-        # # You can also manually check key states
-        # self.input.bind_press("P", self.check_key_states)
-        #
-        # # ============== ENGINE ACTIONS ==============
-        # # Bind to actions defined in your project's Input Settings
-        # # This WON'T override the Jump action
-        # self.input.bind_action(
-        #     "Jump",
-        #     pressed_cb=lambda: ue.log("Jump action pressed"),
-        #     released_cb=lambda: ue.log("Jump action released")
-        # )
-        #
-        # # ============== MOUSE POSITION BINDINGS ==============
-        # # Get cursor info with world projection
-        # self.input.bind_press("G", self.print_cursor_and_trace)
-        #
-        # # Set mouse position
-        # self.input.bind_press("H", lambda: self.input.set_mouse_position(960, 540))
-        #
-        # # ============== TRACE EXAMPLES ==============
-        # # Trace from cursor
-        # self.input.bind_press("T", self.trace_from_cursor)
-        #
-        # # Trace forward from camera
-        # self.input.bind_press("F", self.trace_from_camera)
-        #
-        # # ============== SEQUENCE BINDINGS ==============
-        # # Execute callback after a sequence of keys
-        # # self.input.bind_sequence(
-        # #     ["Ctrl+K", "C"],
-        # #     lambda: ue.log("Sequence completed: Ctrl+K then C"),
-        # #     timeout=2.0
-        # # )
-        #
-        # # ============== KEY REGISTRY ==============
-        # # Print all registered bindings for a specific key
-        # self.input.bind_press("F1", lambda: self.print_key_registry("W"))
-
-        if KismetSystemLibrary.IsDedicatedServer():
+        if is_dedicated_server: # WARNING, Only Client -> Server sending of Multi-GB strings currently implemented
             ue.log("BeginPlay on DEDICATED SERVER")
             print("using world", world.get_name())
             # print(world.all_actors())
             # for actor in world.all_actors():
             #     print(actor.get_class().get_name())
             gm = find_actor("StarcelGameMode")
-            print("Gamemode", gm)
+            print("Gamemode: ", gm)
 
             def on_player_joined(player_controller):
                 ue.log_warning(f"[SERVER PY] Player joined: {player_controller}") # START HERE
@@ -571,10 +285,35 @@ class Main:
                 # player.get_actor_component('Text3DComponent').Text = "HI"
                 player_controller.Possess(player)
                 py_player = player.get_py_proxy()
-                print(py_player.get_yo())
                 py_player._setup_input()
 
+                # print("Begin StickMan Possession")
+                # bp_stickman = ue.load_object(Blueprint, '/Game/ThirdPersonCPP/Blueprints/StickManCharacter.StickManCharacter')
+                # player = world.actor_spawn(bp_stickman.GeneratedClass)
+                # transform = FTransform(FVector(100, 100, 200), FRotator(0, 0, 0), FVector(1, 1, 1))
+                # player.set_actor_transform(transform)
+                # uobject.get_player_controller().Possess(player)
+                # py_player = player.get_py_proxy()
+                # py_player._setup_input()
 
+                # apply_material(
+                #     actor_name="StickManCharacter",  # runtime instance name (check via print)
+                #     component_name="SkeletalMeshOutline",
+                #     material_path="/Game/Materials/M_Outline.M_Outline",
+                #     params={
+                #         "LineThickness": 3.0,
+                #         "Color": (0, 0, 0, 1),
+                #     }
+                # )
+                # apply_material(
+                #     actor_name="StickManCharacter",  # runtime instance name (check via print)
+                #     component_name="SkeletalMeshHeadlessOutline",
+                #     material_path="/Game/Materials/M_Outline.M_Outline",
+                #     params={
+                #         "LineThickness": 3.0,
+                #         "Color": (0, 0, 0, 1),
+                #     }
+                # )
 
                 global RPC_ACTOR, SERVER_HELPER
 
@@ -587,7 +326,7 @@ class Main:
                         RPC_ACTOR.LargeString = ue.new_object(LargeStringAsync)  # attach ULargeStringAsync
                         print("Created new LargeStringAsync instance", RPC_ACTOR, RPC_ACTOR.LargeString)
 
-                        # BIND THE C++ EVENT MANUALLY AFTER CREATING LARGESTRING
+                        # Bind the C++ event manually after creating LargeString
                         try:
                             RPC_ACTOR.LargeString.bind_event('OnFullyReceived', RPC_ACTOR.Server_OnFullStringReceived)
                             ue.log_warning("[SERVER] Manually bound OnFullyReceived to Server_OnFullStringReceived")
@@ -612,13 +351,6 @@ class Main:
                         auto_send=False  # Server doesn't auto-send from OnChunksBuilt
                     )
                     ue.log_warning("[SERVER] Server rpc helper created and bound")
-
-                # rpc_actors = find_actors("LargeStringRPCActor")
-                # if rpc_actors:
-                #     for rpc_actor in rpc_actors:
-                #         print("Blueprint binding server_string_received event: ", rpc_actor)
-                #         rpc_actor.bind_event('OnServerStringReceived', server_on_full_string_received)
-
             if gm:
                 gm.bind_event("OnPlayerJoined", on_player_joined)
                 ue.log_warning("[SERVER] Bound OnPlayerJoined")
@@ -626,78 +358,30 @@ class Main:
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
             ue.log(f"Server LAN IP: {local_ip}")
+            public_ip = None
             try:
-                public_ip = urllib.request.urlopen('https://api.ipify.org').read().decode('utf-8')
+                public_ip = get_public_ip_via_dns()
                 ue.log(f"Public IP: {public_ip}")
             except Exception as e:
                 ue.log(f"Could not fetch public IP: {e}")
-            ue.log("If you correctly port forwarded the LAN IP, the server is on the public IP: " + public_ip)
+            if public_ip:
+                ue.log("If you correctly port forwarded the LAN IP, the server is on the public IP: " + public_ip)
             # # Server-originated multicast test
             # ue.log("Calling test_multicast_flag() from server")
             # self.test_multicast_flag("hello via multicast flag")
 
         else:
-            ue.log("BeginPlay on CLIENT")
-            if world.AuthorityGameMode:
-                ue.log("SERVER (AuthorityGameMode exists). Client likely connected to internal server. ")
+            if self.uobject.HasAuthority():
+                ue.log("BeginPlay on LISTEN SERVER / STANDALONE (has authority)")
             else:
-                ue.log("CLIENT (no AuthorityGameMode) Client likely connected to dedicated server. ")
+                ue.log("BeginPlay on CLIENT (connected to remote server)")
 
-            # Testing icon
-            print("Testing icon")
-            self.info = extract_icon(r"C:\Users\nicho\Downloads\GoogleDriveSetup.exe", preview=True, return_info=True)
-            self.icon = spawn_icon(self.info["image"], location=FVector(310, 50, 400))
-            self.icon.get_actor_component('Sphere').SetSimulatePhysics(True)
 
-            # some kind of movability problem
-            # self.monk = 0
-            # def ticke():
-            #     print("ticked")
-            #     self.monk += 1
-            #     if self.monk > 3:
-            #         print("monk bigger than one")
-            #         self.icon.set_actor_transform(FTransform(FVector(310, 50, 400), FRotator(0,0,0), FVector(1,1,1)))
-            #
-            #
-            # self.yuh = self.uobject.set_timer(0.5, ticke, True) # required to keep timer from being collected by gc
-            # print(self.yuh)
-            # yuh.start()
-            # try:
-            #     yuh.start()
-            # except Exception as e:
-            #     print(e)
-
-            # print("PRINTING RETURNED ACTOR", icon)
-            # print("main.py world", world)
-            # find_actor("BP_Icon").set_actor_transform(FTransform(FVector(310, 50, 400), FRotator(0,0,0), FVector(1,1,1)))
-            # if not icon:
-            #     print("not icon", icon)
-            # print("checked", icon.check())
-            # if not icon.is_valid():
-            #     print("Not valid", icon)
-            # # icon_transform = FTransform(FVector(310, 50, 400), FRotator(0,0,0), FVector(1,1,1))
-            # # icon.set_actor_transform(icon_transform)
-
-            # TESTING POSSESSION
-            print("TESTING POSSESSION")
-            # bp_drone = ue.load_object(Blueprint, '/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
-            # player = world.actor_spawn(bp_drone.GeneratedClass)
-            # transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
-            # player.set_actor_transform(transform)
-            # # player.get_actor_component('Text3DComponent').Text = "HI"
-            # self.uobject.get_player_controller().Possess(player)
-            # py_player = player.get_py_proxy()
-            # py_player._setup_input()
-
-            player_controller = self.uobject.get_player_controller()
-            pawn = player_controller.get_pawn()
-            print(player_controller)
-            print(pawn)
             apply_material(
                 actor_name="TestSphere",  # M_Color is default
                 material_path="/Game/Materials/M_Color.M_Color",
                 params = {
-                    "Color": (0, 0, 1, 1),
+                    "Color": (0, 1, 0, 1),
                     "Metallic": 0.5,
                     "Specular": 0.5,
                     "Roughness": 0.2,
@@ -707,64 +391,35 @@ class Main:
                 }
             )
 
-            apply_material(
-                actor_name="StickManCharacter_C",  # runtime instance name (check via print)
-                component_name="SkeletalMeshOutline",
-                material_path="/Game/Materials/M_Outline.M_Outline",
-                params={
-                    "Outline": 5.0,
-                    "Color": (1, 1, 1, 1),
-                }
-            )
-            # pawn = player_controller.get_controlled_pawn()
+        if not is_dedicated_server:
+            # Explicit drone possession method (same as master's main.py): spawn
+            # BP_PyDroneCharacter and Possess it so it overrides whatever pawn the
+            # GameMode auto-possessed. Single possession only — the duplicate
+            # post_startup() possession below is disabled (master has none).
+            print("Begin Drone Possession")
+            bp_drone = ue.load_object(Blueprint, '/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
+            player = world.actor_spawn(bp_drone.GeneratedClass)
+            transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
+            player.set_actor_transform(transform)
+            self.uobject.get_player_controller().Possess(player)
+            py_player = player.get_py_proxy()
+            py_player._setup_input()
 
-            # Client → Server → Clients
-            # ue.log("Calling server_manual_multicast() from client")
-            # self.server_manual_multicast("hello via manual multicast")
 
-        # ue.exec('Script.py') # run a Python script file by passing its name
-        # ue.log(self.uobject.get_world().call_function('IsDedicatedServer')) # ('GetNetMode'))
-        # if (self.uobject.get_world().IsServer()):
-        #     ue.log("hello from server")
-        # elif (self.uobject.get_world().IsClient()):
-        #     ue.log("hello from client")
+            self.test_kingdon()
+            # self.test_cylinder()
+            # self.test_text()
 
-        # self.uobject.get_player_controller().ClientTravel()
+            results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_text3d_click', 'test_text3d_executor'])
+            print(results)
 
-        # if KismetSystemLibrary.IsDedicatedServer():
-        #     ue.log("hello from server")
-        #
-        #     # print("hello from server" + self.uobject.get_uproperty('StringHelloWorldProperty'))
-        #     # print("hello from server" + self.uobject.get_uproperty('StringHelloWorldProperty2'))  # .set_metadata('Category', 'CategoryTest001')
-        # else:
-        #     ue.log("hello from client")
-
-            # self.uobject.StringHelloWorldProperty = StrProperty()
-            # self.uobject.StringHelloWorldProperty2 = StrProperty()
-            # KismetSystemLibrary.SetStringPropertyByName(self.uobject, 'StringHelloWorldProperty', 'Hello World 001')
-            # KismetSystemLibrary.SetStringPropertyByName(self.uobject, 'StringHelloWorldProperty2', 'Hello World 002')
-            #
-            # # CPF_REP_NOTIFY # requires CPF_Net to also be set
-            # self.uobject.add_property_flags('StringHelloWorldProperty', CPF_NET)
-            # #self.uobject.StringHelloWorldProperty = 'Hello World 001'
-            # self.uobject.add_property_flags('StringHelloWorldProperty2', CPF_NET)
-            # #self.uobject.set_property('StringHelloWorldProperty2', 'Hello World 002')
-            # print("hello from client" + self.uobject.get_uproperty('StringHelloWorldProperty'))
-            # print("hello from client" + self.uobject.get_uproperty('StringHelloWorldProperty2'))  # .set_metadata('Category', 'CategoryTest001')
+        # post_startup() re-spawned and possessed a second drone (with a stale
+        # world global), competing with the possession done above. Disabled so
+        # there is a single possession method in main.py, as on master.
+        # post_startup(self.uobject)
 
 
 
-        # is_hitting_something, hit_result = KismetSystemLibrary.LineTraceSingle_NEW(self.actor, self.actor.get_actor_location(),FVector(300, 300, 300), ETraceTypeQuery.TraceTypeQuery1,DrawDebugType=EDrawDebugTrace.ForOneFrame)
-        # if is_hitting_something:
-        #     ue.log(hit_result)
-
-        self.test_kingdon()
-        # self.test_cylinder()
-        # self.test_text()
-        print("Testing gizmos")
-        _gizmo_cyl, _gizmo_giz = test_gizmos()
-        self._gizmo_tick = setup_gizmo_interaction(self.uobject, self.input, _gizmo_giz, _gizmo_cyl)
-        # example_unreal_rendering()
 
     # this is called at every 'tick'
     def tick(self, delta_time):
@@ -777,107 +432,20 @@ class Main:
 
         # self.input.print_cursor_info()
 
-        if hasattr(self, '_gizmo_tick'):
-            self._gizmo_tick(delta_time)
+        # Gizmo + Text3D ticks now run on their own PyActors
+        # (pyactor_gizmo.GizmoController, pyactor_global_click.PyActorGlobalClick).
 
-
-    def you_pressed_K(self):
-        ue.log_warning("=== YOU PRESSED K ===")
-        global RPC_ACTOR, CLIENT_HELPER
-        if not RPC_ACTOR:
-            print("Pressed k didn't have an rpc actor")
-            RPC_ACTOR = find_actor("LargeStringRPCActor")
-            print("pressed k found rpc actor", RPC_ACTOR)
-        else:
-            print("pressed k already has an rpc actor", RPC_ACTOR)
-
-        print("Found LargeStringRPCActors in pressed k", find_actors("LargeStringRPCActor"))
-        if not RPC_ACTOR.LargeString:
-            ue.log_warning("Creating LargeString on client")
-            RPC_ACTOR.LargeString = ue.new_object(LargeStringAsync)
-            ue.log_warning("Created LargeString on client")
-        else:
-            ue.log_warning("LargeString already exists in RPC_ACTOR")
-
-
-        # Create helper if not exists
-        if not CLIENT_HELPER:
-            CLIENT_HELPER = LargeStringAsyncStandalone(
-                large_string_obj=RPC_ACTOR.LargeString,
-                rpc_actor=RPC_ACTOR,
-                on_received_callback=client_on_full_string_received,
-                on_server_received_callback=None, # Client doesn't need server callback
-                on_progress_callback=progress_callback,
-                auto_send=True
-            )
-            ue.log("Created LargeStringAsyncStandalone helper")
-        else:
-            print("pressed k already has a helper actor", CLIENT_HELPER)
-
-
-        # Prepare test string
-        test_string = "U" * 1 * 1024 * 1024 # 100 * 1024 * 1024  # 100MB
-        ue.log_warning(f"Starting async build, length={len(test_string)}")
-
-        # Build chunks asynchronously
-        try:
-            RPC_ACTOR.LargeString.SetFromStringAsync(test_string)
-        except Exception as e:
-            ue.log_error(f"SetFromStringAsync failed: {e}")
-
-
-
-        # Send the string through various modes
-
-        # # Client → Server only
-        # CLIENT_HELPER.send_string(mode="server_only")
-
-        # # Server → Multicast to All clients
-        # CLIENT_HELPER.send_string(mode="multicast")
-        #
-        # # Server → Specific client
-        # target_pc = self.uobject.get_player_controller()
-        # CLIENT_HELPER.send_string(mode="client", target_client=target_pc)
-        #
-        # # Server → Single client (Explicit)
-        # CLIENT_HELPER.send_string(mode="server_to_client", target_client=target_pc)
-        #
-        # Client → Server → Multicast to All Clients
-        CLIENT_HELPER.send_string(mode="client_to_server_then_multicast")
-
-
-        # # Background swapping
-        # # Define the list of background types
-        # backgrounds = ["white", "black", "white_no_bloom", "white_no_emissive", "stars", "sky", "transparent", r"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Images\duck.hdr"]
-        #
-        # global current_bg_index  # needed to modify the variable outside the function
-        #
-        # bg = backgrounds[current_bg_index]
-        # print(bg)
-        # change_background(bg)
-        #
-        # # Move to the next index, loop back to 0 if at the end
-        # current_bg_index += 1
-        # if current_bg_index >= len(backgrounds):
-        #     current_bg_index = 0
-
-
-        # self.uobject.get_player_controller().ClientTravel("10.10.1.123:7777", ue.ETravelType.TRAVEL_Absolute)
-        # ue.log_warning('travel completed')
-        # ue.log("hello from client")
-        # self.server_event()
-        # print("hello from client" + self.uobject.get_uproperty('StringHelloWorldProperty'))
-        # print("hello from client" + self.uobject.get_uproperty('StringHelloWorldProperty2'))  # .set_metadata('Category', 'CategoryTest001')
 
     def test_kingdon(self):
+        import unicodedata
         ue.log("testing kingdon:")
         from kingdon import Algebra
         alg = Algebra(3, 0, 1)
         locals().update(alg.blades)
         b = alg.bivector(name='b')
-        ue.log(b)
+        ue.log(unicodedata.normalize('NFKC', str(b)))
 
-    def test_cylinder(self): # TODO: use instanced static meshes for the gridlines
+    def test_cylinder(self):
         ue.log("testing cylinder:")
         # new_actor = world.actor_spawn(Actor)
         # new_actor.set_actor_label('Test Actor')
@@ -914,9 +482,3 @@ class Main:
         cell_actor.set_actor_transform(transform)
         cell_actor.get_actor_component('Text3DComponent').Text = "HI"
         # print(cell_actor.get_actor_rotation().quaternion())
-
-
-
-
-# https://github.com/kprimo/UEPyTutorials/blob/main/Content/Scripts/Basic/DynamicTexture/dynamic_texture.py
-# https://github.com/kprimo/UEPyTutorials/blob/main/Content/Scripts/Advanced/StableDiffusion/RuntimeImage/runtime_image.py

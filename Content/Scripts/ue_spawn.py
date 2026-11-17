@@ -30,15 +30,13 @@ import numpy as np
 import unreal_engine as ue
 from unreal_engine import FVector, FRotator, FTransform
 from unreal_engine.classes import (
-    StaticMeshActor, StaticMesh, Material, Blueprint,
+    StaticMeshActor, StaticMesh, Material, Blueprint, SkeletalMesh,
 )
 from unreal_engine.enums import EComponentMobility, EPixelFormat
 from unreal_engine_tools import pil_image_to_texture, get_world, find_component
 from icon_to_image import extract_icon, get_folder_icons
 
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def _get_world():
     try:
@@ -58,22 +56,165 @@ def _set_transform(actor, location, rotation, scale):
     actor.set_actor_transform(transform)
 
 
+def spawn_pyactor(python_module, python_class,
+                  location=None, rotation=None, scale=None,
+                  components=None,
+                  bp_path='/Game/Blueprints/Assets/BP_PyActorEmpty.BP_PyActorEmpty',
+                  source_path=None,
+                  name=None):
+    """
+    Spawn a PyActor dynamically with the given Python module/class attached.
+
+    *components* is an optional list of dicts, each with:
+        class_name      : str  — UE component class (e.g. 'StaticMeshComponent')
+        name            : str  — component name
+        mesh            : str  — optional StaticMesh asset path -> SetStaticMesh
+        skeletal_mesh   : str  — optional SkeletalMesh asset path -> SetSkeletalMesh
+        rotation        : FRotator — optional component-relative rotation
+        hidden_in_game  : bool — if True, hide visually (collision still active)
+        root            : bool — if True, use add_actor_root_component
+
+    *bp_path* — host Blueprint to spawn (default BP_PyActorEmpty).
+    *source_path* — optional file path attached as ``actor.source_path``
+    so click handlers (e.g. pyactor_icon) can open it.
+    *name* — optional editor label (set via set_actor_label). Defaults to
+    ``python_class`` so each spawned actor gets a readable outliner name.
+
+    Returns the spawned actor.
+    """
+    world = _get_world()
+    loc = location if location is not None else FVector(0, 0, 0)
+    rot = rotation if rotation is not None else FRotator(0, 0, 0)
+
+    bp_pyactor = ue.load_object(Blueprint, bp_path)
+    # kwargs route UEP through SpawnActorDeferred -> set props -> FinishSpawning,
+    # so PythonModule/PythonClass are bound before BeginPlay fires.
+    actor = world.actor_spawn(
+        bp_pyactor.GeneratedClass, loc, rot,
+        PythonModule=python_module,
+        PythonClass=python_class,
+    )
+
+    if scale is not None:
+        actor.set_actor_transform(FTransform(loc, rot, scale))
+
+    # Components are added after BeginPlay — not visible in begin_play,
+    # accessible from first tick onward.
+    replaced_root = False
+    root_comp = None
+    if components:
+        # Add roots first so non-root components can be parented to them in a
+        # single SetupAttachment call (UEPython's add_actor_component(cls, name,
+        # parent) wires SetupAttachment before RegisterComponent — without it,
+        # SceneComponents stay unparented and ignore the actor's transform).
+        ordered = sorted(components, key=lambda c: 0 if c.get('root') else 1)
+        for comp in ordered:
+            cls = ue.find_class(comp['class_name'])
+            if comp.get('root', False):
+                c = actor.add_actor_root_component(cls, comp['name'])
+                replaced_root = True
+                root_comp = c
+            else:
+                parent = root_comp
+                if parent is None:
+                    try:
+                        parent = actor.get_actor_root_component()
+                    except Exception:
+                        parent = None
+                try:
+                    c = (actor.add_actor_component(cls, comp['name'], parent)
+                         if parent is not None
+                         else actor.add_actor_component(cls, comp['name']))
+                except Exception as e:
+                    ue.log_warning(
+                        f'spawn_pyactor: add_actor_component({comp["name"]}, parent=...) '
+                        f'failed: {e}; retrying without parent')
+                    c = actor.add_actor_component(cls, comp['name'])
+            # Mobility must be Movable before SetStaticMesh and before any
+            # set_actor_transform reapply — a Static root rejects transforms
+            # silently, leaving all spawns stacked at (0,0,0).
+            try:
+                c.Mobility = EComponentMobility.Movable
+            except Exception:
+                pass
+            if comp.get('mesh'):
+                mesh_obj = ue.load_object(StaticMesh, comp['mesh'])
+                c.SetStaticMesh(mesh_obj)
+            if comp.get('skeletal_mesh'):
+                skel_obj = ue.load_object(SkeletalMesh, comp['skeletal_mesh'])
+                try:
+                    c.SetSkeletalMesh(skel_obj)
+                except Exception as e:
+                    ue.log_warning(
+                        f'spawn_pyactor: SetSkeletalMesh({comp["skeletal_mesh"]}) '
+                        f'failed: {e}')
+            comp_rot = comp.get('rotation')
+            if comp_rot is not None:
+                try:
+                    c.set_relative_rotation(comp_rot)
+                except Exception as e:
+                    ue.log_warning(
+                        f'spawn_pyactor: set_relative_rotation on '
+                        f'{comp["name"]} failed: {e}')
+            if comp.get('hidden_in_game'):
+                try:
+                    c.SetHiddenInGame(True)
+                except Exception as e:
+                    ue.log_warning(
+                        f'spawn_pyactor: SetHiddenInGame on '
+                        f'{comp["name"]} failed: {e}')
+
+    # add_actor_root_component swaps the root SceneComponent and resets the
+    # actor's world transform to identity, undoing the loc/rot passed to
+    # actor_spawn. Re-apply it so e.g. spawn_camera_actor's per-preset Y
+    # offset survives.
+    if replaced_root:
+        scl = scale if scale is not None else FVector(1, 1, 1)
+        actor.set_actor_transform(FTransform(loc, rot, scl))
+
+    if actor is not None and source_path is not None:
+        try:
+            actor.source_path = source_path
+        except Exception as e:
+            ue.log_warning(f'spawn_pyactor: could not attach source_path: {e}')
+
+    if actor is not None:
+        try:
+            actor.set_actor_label(name if name else python_class)
+        except Exception:
+            pass
+
+    return actor
+
+
 def _exec_console(cmd):
     """Run a console command via the player controller."""
+    # Try world.get_player_controller first (standard UEP path)
     try:
-        pc = ue.get_player_controller(0)
+        pc = _get_world().get_player_controller(0)
         pc.ConsoleCommand(cmd)
+        return
+    except Exception:
+        pass
+    # Fallback: iterate world actors and find a PlayerController
+    try:
+        from unreal_engine.classes import PlayerController
+        for actor in _get_world().all_actors():
+            try:
+                if actor.is_a(PlayerController):
+                    actor.ConsoleCommand(cmd)
+                    return
+            except Exception:
+                continue
     except Exception as e:
         ue.log_warning(f'_exec_console: failed to run "{cmd}": {e}')
 
 
-# ---------------------------------------------------------------------------
 # Format conversion utilities
-# ---------------------------------------------------------------------------
 
-# ---- Image conversion -----------------------------------------------------
+# Image conversion
 
-IMAGE_NATIVE  = {'.png', '.jpg', '.jpeg', '.bmp', '.tga', '.tiff', '.exr', '.hdr'}
+IMAGE_NATIVE = {'.png', '.jpg', '.jpeg', '.bmp', '.tga', '.tiff', '.exr', '.hdr'}
 IMAGE_CONVERT = {'.webp', '.ico', '.gif', '.psd', '.svg'}  # -> PNG via Pillow
 
 def _ensure_image(path):
@@ -98,9 +239,9 @@ def _ensure_image(path):
     return path
 
 
-# ---- Video conversion -----------------------------------------------------
+# Video conversion
 
-VIDEO_NATIVE  = {'.mp4', '.avi'}
+VIDEO_NATIVE = {'.mp4', '.avi'}
 VIDEO_CONVERT = {'.mov', '.mkv', '.wmv', '.webm', '.flv', '.ts', '.m4v'}
 
 def _ensure_video(path):
@@ -117,7 +258,8 @@ def _ensure_video(path):
             ['ffmpeg', '-y', '-i', path,
              '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
              '-c:a', 'aac', tmp],
-            capture_output=True, text=True
+            capture_output=True, text=True,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
         if result.returncode == 0:
             ue.log(f'_ensure_video: converted "{ext}" -> MP4 ({tmp})')
@@ -129,9 +271,9 @@ def _ensure_video(path):
     return path
 
 
-# ---- 3-D format conversion ------------------------------------------------
+# 3-D format conversion
 
-OBJ_NATIVE  = {'.fbx'}
+OBJ_NATIVE = {'.fbx'}
 OBJ_TRIMESH = {'.obj', '.ply', '.stl', '.off', '.dae', '.gltf', '.glb'}
 OBJ_BLENDER = {'.blend', '.3ds', '.dxf', '.x3d', '.wrl'}
 
@@ -177,7 +319,8 @@ def _convert_via_blender(path, tmp_fbx):
         try:
             result = subprocess.run(
                 [exe, '--background', '--python', script_tmp],
-                capture_output=True, text=True, timeout=120
+                capture_output=True, text=True, timeout=120,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
             )
             if result.returncode == 0 and os.path.exists(tmp_fbx):
                 ue.log(f'_ensure_fbx: converted via Blender ({tmp_fbx})')
@@ -201,7 +344,7 @@ def _ensure_fbx(path):
 
     tmp_fbx = tempfile.mktemp(suffix='.fbx')
 
-    # --- trimesh (fast, no external app needed) ---
+    # trimesh (fast, no external app needed)
     if ext in OBJ_TRIMESH:
         try:
             import trimesh
@@ -215,7 +358,7 @@ def _ensure_fbx(path):
         except Exception as e:
             ue.log_warning(f'_ensure_fbx: trimesh failed: {e}. Trying Blender fallback...')
 
-    # --- Blender CLI fallback ---
+    # Blender CLI fallback
     if ext in OBJ_TRIMESH or ext in OBJ_BLENDER:
         if _convert_via_blender(path, tmp_fbx):
             return tmp_fbx
@@ -227,90 +370,101 @@ def _ensure_fbx(path):
     return None
 
 
-# ---------------------------------------------------------------------------
 # spawn_image
-# ---------------------------------------------------------------------------
 
 def spawn_image(path, location=None, rotation=None, scale=None,
-                material_path='/Game/Materials/M_ImagePlane',
+                material_path='/Game/Materials/M_TexturePicture',
                 param_name='Texture'):
     """
-    Spawn a thin cube scaled to image aspect ratio and textured with *path*.
+    Spawn a vertical cube textured with the image at *path* (picture frame).
 
-    Unsupported formats (.webp, .gif, .psd, etc.) are auto-converted to PNG.
-    The material at *material_path* must have a TextureSampleParameter2D
-    named *param_name*.
+    Uses M_TexturePicture as a MID with a pil_image_to_texture-generated
+    texture — no UE asset import required.  The cube is oriented vertically:
+    width on X, thin on Y, height on Z, sized to match the image's pixel
+    dimensions (1 px = 1 UU).
+
+    Unsupported formats are auto-converted to PNG via PIL.
     """
+    from PIL import Image as PILImage
+    from unreal_engine_tools import pil_image_to_texture
+
     world = _get_world()
     path = _ensure_image(path)
 
-    img_w, img_h = 100.0, 100.0
+    # load and size the image
     try:
-        from PIL import Image as PILImage
-        with PILImage.open(path) as im:
-            img_w, img_h = float(im.width), float(im.height)
-    except Exception:
-        pass
+        pil_img = PILImage.open(path).convert('RGBA')
+    except Exception as e:
+        ue.log_warning(f'spawn_image: cannot open "{path}": {e}')
+        return None
 
+    img_w, img_h = float(pil_img.width), float(pil_img.height)
+
+    # spawn cube actor (no location; transform set after)
     actor = world.actor_spawn(StaticMeshActor)
     smc = actor.StaticMeshComponent
-    smc.SetStaticMesh(ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube'))
+    cube = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube')
     smc.Mobility = EComponentMobility.Movable
+    smc.SetStaticMesh(cube)
 
-    mat = ue.load_object(Material, material_path)
+    # apply M_TexturePicture as MID, set texture parameter
+    mat = ue.load_object(Material, material_path + '.' + material_path.split('/')[-1])
+    if mat is None:
+        mat = ue.load_object(Material, material_path)
     if mat:
         try:
-            tex = None
-            try:
-                from unreal_engine.classes import TextureFactory
-                tex_name = os.path.splitext(os.path.basename(path))[0]
-                tex = TextureFactory().factory_import_object(
-                    path, f'/Game/SpawnTextures/{tex_name}')
-            except Exception as e:
-                ue.log_warning(f'spawn_image: texture import failed: {e}')
-            dmi = smc.CreateAndSetMaterialInstanceDynamic(0)
+            mid = smc.create_material_instance_dynamic(mat)
+            tex = pil_image_to_texture(pil_img)
             if tex:
-                dmi.SetTextureParameterValue(param_name, tex)
+                mid.set_material_texture_parameter(param_name, tex)
+            smc.set_material(0, mid)
         except Exception as e:
-            ue.log_warning(f'spawn_image: material setup failed: {e}')
+            ue.log_warning(f'spawn_image: material/texture setup failed: {e}')
+    else:
+        ue.log_warning(f'spawn_image: could not load material at "{material_path}"')
 
-    img_scale = scale if scale is not None else FVector(img_w / 100.0, img_h / 100.0, 0.01)
-    _set_transform(actor, location, rotation, img_scale)
+    # vertical picture-frame scaling: 1 px → 1 UU
+    # Default cube is 100×100×100 UU, so divide by 100 for unit scale.
+    # X = width, Z = height (vertical), Y = thin frame depth.
+    if scale is None:
+        scale = FVector(img_w / 100.0, 0.05, img_h / 100.0)
+    ue.log(f'spawn_image: "{os.path.basename(path)}" {int(img_w)}x{int(img_h)} px '
+           f'→ scale=({scale.x:.3f}, {scale.y:.3f}, {scale.z:.3f})  '
+           f'world size = {int(img_w)}x{int(scale.y*100)}x{int(img_h)} UU')
+    if rotation is None:
+        rotation = FRotator(0, 0, 90)  # 90° clockwise around Z (yaw)
+    _set_transform(actor, location, rotation, scale)
+    # Verify UE actually applied the non-uniform scale
+    try:
+        s = actor.get_actor_scale()
+        ue.log(f'spawn_image: actor scale readback = '
+               f'({s.x:.3f}, {s.y:.3f}, {s.z:.3f})')
+    except Exception:
+        pass
     return actor
 
 
-# ---------------------------------------------------------------------------
-# spawn_video
-# ---------------------------------------------------------------------------
-
-def spawn_video(path, location=None, rotation=None, scale=None,
-                material_path='/Game/Materials/M_VideoPlane',
-                param_name='MediaTexture',
-                autoplay=True):
+def spawn_video(video_path, location=None, rotation=None, scale=None,
+                     material_path='/Game/Movies/M_VideoTexture_Video',
+                     media_player_path='/Game/Movies/MP_VideoTexture'):
     """
-    Spawn a thin cube (like image plane, scaled to video resolution) and
-    drive it with a MediaPlayer + MediaTexture at runtime.
-
-    Unsupported video formats (.mov, .mkv, .webm, etc.) are auto-converted
-    to MP4 via ffmpeg.
-
-    The material at *material_path* must have a TextureSampleParameter2D
-    named *param_name* wired to a MediaTexture.
-
-    Returns (actor, media_player, media_texture) so callers can pause/seek.
+    Spawn a thin cube with M_VideoTexture_Video applied directly, and call
+    OpenUrl on the MediaPlayer so the material's existing MediaTexture →
+    MediaPlayer wiring plays the given video file.
     """
-    from unreal_engine.classes import MediaPlayer, MediaTexture, FileMediaSource
+    from unreal_engine.classes import MediaPlayer, FileMediaSource
 
     world = _get_world()
-    path = _ensure_video(path)
+    video_path = _ensure_video(video_path)
 
-    # Read video dimensions for aspect-ratio scale (via ffprobe)
-    vid_w, vid_h = 192.0, 108.0  # default 16:9 fallback
+    # read video dimensions for aspect-ratio scale
+    vid_w, vid_h = 1920.0, 1080.0
     try:
         result = subprocess.run(
             ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-             '-show_entries', 'stream=width,height', '-of', 'csv=p=0', path],
-            capture_output=True, text=True
+             '-show_entries', 'stream=width,height', '-of', 'csv=p=0', video_path],
+            capture_output=True, text=True,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
         parts = result.stdout.strip().split(',')
         if len(parts) == 2:
@@ -320,54 +474,347 @@ def spawn_video(path, location=None, rotation=None, scale=None,
 
     actor = world.actor_spawn(StaticMeshActor)
     smc = actor.StaticMeshComponent
-    smc.SetStaticMesh(ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube'))
     smc.Mobility = EComponentMobility.Movable
+    smc.SetStaticMesh(ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube'))
+    smc.set_material(0, ue.load_object(Material, material_path))
 
-    # Create runtime media objects
-    media_player  = ue.new_object(MediaPlayer)
-    media_texture = ue.new_object(MediaTexture)
-    media_source  = ue.new_object(FileMediaSource)
+    if scale is None:
+        scale = FVector(vid_w / 100.0, 0.05, vid_h / 100.0)
+    if rotation is None:
+        rotation = FRotator(0, 0, 90)  # 90° clockwise around Z (yaw)
+    _set_transform(actor, location, rotation, scale)
 
-    media_texture.set_media_player(media_player)
-    media_source.set_file_path(path)
+    try:
+        mp = ue.load_object(MediaPlayer, media_player_path)
+        media_source = ue.new_object(FileMediaSource)
+        media_source.set_property('FilePath', {'FilePath': os.path.abspath(video_path)})
+        mp.call_function('OpenSource', media_source)
+        mp.call_function('Play')
+    except Exception as e:
+        ue.log_warning(f'spawn_video: media setup failed: {e}')
+    return actor
 
-    # Bind MediaTexture to material
-    mat = ue.load_object(Material, material_path)
-    if mat:
-        try:
-            dmi = smc.CreateAndSetMaterialInstanceDynamic(0)
-            dmi.SetTextureParameterValue(param_name, media_texture)
-        except Exception as e:
-            ue.log_warning(f'spawn_video: material setup failed: {e}')
-    else:
-        ue.log_warning(
-            f'spawn_video: material not found at "{material_path}". '
-            f'Create a material with a TextureSampleParameter2D named "{param_name}".'
+
+# spawn_video_plane — uses BP_VideoSkySphere's SetVideoBackground pattern
+#
+# NOTE ON VIDEO IN THIS PROJECT:
+# The working video path is BP_VideoSkySphere.call_function("SetVideoBackground",
+# "file://" + abs_path).  That Blueprint wires MediaPlayer → MediaTexture →
+# FileMediaSource → Material internally via its Blueprint graph.  Trying to
+# create those objects from Python via ue.new_object() and wire them manually
+# does NOT produce a playable result in UE4.27+UEP — the MediaTexture never
+# receives frames because the Blueprint event graph (ReceiveTick, OnMediaOpened)
+# is what pumps the texture each frame.
+#
+# spawn_video_plane therefore spawns BP_VideoSkySphere and calls
+# SetVideoBackground, then repositions and rescales the actor to act as a
+# flat video picture frame instead of a sky sphere.
+
+# def spawn_video_plane(path, location=None, rotation=None, scale=None,
+#                       bp_path='/Game/Blueprints/Assets/BP_VideoSkySphere.BP_VideoSkySphere'):
+#     """
+#     Spawn a BP_VideoSkySphere and call ``SetVideoBackground("file://..." + path)``
+#     to play a video — the same proven method used by ``change_background("video", ...)``
+#     for the rainbow space sky background.
+#
+#     The actor is repositioned to *location* and optionally rescaled to *scale*.
+#     If *scale* is None, it is left at the Blueprint's default scale (sky sphere
+#     sized).  Pass a small scale like ``FVector(0.01, 0.01, 0.01)`` to use it as
+#     a room-scale video screen.
+#
+#     Parameters
+#     ----------
+#     path    : absolute filesystem path to an MP4 video
+#     location: FVector world position (default origin)
+#     rotation: FRotator (default identity)
+#     scale   : FVector  (default None = Blueprint default)
+#     bp_path : package path to the video-capable Blueprint
+#
+#     Returns
+#     -------
+#     actor   : the spawned BP_VideoSkySphere actor (holds MediaPlayer internally)
+#     """
+#     world = _get_world()
+#     path  = _ensure_video(path)
+#
+#     # spawn the Blueprint
+#     try:
+#         bp = ue.load_object(Blueprint, bp_path)
+#     except Exception as e:
+#         ue.log_warning(f'spawn_video_plane: could not load "{bp_path}": {e}')
+#         return None
+#     if bp is None:
+#         ue.log_warning(f'spawn_video_plane: Blueprint not found at "{bp_path}"')
+#         return None
+#
+#     try:
+#         actor = world.actor_spawn(bp.GeneratedClass)
+#     except Exception as e:
+#         ue.log_warning(f'spawn_video_plane: actor_spawn failed: {e}')
+#         return None
+#
+#     # position / scale
+#     _set_transform(actor, location, rotation, scale)
+#
+#     # play the video (same call as change_background("video", path))
+#     ue_path = "file://" + os.path.abspath(path)
+#     try:
+#         actor.call_function("SetVideoBackground", ue_path)
+#         ue.log(f'spawn_video_plane: SetVideoBackground("{os.path.basename(path)}") '
+#                f'on {actor.get_name()}')
+#     except Exception as e:
+#         ue.log_warning(f'spawn_video_plane: SetVideoBackground failed: {e}')
+#
+#     return actor
+
+
+# spawn_video
+#
+# def spawn_video(path, location=None, rotation=None, scale=None,
+#                 material_path='/Game/Movies/M_VideoTexture_Video',
+#                 param_name='MediaTexture',
+#                 autoplay=True):
+#     """
+#     Spawn a thin cube (like image plane, scaled to video resolution) and
+#     drive it with a MediaPlayer + MediaTexture at runtime.
+#
+#     Unsupported video formats (.mov, .mkv, .webm, etc.) are auto-converted
+#     to MP4 via ffmpeg.
+#
+#     The material at *material_path* must have a TextureSampleParameter2D
+#     named *param_name* wired to a MediaTexture.
+#
+#     Returns (actor, media_player, media_texture) so callers can pause/seek.
+#     """
+#     from unreal_engine.classes import MediaPlayer, MediaTexture, FileMediaSource
+#
+#     world = _get_world()
+#     path = _ensure_video(path)
+#
+#     # Read video dimensions for aspect-ratio scale (via ffprobe)
+#     vid_w, vid_h = 192.0, 108.0  # default 16:9 fallback
+#     try:
+#         result = subprocess.run(
+#             ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+#              '-show_entries', 'stream=width,height', '-of', 'csv=p=0', path],
+#             capture_output=True, text=True,
+#             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+#         )
+#         parts = result.stdout.strip().split(',')
+#         if len(parts) == 2:
+#             vid_w, vid_h = float(parts[0]), float(parts[1])
+#     except Exception:
+#         pass
+#
+#     actor = world.actor_spawn(StaticMeshActor)
+#     smc = actor.StaticMeshComponent
+#     smc.SetStaticMesh(ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube'))
+#     smc.Mobility = EComponentMobility.Movable
+#
+#     # Create runtime media objects
+#     media_player  = ue.new_object(MediaPlayer)
+#     media_texture = ue.new_object(MediaTexture)
+#     media_source  = ue.new_object(FileMediaSource)
+#
+#     media_texture.set_media_player(media_player)
+#     media_source.set_file_path(path)
+#
+#     # Bind MediaTexture to material
+#     mat = ue.load_object(Material, material_path)
+#     if mat:
+#         try:
+#             dmi = smc.CreateAndSetMaterialInstanceDynamic(0)
+#             dmi.SetTextureParameterValue(param_name, media_texture)
+#         except Exception as e:
+#             ue.log_warning(f'spawn_video: material setup failed: {e}')
+#     else:
+#         ue.log_warning(
+#             f'spawn_video: material not found at "{material_path}". '
+#             f'Create a material with a TextureSampleParameter2D named "{param_name}".'
+#         )
+#
+#     if autoplay:
+#         media_player.open_source(media_source)
+#         media_player.play()
+#
+#     vid_scale = scale if scale is not None else FVector(vid_w / 100.0, vid_h / 100.0, 0.01)
+#     _set_transform(actor, location, rotation, vid_scale)
+#     return actor, media_player, media_texture
+
+
+# Audio decode (arbitrary files -> s16le PCM via ffmpeg)
+
+AUDIO_FILE_EXTS = {'.wav', '.flac', '.mp3', '.ogg', '.m4a',
+                   '.aac', '.opus', '.wma', '.aif', '.aiff'}
+
+# Keep-alive registry: USoundWaveProcedural is garbage-collected the moment
+# no Python ref survives, which cuts playback mid-stream.
+_procedural_sounds = []
+
+
+def _decode_audio_to_pcm(path, target_rate=44100, target_channels=2):
+    """Decode any audio file to interleaved 16-bit signed PCM via ffmpeg.
+
+    Returns (pcm_bytes, sample_rate, num_channels) or (None, None, None).
+    Uses the same ffmpeg dependency as _ensure_video; no extra pip install.
+    """
+    if not os.path.isfile(path):
+        return None, None, None
+    try:
+        result = subprocess.run(
+            ['ffmpeg', '-hide_banner', '-loglevel', 'error',
+             '-i', path,
+             '-f', 's16le', '-acodec', 'pcm_s16le',
+             '-ar', str(target_rate), '-ac', str(target_channels),
+             '-'],
+            capture_output=True, timeout=180,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
+    except FileNotFoundError:
+        ue.log_warning('_decode_audio_to_pcm: ffmpeg not found on PATH.')
+        return None, None, None
+    except subprocess.TimeoutExpired:
+        ue.log_warning(f'_decode_audio_to_pcm: ffmpeg timeout on {path}')
+        return None, None, None
+    if result.returncode != 0:
+        ue.log_warning('_decode_audio_to_pcm: ffmpeg error:\n' +
+                       result.stderr.decode(errors='replace')[:500])
+        return None, None, None
+    return result.stdout, target_rate, target_channels
 
-    if autoplay:
-        media_player.open_source(media_source)
-        media_player.play()
 
-    vid_scale = scale if scale is not None else FVector(vid_w / 100.0, vid_h / 100.0, 0.01)
-    _set_transform(actor, location, rotation, vid_scale)
-    return actor, media_player, media_texture
+def _build_procedural_wave(path):
+    """Decode *path* to PCM and create a fresh USoundWaveProcedural.
+    Returns (sound_wave, pcm_bytes, duration_sec) or (None, None, 0).
+
+    The PCM is NOT queued on the wave — callers must call
+    ``sw.queue_audio(pcm)`` immediately before ``play_sound_at_location``.
+    Pre-queueing at decode time and playing later doesn't work: the audio
+    engine pulls from the queue only while a source is actively rendering,
+    and by the time a delayed play starts the queue state isn't what we
+    queued.  Queue-then-play back-to-back is the only reliable pattern.
+    """
+    from unreal_engine.classes import SoundWaveProcedural
+    pcm, rate, channels = _decode_audio_to_pcm(path)
+    if not pcm:
+        return None, None, 0
+    frames = len(pcm) // (2 * channels)          # 2 bytes per s16 sample
+    duration = frames / float(rate)
+
+    sw = ue.new_object(SoundWaveProcedural)
+    sw.SampleRate = rate
+    sw.NumChannels = channels
+    sw.Duration = duration + 1.0                # small safety margin
+    sw.SoundGroup = 0                             # SOUNDGROUP_Default
+    sw.bLooping = False
+    ue.log(f'_build_procedural_wave: prepared {duration:.2f}s '
+           f'({len(pcm)} bytes, {rate}Hz x{channels}) from {path}')
+    return sw, pcm, duration
 
 
-# ---------------------------------------------------------------------------
+def _play_audio_file(world, path, location, volume, pitch):
+    """Decode *path* and play it through a transient USoundWaveProcedural.
+    Returns the sound wave (held in _procedural_sounds so playback survives)."""
+    sw, pcm, _ = _build_procedural_wave(path)
+    if sw is None:
+        return None
+    sw.queue_audio(pcm)
+    world.play_sound_at_location(sw, location, volume, pitch, 0.0)
+    _procedural_sounds.append(sw)
+    return sw
+
+
+def _play_audio_file_as_actor(path, location, volume, pitch):
+    """Decode *path* and bind the resulting USoundWaveProcedural to a clickable
+    SoundSphere actor.  Click the sphere to play; nothing plays on spawn.
+
+    The wave AND the raw PCM are attached to the actor:
+      - ``actor.sound``      : the USoundWaveProcedural
+      - ``actor.sound_pcm``  : the decoded PCM bytes
+
+    SoundSphere._play() re-queues ``sound_pcm`` onto the wave immediately
+    before each play_sound_at_location call.  See _build_procedural_wave
+    for why pre-queueing at decode time doesn't work."""
+    sw, pcm, _ = _build_procedural_wave(path)
+    if sw is None:
+        return None
+
+    actor = spawn_pyactor(
+        'pyactor_sound', 'SoundSphere',
+        location=location,
+        components=[dict(class_name='StaticMeshComponent',
+                         name='Sphere', root=True,
+                         mesh='/Engine/BasicShapes/Sphere.Sphere')],
+        name=os.path.basename(path),
+        source_path=path)
+    if actor is None:
+        sw.queue_audio(pcm)
+        _procedural_sounds.append(sw)
+        ue.log_warning('_play_audio_file_as_actor: spawn_pyactor returned None; '
+                       'falling back to world playback.')
+        _get_world().play_sound_at_location(sw, location, volume, pitch, 0.0)
+        return None
+
+    # spawn_pyactor's root=True component replaces BP_PyActorEmpty's default
+    # root post-spawn, which resets the actor transform to identity.  Restore
+    # the requested location here so the sphere lands where the caller asked.
+    try:
+        actor.set_actor_location(location)
+    except Exception:
+        pass
+
+    # Bind the wave + PCM + playback params to the actor.  SoundSphere reads
+    # these on each click and re-queues sound_pcm onto sound right before
+    # play_sound_at_location.
+    try:
+        actor.sound = sw
+        actor.sound_pcm = pcm
+        actor.volume = float(volume)
+        actor.pitch = float(pitch)
+    except Exception as e:
+        ue.log_warning(f'_play_audio_file_as_actor: attr bind failed ({e}); '
+                       'falling back to world playback.')
+        sw.queue_audio(pcm)
+        _procedural_sounds.append(sw)
+        _get_world().play_sound_at_location(sw, location, volume, pitch, 0.0)
+    return actor
+
+
 # spawn_sound
-# ---------------------------------------------------------------------------
 
 def spawn_sound(path, location=None, volume=1.0, pitch=1.0,
                 start_time=0.0, as_actor=False):
     """
-    Play a sound immediately, or spawn a clickable/proximity sphere.
+    Play a sound immediately, or spawn a clickable sphere that plays on click.
 
-    *path*: UE asset path ('/Game/Sounds/MySound') or filesystem .wav.
-    *as_actor=True*: spawns BP_SoundSphere (see SoundSphereActor below).
+    *path*:
+      • UE asset path  ('/Game/Sounds/MySound') -> resolved via load_object
+      • Filesystem file (.wav/.flac/.mp3/.ogg/.m4a/...) -> decoded via ffmpeg
+        into a USoundWaveProcedural and played in place.
+
+    *as_actor=True*:
+      Spawns a SoundSphere that plays the sound on click via
+      play_sound_at_location.  Nothing plays on spawn.  Works for both UE
+      assets and filesystem audio files (the latter decoded via ffmpeg into
+      a transient USoundWaveProcedural, kept alive by the actor's lifetime).
+      *volume* and *pitch* are forwarded to play_sound_at_location at click
+      time (see pyactor_sound.SoundSphere._play).
     """
     world = _get_world()
     loc = location if location is not None else FVector(0, 0, 0)
+
+    # Filesystem audio file: decode and play via SoundWaveProcedural.
+    ext = os.path.splitext(path)[1].lower()
+    if ext in AUDIO_FILE_EXTS and os.path.isfile(path):
+        if as_actor:
+            actor = _play_audio_file_as_actor(path, loc, volume, pitch)
+            if actor is not None:
+                try:
+                    actor.start_time = float(start_time)
+                except Exception:
+                    pass
+            return actor
+        return _play_audio_file(world, path, loc, volume, pitch)
 
     sound = None
     try:
@@ -382,11 +829,19 @@ def spawn_sound(path, location=None, volume=1.0, pitch=1.0,
 
     if as_actor:
         try:
-            bp = ue.load_object(Blueprint, '/Game/Blueprints/BP_SoundSphere')
-            actor = world.actor_spawn(bp.GeneratedClass)
-            _set_transform(actor, loc, None, None)
+            actor = spawn_pyactor(
+                'pyactor_sound', 'SoundSphere',
+                location=loc,
+                components=[dict(class_name='StaticMeshComponent',
+                                 name='Sphere', root=True,
+                                 mesh='/Engine/BasicShapes/Sphere.Sphere')],
+                name=os.path.basename(path) if path else 'SoundSphere',
+                source_path=path)
             if sound:
-                actor.Sound = sound
+                actor.sound = sound
+            actor.volume = float(volume)
+            actor.pitch = float(pitch)
+            actor.start_time = float(start_time)
             return actor
         except Exception as e:
             ue.log_warning(f'spawn_sound as_actor failed: {e}. Falling back to play_at_location.')
@@ -398,9 +853,7 @@ def spawn_sound(path, location=None, volume=1.0, pitch=1.0,
     return None
 
 
-# ---------------------------------------------------------------------------
 # spawn_obj
-# ---------------------------------------------------------------------------
 
 def spawn_obj(path, location=None, rotation=None, scale=None,
               import_path='/Game/ImportedMeshes'):
@@ -448,9 +901,97 @@ def spawn_obj(path, location=None, rotation=None, scale=None,
     return actor
 
 
-# ---------------------------------------------------------------------------
+# spawn_gltf_runtime — runtime glTF loading via the glTFRuntime plugin
+
+def spawn_gltf_runtime(path, location=None, rotation=None, scale=None,
+                       path_relative_to_content=False,
+                       allow_animations=True,
+                       allow_cameras=True,
+                       allow_lights=True):
+    """
+    Spawn a glTF/glb file at runtime via the glTFRuntime plugin.
+
+    Unlike spawn_obj — which routes glTF through trimesh→FBX→PyFbxFactory or
+    GLTFImportFactory→AssetImportTask (both editor-import paths) — this
+    parses the file purely at runtime: no asset import, no DDC entry, no
+    .uasset on disk. Best fit for shipped builds and for user-supplied .glb
+    files at runtime.
+
+    *path*: filesystem path. Absolute is used as-is; relative is resolved
+    relative to cwd unless *path_relative_to_content* is True, in which case
+    the plugin resolves it under the project Content directory.
+
+    Asset is ExposeOnSpawn on AglTFRuntimeAssetActor and BeginPlay walks the
+    scenes/nodes to build the component hierarchy — so it must land before
+    BeginPlay. world.actor_spawn(...kwargs) routes through SpawnActorDeferred
+    → set props → FinishSpawning, which satisfies that.
+    """
+    # Lazy import: top-level would break ue_spawn for anyone running before
+    # the plugin gets built. Rebuilding emits these into unreal_engine.classes.
+    try:
+        from unreal_engine.classes import (
+            glTFRuntimeFunctionLibrary, glTFRuntimeAssetActor,
+        )
+    except ImportError as e:
+        ue.log_warning(
+            f'spawn_gltf_runtime: glTFRuntime classes unavailable ({e}) — '
+            'enable glTFRuntime in Starcel9.uproject and rebuild.')
+        return None
+
+    world = _get_world()
+
+    file_path = path
+    if file_path and not path_relative_to_content and not os.path.isabs(file_path):
+        file_path = os.path.abspath(file_path)
+    if not path_relative_to_content and file_path and not os.path.isfile(file_path):
+        ue.log_warning(f'spawn_gltf_runtime: file not found: "{file_path}"')
+        return None
+
+    lib = ue.new_object(glTFRuntimeFunctionLibrary)
+    try:
+        # FglTFRuntimeConfig has AutoCreateRefTerm — UEPython default-constructs
+        # it when omitted (SceneScale=100, TransformBaseType=Default, etc.).
+        asset = lib.call_function(
+            'glTFLoadAssetFromFilename', file_path, path_relative_to_content)
+    except Exception as e:
+        ue.log_warning(f'spawn_gltf_runtime: load failed: {e}')
+        return None
+
+    if asset is None:
+        ue.log_warning(
+            f'spawn_gltf_runtime: glTFLoadAssetFromFilename returned None for '
+            f'"{file_path}" — invalid/unsupported glTF?')
+        return None
+
+    loc = location if location is not None else FVector(0, 0, 0)
+    rot = rotation if rotation is not None else FRotator(0, 0, 0)
+
+    actor = world.actor_spawn(
+        glTFRuntimeAssetActor, loc, rot,
+        Asset=asset,
+        bAllowNodeAnimations=allow_animations,
+        bAllowSkeletalAnimations=allow_animations,
+        bAllowPoseAnimations=allow_animations,
+        bAllowCameras=allow_cameras,
+        bAllowLights=allow_lights,
+    )
+    if actor is None:
+        ue.log_warning('spawn_gltf_runtime: actor_spawn failed.')
+        return None
+
+    if scale is not None:
+        actor.set_actor_transform(FTransform(loc, rot, scale))
+
+    try:
+        actor.set_actor_label(
+            os.path.basename(path) if path else 'glTFRuntimeAsset')
+    except Exception:
+        pass
+
+    return actor
+
+
 # spawn_primitive
-# ---------------------------------------------------------------------------
 
 def spawn_primitive(primitive_type, location=None, rotation=None, scale=None):
     """Spawn a basic UE shape: 'cube' | 'sphere' | 'cylinder' | 'cone' | 'plane'"""
@@ -475,9 +1016,7 @@ def spawn_primitive(primitive_type, location=None, rotation=None, scale=None):
     return actor
 
 
-# ---------------------------------------------------------------------------
 # Camera presets
-# ---------------------------------------------------------------------------
 
 CAMERA_PRESETS = {
     # Standard / safe default
@@ -568,7 +1107,9 @@ def spawn_camera(location=None, rotation=None,
                  max_focal_length=None,
                  min_aperture=None,
                  max_aperture=None,
-                 dof_blade_count=None):
+                 dof_blade_count=None,
+                 set_view_target=True,
+                 view_blend_time=0.0):
     """
     Spawn a CineCameraActor or CameraActor with full lens / DOF / Panini control.
 
@@ -587,6 +1128,8 @@ def spawn_camera(location=None, rotation=None,
     screen_percentage : int   r.ScreenPercentage  (100=native, 150=super-sampled)
     min/max_focal_length, min/max_aperture : float  lens range limits
     dof_blade_count   : int   diaphragm blades (affects bokeh shape)
+    set_view_target   : bool  automatically view through this camera after spawn
+    view_blend_time   : float seconds for SetViewTargetWithBlend (0 = instant)
 
     Notes on Panini
     ---------------
@@ -609,18 +1152,18 @@ def spawn_camera(location=None, rotation=None,
     cfg = dict(CAMERA_PRESETS.get('default'))
     if preset and preset in CAMERA_PRESETS:
         cfg.update(CAMERA_PRESETS[preset])
-    if focal_length    is not None: cfg['focal_length']    = focal_length
-    if aperture        is not None: cfg['aperture']        = aperture
-    if sensor_width    is not None: cfg['sensor_width']    = sensor_width
-    if focus_distance  is not None: cfg['focus_distance']  = focus_distance
-    if panini:                      cfg['panini']          = True
-    if panini_d        != 0.5:      cfg['panini_d']        = panini_d
-    if panini_s        != 0.05:     cfg['panini_s']        = panini_s
+    if focal_length    is not None: cfg['focal_length'] = focal_length
+    if aperture        is not None: cfg['aperture'] = aperture
+    if sensor_width    is not None: cfg['sensor_width'] = sensor_width
+    if focus_distance  is not None: cfg['focus_distance'] = focus_distance
+    if panini:                      cfg['panini'] = True
+    if panini_d        != 0.5:      cfg['panini_d'] = panini_d
+    if panini_s        != 0.05:     cfg['panini_s'] = panini_s
     if screen_percentage != 150:    cfg['screen_percentage'] = screen_percentage
 
     actor = None
 
-    # --- CineCameraActor ---
+    # CineCameraActor
     if camera_type == 'cine':
         try:
             from unreal_engine.classes import CineCameraActor
@@ -628,10 +1171,10 @@ def spawn_camera(location=None, rotation=None,
             cam = actor.CameraComponent  # CineCameraComponent
 
             cam.CurrentFocalLength = cfg['focal_length']
-            cam.CurrentAperture    = cfg['aperture']
+            cam.CurrentAperture = cfg['aperture']
 
             try:
-                cam.FilmbackSettings.SensorWidth  = cfg['sensor_width']
+                cam.FilmbackSettings.SensorWidth = cfg['sensor_width']
                 cam.FilmbackSettings.SensorHeight = cfg['sensor_width'] * 9.0 / 16.0
             except Exception:
                 pass  # FilmbackSettings struct may vary by UE version
@@ -665,7 +1208,7 @@ def spawn_camera(location=None, rotation=None,
             ue.log_warning(f'spawn_camera (cine): {e}. Trying standard CameraActor...')
             camera_type = 'standard'
 
-    # --- Standard CameraActor ---
+    # Standard CameraActor
     if camera_type == 'standard' or actor is None:
         try:
             from unreal_engine.classes import CameraActor
@@ -678,10 +1221,10 @@ def spawn_camera(location=None, rotation=None,
 
     _set_transform(actor, location, rotation, FVector(1, 1, 1))
 
-    # --- Panini projection ---
+    # Panini projection
     if cfg.get('panini', False):
-        d   = cfg.get('panini_d', 0.5)
-        s   = cfg.get('panini_s', 0.05)
+        d = cfg.get('panini_d', 0.5)
+        s = cfg.get('panini_s', 0.05)
         pct = cfg.get('screen_percentage', 150)
         _exec_console(f'r.Upscale.Panini.D {d}')
         _exec_console(f'r.Upscale.Panini.S {s}')
@@ -694,6 +1237,14 @@ def spawn_camera(location=None, rotation=None,
         _exec_console('r.Upscale.Panini.S 0')
         _exec_console('r.ScreenPercentage 100')
 
+    # View through the camera
+    if set_view_target:
+        try:
+            pc = _get_world().get_player_controller(0)
+            pc.SetViewTargetWithBlend(actor, max(view_blend_time, 0.0))
+        except Exception as e:
+            ue.log_warning(f'spawn_camera: SetViewTarget failed: {e}')
+
     return actor
 
 
@@ -704,9 +1255,129 @@ def disable_panini():
     _exec_console('r.ScreenPercentage 100')
 
 
-# ---------------------------------------------------------------------------
+# spawn_camera_pawn — DefaultPawn + CineCameraComponent (possessable, flyable)
+
+def spawn_camera_pawn(location=None, rotation=None,
+                      preset=None,
+                      focal_length=None,
+                      aperture=None,
+                      sensor_width=None,
+                      focus_distance=None,
+                      min_focal_length=None,
+                      max_focal_length=None,
+                      min_aperture=None,
+                      max_aperture=None,
+                      dof_blade_count=None,
+                      possess=True,
+                      max_speed=1200.0):
+    """
+    Spawn a DefaultPawn with a CineCameraComponent attached — possessable
+    and flyable with standard WASD + mouse-look input.
+
+    Unlike spawn_camera (which spawns a CineCameraActor that can only be a
+    ViewTarget), this returns a Pawn that PlayerController.Possess() accepts.
+    DefaultPawn ships with a DefaultPawnMovementComponent that provides
+    noclip-style flight out of the box.
+
+    Parameters
+    ----------
+    preset        : str  — one of CAMERA_PRESETS keys
+    possess       : bool — auto-possess with player controller 0 after spawn
+    max_speed     : float — DefaultPawnMovementComponent MaxSpeed (UE units/sec)
+    (remaining lens/DOF params match spawn_camera)
+
+    Returns
+    -------
+    pawn (DefaultPawn with CineCameraComponent)
+    """
+    world = _get_world()
+
+    # Build config from preset + manual overrides (mirrors spawn_camera)
+    cfg = dict(CAMERA_PRESETS.get('default'))
+    if preset and preset in CAMERA_PRESETS:
+        cfg.update(CAMERA_PRESETS[preset])
+    if focal_length   is not None: cfg['focal_length'] = focal_length
+    if aperture       is not None: cfg['aperture'] = aperture
+    if sensor_width   is not None: cfg['sensor_width'] = sensor_width
+    if focus_distance is not None: cfg['focus_distance'] = focus_distance
+
+    try:
+        from unreal_engine.classes import DefaultPawn, CineCameraComponent
+    except Exception as e:
+        ue.log_warning(f'spawn_camera_pawn: cannot import classes: {e}')
+        return None
+
+    try:
+        pawn = world.actor_spawn(DefaultPawn)
+    except Exception as e:
+        ue.log_warning(f'spawn_camera_pawn: actor_spawn(DefaultPawn) failed: {e}')
+        return None
+
+    _set_transform(pawn, location, rotation, FVector(1, 1, 1))
+
+    # Attach CineCameraComponent. When the pawn is possessed, the player
+    # controller uses this component as the view (bFindCameraComponentWhenViewTarget).
+    try:
+        cam = pawn.add_actor_component(CineCameraComponent, 'CineCameraComponent')
+        cam.CurrentFocalLength = cfg['focal_length']
+        cam.CurrentAperture = cfg['aperture']
+
+        try:
+            cam.FilmbackSettings.SensorWidth = cfg['sensor_width']
+            cam.FilmbackSettings.SensorHeight = cfg['sensor_width'] * 9.0 / 16.0
+        except Exception:
+            pass
+
+        try:
+            cam.FocusSettings.ManualFocusDistance = cfg['focus_distance']
+            cam.FocusSettings.FocusMethod = 1  # EFocusMethod::Manual
+        except Exception:
+            pass
+
+        if min_focal_length is not None:
+            try: cam.LensSettings.MinFocalLength = min_focal_length
+            except Exception: pass
+        if max_focal_length is not None:
+            try: cam.LensSettings.MaxFocalLength = max_focal_length
+            except Exception: pass
+        if min_aperture is not None:
+            try: cam.LensSettings.MinFStop = min_aperture
+            except Exception: pass
+        if max_aperture is not None:
+            try: cam.LensSettings.MaxFStop = max_aperture
+            except Exception: pass
+        if dof_blade_count is not None:
+            try: cam.LensSettings.DiaphragmBladeCount = dof_blade_count
+            except Exception: pass
+
+        try: cam.post_edit_change()
+        except Exception: pass
+    except Exception as e:
+        ue.log_warning(f'spawn_camera_pawn: attach CineCameraComponent failed: {e}')
+
+    # Tune flight speed on the built-in movement component
+    try:
+        mc = pawn.get_actor_component_by_type(
+            ue.find_class('DefaultPawnMovementComponent'))
+        if mc is not None:
+            mc.MaxSpeed = max_speed
+    except Exception:
+        pass
+
+    # Possess with player controller 0 — this auto-sets view target to the pawn
+    if possess:
+        try:
+            pc = world.get_player_controller(0)
+            try: pc.UnPossess()
+            except Exception: pass
+            pc.Possess(pawn)
+        except Exception as e:
+            ue.log_warning(f'spawn_camera_pawn: Possess failed: {e}')
+
+    return pawn
+
+
 # spawn_class / spawn_blueprint
-# ---------------------------------------------------------------------------
 
 def spawn_class(uclass, location=None, rotation=None, scale=None):
     """Spawn an arbitrary UClass."""
@@ -728,9 +1399,7 @@ def spawn_blueprint(bp_path, location=None, rotation=None, scale=None):
     return actor
 
 
-# ---------------------------------------------------------------------------
 # spawn_earth — Cesium globe with tile overlay presets
-# ---------------------------------------------------------------------------
 
 # Ion Asset IDs for CesiumIonRasterOverlay
 EARTH_PRESETS = {
@@ -743,7 +1412,7 @@ EARTH_PRESETS = {
 def spawn_earth(location=None, rotation=None, scale=None,
                 preset='satellite',
                 asset_id=None,
-                bp_path='/Game/Blueprints/BP_CesiumEarth'):
+                bp_path='/Game/Blueprints/Assets/BP_CesiumEarth'):
     """
     Spawn a BP_CesiumEarth actor and configure its raster overlay.
 
@@ -802,44 +1471,709 @@ def spawn_earth(location=None, rotation=None, scale=None,
     return actor
 
 
+# spawn_table — render an nd_table.Table as Text3D actors
+# TODO: use instanced static meshes for the gridlines, add the holes in the block cheese
+def spawn_table(table, location=None, world_location=None,
+                orientation='wall_table', render_gridlines=True,
+                render_text=True, cell_spacing=100.0, auto_size=True):
+    """
+    Render an nd_table.Table as Text3D actors in the world.
+
+    Parameters
+    ----------
+    table           : nd_table.ndtable.Table
+    location        : FVector | None  (world origin; alias for world_location)
+    orientation     : 'wall_table' | 'ground_table'
+    render_gridlines: bool
+    render_text     : bool
+    cell_spacing    : float  UE units between cells
+    auto_size       : bool   when True, the table refits its row/column
+                             extents after a Text3D edit (via
+                             ``renderer.recompute_layout()``); when False
+                             the table keeps its current cell sizes.
+
+    Returns
+    -------
+    UnrealTableRenderer instance  (holds .cell_actors, .gridline_actors)
+    """
+    from nd_table.unreal_integration import UnrealTableRenderer
+    loc = world_location or location or FVector(0, 0, 0)
+    renderer = UnrealTableRenderer(
+        world=_get_world(),
+        cell_spacing=cell_spacing,
+        orientation_preset=orientation,
+        text_mode='3d',
+        auto_size=auto_size,
+    )
+    renderer.render_table(table, world_location=loc,
+                          render_gridlines=render_gridlines,
+                          render_text=render_text)
+    return renderer
 
 
-def spawn_icon(pil_image, location=FVector(0,0,0), rotation=FRotator(0,0,0), scale=FVector(1,1,1),
+# spawn_table_actor — PyActor-hosted table with per-frame resize tick
+
+def spawn_table_actor(table=None, location=None, rotation=None,
+                      orientation='wall_table', cell_spacing=100.0,
+                      render_gridlines=True, render_text=True,
+                      enable_resize=True, auto_size=True, name=None):
+    """
+    Spawn a PyActorTable that owns an UnrealTableRenderer and ticks its
+    gridline-resize controller every frame — no Main.tick forwarding.
+
+    If *table* is supplied it is rendered immediately. Otherwise call
+    ``actor.get_py_proxy().set_table(t)`` once the Table is ready.
+
+    Returns the PyActor. Access the underlying renderer via
+    ``actor.get_py_proxy().renderer`` or the convenience proxies
+    ``cell_actors`` / ``gridline_actors``.
+    """
+    actor = spawn_pyactor(
+        'pyactor_table', 'PyActorTable',
+        location=location, rotation=rotation,
+        name=name if name else 'Table')
+    if actor is None:
+        return None
+    try:
+        proxy = actor.get_py_proxy()
+        if proxy is not None:
+            proxy.orientation = orientation
+            proxy.cell_spacing = cell_spacing
+            proxy.render_gridlines = render_gridlines
+            proxy.render_text = render_text
+            proxy.enable_resize = enable_resize
+            proxy.auto_size = auto_size
+            if table is not None:
+                proxy.set_table(table)
+    except Exception as e:
+        ue.log_warning(f'spawn_table_actor: configure failed: {e}')
+    return actor
+
+
+# spawn_nd_table — comprehensive nD table grid (2D 10x10 through 7D)
+
+def spawn_nd_table(location=None, rotation=None, scale=None,
+                   source_path=None):
+    """
+    Spawn the comprehensive nD table grid (2D through 7D).
+
+    Wraps ``nd_table.test_nd_table_grid``.  Mirrors spawn_icon-style
+    inputs for consistency (location/rotation/scale ignored beyond
+    *location* — the grid lays itself out internally; the renderer is
+    returned so callers can post-transform if needed).
+
+    Parameters
+    ----------
+    location    : FVector  — base location for the grid (default (0, 0, 700))
+    source_path : str      — optional path attached to the renderer for
+                             downstream identification.
+
+    Returns
+    -------
+    UnrealTableRenderer (holds .cell_actors, .gridline_actors)
+    """
+    from nd_table import test_nd_table_grid
+
+    if location is None:
+        location = FVector(0, 0, 700)
+
+    renderer = test_nd_table_grid(base_location=location)
+
+    if renderer is not None and source_path is not None:
+        try:
+            renderer.source_path = source_path
+        except Exception:
+            pass
+    return renderer
+
+
+# spawn_text3d — Text3D actor (BP_Cell) with arbitrary text
+
+def spawn_text3d(text='', location=None, rotation=None, scale=None,
+                 bp_path='/Game/Blueprints/Assets/BP_Cell.BP_Cell',
+                 component_name='Text3DComponent',
+                 source_path=None,
+                 generate_overlap_events=True,
+                 enable_collision=True):
+    """
+    Spawn a BP_Cell actor and set its Text3DComponent text.
+
+    Mirrors the spawn_icon parameter style: payload (text) + location/rotation
+    /scale + bp_path + component_name + source_path.
+
+    Parameters
+    ----------
+    text                    : str  — content for Text3DComponent.Text
+    bp_path                 : str  — Blueprint path (default BP_Cell)
+    component_name          : str  — Text3D component to find on the actor
+    source_path             : str  — optional file path attached as
+                                     ``actor.source_path`` for click handlers
+    generate_overlap_events : bool — enable overlap events on the Text3D
+                                     component (needed for click traces)
+    enable_collision        : bool — enable actor collision so the Text3D
+                                     bounds can be hit-traced
+
+    Returns
+    -------
+    actor or None
+    """
+    actor = spawn_blueprint(bp_path, location, rotation, scale)
+    if actor is None:
+        ue.log_warning(f'spawn_text3d: spawn_blueprint failed for "{bp_path}"')
+        return None
+
+    # Set Text3D content + collision
+    try:
+        t3d = actor.get_actor_component(component_name)
+    except Exception as e:
+        ue.log_warning(f'spawn_text3d: get_actor_component("{component_name}") failed: {e}')
+        t3d = None
+
+    if t3d is not None:
+        try:
+            t3d.Text = text
+        except Exception as e:
+            ue.log_warning(f'spawn_text3d: setting Text failed: {e}')
+        if generate_overlap_events:
+            try:
+                t3d.SetGenerateOverlapEvents(True)
+            except Exception:
+                pass
+            try:
+                t3d.bGenerateOverlapEvents = True
+            except Exception:
+                pass
+    else:
+        ue.log_warning(
+            f'spawn_text3d: no "{component_name}" component on "{bp_path}"')
+
+    if enable_collision:
+        try:
+            actor.SetActorEnableCollision(True)
+        except Exception:
+            pass
+
+    if source_path is not None:
+        try:
+            actor.source_path = source_path
+        except Exception as e:
+            ue.log_warning(f'spawn_text3d: could not attach source_path: {e}')
+
+    return actor
+
+
+# spawn_text3d_pyactor — BP_PyActorEmpty (Python host) + BP_Cell (Text3D child)
+#
+# Returns the BP_PyActorEmpty parent. The spawned BP_Cell is attached to it and
+# stored as ``parent.text3d_actor`` for the Python proxy to consume on first
+# tick (see project_pyactor_attr_after_spawn memory — attrs set after
+# spawn_pyactor are not visible in begin_play).
+
+def spawn_text3d_pyactor(python_module, python_class,
+                         text='', location=None, rotation=None, scale=None,
+                         pyactor_bp_path='/Game/Blueprints/Assets/BP_PyActorEmpty.BP_PyActorEmpty',
+                         text3d_bp_path='/Game/Blueprints/Assets/BP_Cell.BP_Cell',
+                         component_name='Text3DComponent',
+                         source_path=None,
+                         generate_overlap_events=True,
+                         enable_collision=True,
+                         name=None):
+    """
+    Spawn a BP_PyActorEmpty hosting *python_module.python_class* and attach a
+    BP_Cell Text3D actor to it.
+
+    Same end result as spawn_text3d (a Text3D actor with *text* set), but the
+    actor is parented under a BP_PyActorEmpty so a Python proxy can run
+    alongside it. The Text3D child is stored as ``parent.text3d_actor`` and
+    the Python proxy reads it on first tick.
+
+    Parameters
+    ----------
+    python_module, python_class : str — Python proxy on the BP_PyActorEmpty
+    text                        : str — Text3DComponent.Text on the child
+    pyactor_bp_path             : str — host Blueprint (default BP_PyActorEmpty)
+    text3d_bp_path              : str — Text3D Blueprint  (default BP_Cell)
+    component_name              : str — Text3D component name on the child
+    source_path                 : str — attached as ``parent.source_path`` AND
+                                        ``child.source_path``
+    generate_overlap_events,
+    enable_collision            : bool — forwarded to spawn_text3d for the
+                                         child BP_Cell
+
+    Returns
+    -------
+    parent BP_PyActorEmpty actor (or None on failure)
+    """
+    parent = spawn_pyactor(python_module, python_class,
+                           location=location, rotation=rotation, scale=scale,
+                           bp_path=pyactor_bp_path,
+                           source_path=source_path,
+                           name=name or python_class)
+    if parent is None:
+        ue.log_warning(
+            f'spawn_text3d_pyactor: spawn_pyactor failed for '
+            f'"{python_module}.{python_class}"')
+        return None
+
+    text3d_actor = spawn_text3d(text=text,
+                                location=location, rotation=rotation, scale=scale,
+                                bp_path=text3d_bp_path,
+                                component_name=component_name,
+                                source_path=source_path,
+                                generate_overlap_events=generate_overlap_events,
+                                enable_collision=enable_collision)
+    if text3d_actor is None:
+        ue.log_warning('spawn_text3d_pyactor: spawn_text3d for child returned None')
+        return parent
+
+    # Attach child -> parent so the Text3D follows the BP_PyActorEmpty.
+    # Default attach rules (SnapLoc/KeepRot/SnapScale per
+    # attach_to_component_snap_defaults memory) zero the relative location;
+    # parent and child were spawned at the same world transform so the child
+    # stays put.
+    try:
+        text3d_actor.attach_to_actor(parent)
+    except Exception as e:
+        ue.log_warning(f'spawn_text3d_pyactor: attach_to_actor failed: {e}')
+
+    # Hand the child to the Python proxy. attr is set AFTER spawn_pyactor's
+    # actor_spawn finished BeginPlay, so the proxy must read it on first tick
+    # (project_pyactor_attr_after_spawn memory).
+    try:
+        parent.text3d_actor = text3d_actor
+    except Exception as e:
+        ue.log_warning(
+            f'spawn_text3d_pyactor: could not attach text3d_actor attr: {e}')
+
+    return parent
+
+
+# spawn_text3d_executor — Text3D pyactor that runs its text as Python on Ctrl+Enter
+
+def spawn_text3d_executor(text='', location=None, rotation=None, scale=None,
+                          pyactor_bp_path='/Game/Blueprints/Assets/BP_PyActorEmpty.BP_PyActorEmpty',
+                          text3d_bp_path='/Game/Blueprints/Assets/BP_Cell.BP_Cell',
+                          component_name='Text3DComponent',
+                          source_path=None,
+                          name=None):
+    """
+    Spawn a Text3D pyactor whose Text3DComponent.Text is executed as Python
+    when the user presses Ctrl+Enter.
+
+    Hosted on BP_PyActorEmpty with a BP_Cell Text3D child — same structure as
+    spawn_text3d_pyactor, with the Python proxy fixed to
+    pyactor_text3d_executor.PyActorText3DExecutor.
+
+    Returns the BP_PyActorEmpty parent (the Text3D child is at
+    ``actor.text3d_actor``).
+    """
+    return spawn_text3d_pyactor(
+        'pyactor_text3d_executor', 'PyActorText3DExecutor',
+        text=text, location=location, rotation=rotation, scale=scale,
+        pyactor_bp_path=pyactor_bp_path,
+        text3d_bp_path=text3d_bp_path,
+        component_name=component_name,
+        source_path=source_path,
+        name=name or 'Text3DExecutor')
+
+
+# spawn_desktop_icons — grid of BP_Icon actors from a folder's shell icons
+
+def spawn_desktop_icons(location=None, desktop_path=None, spacing=150,
+                        max_icons=50):
+    """
+    Scan a folder (default: Windows Desktop) for files, extract their Windows
+    shell icons via icon_to_image, and spawn a grid of BP_Icon actors.
+
+    Parameters
+    ----------
+    location     : FVector  — world origin of the grid bottom-left icon
+    desktop_path : str | None  — folder to scan; defaults to user Desktop
+    spacing      : float  — UE units between icon centres (default 150)
+    max_icons    : int    — cap on number of icons spawned
+
+    Returns
+    -------
+    list of spawned icon actors
+    """
+    import math
+    from icon_to_image import get_folder_icons
+
+    loc = location or FVector(0, 0, 0)
+    folder = desktop_path or os.path.join(os.path.expanduser('~'), 'Desktop')
+
+    try:
+        icons = get_folder_icons(folder)   # {path: PIL Image}
+    except Exception as e:
+        ue.log_warning(f'spawn_desktop_icons: could not scan "{folder}": {e}')
+        return []
+
+    paths = list(icons.items())[:max_icons]
+    cols = max(1, int(math.ceil(math.sqrt(len(paths)))))
+    actors = []
+
+    for i, (path, pil_img) in enumerate(paths):
+        col = i % cols
+        row = i // cols
+        icon_loc = FVector(
+            loc.x,
+            loc.y + col * spacing,
+            loc.z + row * spacing,
+        )
+        try:
+            actor = spawn_icon(pil_img, location=icon_loc, source_path=path)
+            if actor:
+                actors.append(actor)
+        except Exception as e:
+            ue.log_warning(f'spawn_desktop_icons: spawn_icon failed for "{path}": {e}')
+
+    ue.log(f'spawn_desktop_icons: spawned {len(actors)} icons from "{folder}"')
+    return actors
+
+
+# spawn_system_monitor — dynamic PyActor hosting a live sysinfo ticker
+
+def spawn_system_monitor(location=None, rotation=None, scale=None,
+                         name='SysMon'):
+    """
+    Spawn a system monitor PyActor with Text3DComponent.
+    The Python component updates its text every 2 seconds automatically.
+
+    Requires:
+      - sysinfo.py in Scripts/
+      - activity_tracker.py daemon running (optional; gracefully skipped)
+    """
+    actor = spawn_pyactor(
+        'pyactor_sysmon', 'PyActorSysmon',
+        location=location, rotation=rotation, scale=scale,
+        components=[dict(class_name='Text3DComponent',
+                         name='Text3DComponent', root=True)],
+        name=name)
+    # Set default text while waiting for first update
+    try:
+        t3d = find_component(actor, 'Text3DComponent')
+        if t3d:
+            t3d.Text = 'Loading...'
+    except Exception:
+        pass
+    return actor
+
+
+# spawn_camera_actor — dynamic PyActor hosting a CineCameraComponent
+
+def spawn_camera_actor(location=None, rotation=None,
+                       camera_type='normal', name=None):
+    """
+    Spawn a camera PyActor with CineCameraComponent.
+
+    camera_type options:
+      'normal'        Standard 35mm full-frame
+      'cinematic'     Wide 24mm f/2.8
+      'macro'         Extreme bokeh 50mm f/0.95
+      'bokeh'         Portrait 85mm f/1.4
+      'bokeh_tele'    Telephoto 135mm f/1.8
+      'panini'        14mm + Panini projection
+      'cctv'          6mm 1/3" sensor
+      'anamorphic'    40mm anamorphic
+      'orthographic'  Orthographic projection
+
+    Returns the spawned actor; its Python component (PyActorCamera) handles
+    lens/DOF settings automatically in begin_play.
+    """
+    actor = spawn_pyactor(
+        'pyactor_camera', 'PyActorCamera',
+        location=location, rotation=rotation,
+        components=[
+            dict(class_name='CineCameraComponent',
+                 name='CineCameraComponent', root=True),
+            # Invisible sphere handles cursor traces. Drone_Sphere_parent has
+            # no PhysicsAsset, so a SkeletalMeshComponent alone wouldn't
+            # register clicks via line trace.
+            dict(class_name='StaticMeshComponent',
+                 name='ClickProxy',
+                 mesh='/Engine/BasicShapes/Sphere.Sphere',
+                 hidden_in_game=True),
+            # Drone_Sphere_parent: visible drone, inherits the actor rotation
+            # so it faces the camera's shoot direction.
+            dict(class_name='SkeletalMeshComponent',
+                 name='DroneMesh',
+                 skeletal_mesh='/Game/Blueprints/Assets/DroneCharacter/'
+                               'Drone_Sphere_parent.Drone_Sphere_parent'),
+        ],
+        name=name if name else f'Camera_{camera_type}')
+    if actor is None:
+        return None
+    try:
+        actor.camera_type = camera_type
+    except Exception:
+        pass
+    return actor
+
+
+# spawn_file_explorer — dynamic PyActor hosting the FileExplorer component
+
+def spawn_file_explorer(location=None, rotation=None,
+                        initial_path=None, name=None):
+    """Spawn a FileExplorer PyActor that renders a file browser table.
+
+    The Python component populates a Name/Size/Date/Type table via
+    EverythingAPI + UnrealTableRenderer, then spawns one BP_Icon in the
+    leftmost column per file row.  BP_Icon's IconSphere handles clicks
+    and opens the file with the OS default handler.
+
+    Requires:
+      - Everything (Voidtools) running in background
+      - Everything64.dll next to everything_api.py
+      - BP_Icon at /Game/Blueprints/Assets/BP_Icon.BP_Icon
+    """
+    if name is None:
+        if initial_path:
+            leaf = os.path.basename(initial_path.rstrip('\\/')) or initial_path
+            name = f'FileExplorer_{leaf}'
+        else:
+            name = 'FileExplorer'
+    actor = spawn_pyactor(
+        'pyactor_file_explorer', 'FileExplorer',
+        location=location, rotation=rotation, name=name)
+    if actor is None:
+        return None
+    if initial_path is not None:
+        try:
+            actor.initial_path = initial_path
+        except Exception:
+            pass
+    return actor
+
+
+# spawn_plot — dynamic PyActor hosting pyactor_plotter.PyActorPlotter
+
+def spawn_plot(function_expr='sin(x)+cos(y)',
+               plot_type='surface',
+               mesh_mode='triangles',
+               orientation='ground_table',
+               resolution=32,
+               x_range=(-3.14159, 3.14159),
+               y_range=(-3.14159, 3.14159),
+               z_range=(-2.0, 2.0),
+               units_per_uu=100.0,
+               show_grid=True,
+               location=None,
+               rotation=None,
+               name=None):
+    """
+    Spawn a PyActorPlotter dynamically and render *function_expr* as a 3D plot.
+    No Blueprint placeholder required — uses BP_PyActorEmpty via spawn_pyactor.
+
+    Parameters
+    ----------
+    function_expr : str
+        Math expression of x and y, e.g. 'sin(x)+cos(y)', 'x**2-y**2',
+        'sin(sqrt(x**2+y**2))'.  Supports sin/cos/tan/sqrt/log/exp/abs/pi/e.
+    plot_type : str
+        'surface'   — z=f(x,y) colormap mesh  (default)
+        'heatmap'   — flat coloured panel
+        'contour'   — contour lines
+        'wireframe' — wireframe mesh
+    mesh_mode : str
+        'triangles'    — per-triangle tilted Plane actors (default)
+        'spheres'      — sphere at each vertex
+        'sphere_lines' — spheres + cylinder edges
+    orientation : str
+        'ground_table' — horizontal, z rises up  (default)
+        'wall_table'   — vertical panel, y down
+        'wall_graph'   — vertical panel, y up
+    resolution : int
+        Grid samples per axis. 32 is fast; 64 is detailed.
+    x_range / y_range / z_range : (float, float)
+        Math-space axis limits.
+    units_per_uu : float
+        How many math units fit in 100 UE units (scale).
+    show_grid : bool
+        Draw axis grid lines.
+    location / rotation : FVector / FRotator
+        World transform.
+    name : str
+        Optional editor label. Defaults to ``Plot_<function_expr>``.
+
+    Returns
+    -------
+    actor | None
+    """
+    # PyActorPlotter.begin_play calls render() with whatever attributes are
+    # set on the instance. Attributes are best applied before the tick — so
+    # we patch the proxy immediately after spawn and re-render to guarantee
+    # the requested params take effect (begin_play may have already fired
+    # with defaults by the time we reach here).
+    actor = spawn_pyactor(
+        'pyactor_plotter', 'PyActorPlotter',
+        location=location, rotation=rotation,
+        name=name if name else f'Plot_{function_expr}')
+    if actor is None:
+        return None
+
+    try:
+        proxy = actor.get_py_proxy()
+        if proxy is not None:
+            proxy.function_expr = function_expr
+            proxy.plot_type = plot_type
+            proxy.mesh_mode = mesh_mode
+            proxy.orientation = orientation
+            proxy.resolution = resolution
+            proxy.x_range = x_range
+            proxy.y_range = y_range
+            proxy.z_range = z_range
+            proxy.units_per_uu = units_per_uu
+            proxy.show_grid = show_grid
+            proxy.render()
+    except Exception as e:
+        ue.log_warning(f'spawn_plot: could not configure PyActorPlotter: {e}')
+
+    return actor
+
+
+# spawn_gizmo — interactive transform gizmo (target + handles)
+#
+# The per-frame drag/hover tick now lives on a pyactor_gizmo.GizmoController
+# PyActor, so no Main.tick forwarding is required.
+
+def spawn_gizmo(location=None, rotation=None, scale=None,
+                uobject=None, input_manager=None,
+                source_path=None, name=None):
+    """
+    Spawn the interactive transform gizmo (target cylinder + move/rotate/
+    scale/plane handles) and optionally wire up drag interaction.
+
+    Mirrors spawn_icon-style inputs (location/rotation/scale + source_path).
+    The gizmo's geometry pieces are built in code via primitives in
+    ``gizmo.py``; the interaction tick is hosted by a GizmoController
+    PyActor spawned via spawn_pyactor.
+
+    Parameters
+    ----------
+    location      : FVector  — target spawn position (default (0, 0, 100))
+    rotation      : FRotator — applied to the target after spawn
+    scale         : FVector  — applied to the target after spawn
+    uobject       : PyActor UObject — required for interactivity (cursor traces)
+    input_manager : InputManager   — required for interactivity (LMB binds)
+    source_path   : str            — optional path attached to ``target``
+    name          : str            — optional editor label on the controller
+
+    Returns
+    -------
+    (target_actor, handles_dict, gizmo_controller_actor_or_None)
+      — the third value is the spawned GizmoController PyActor when
+        uobject + input_manager were supplied, else None (static gizmo).
+    """
+    from gizmo import test_gizmos, _piece_off, _bbox_dynamic
+
+    if location is None:
+        location = FVector(0, 0, 100)
+
+    target, gizmo_root, handles = test_gizmos(location=location)
+
+    if rotation is not None or scale is not None:
+        try:
+            _set_transform(target, location, rotation, scale)
+        except Exception as e:
+            ue.log_warning(f'spawn_gizmo: post-spawn transform failed: {e}')
+
+    if source_path is not None and target is not None:
+        try:
+            target.source_path = source_path
+        except Exception as e:
+            ue.log_warning(f'spawn_gizmo: could not attach source_path: {e}')
+
+    pyactor = None
+    if uobject is not None and input_manager is not None:
+        try:
+            pyactor = spawn_pyactor(
+                'pyactor_gizmo', 'GizmoController',
+                location=location,
+                name=name if name else 'GizmoController')
+            proxy = pyactor.get_py_proxy()
+            proxy.setup(
+                uobject=uobject,
+                input_manager=input_manager,
+                target=target,
+                handles=handles,
+                piece_offsets=_piece_off,
+                bbox_dynamic=_bbox_dynamic,
+            )
+        except Exception as e:
+            ue.log_warning(f'spawn_gizmo: GizmoController setup failed: {e}')
+
+    return target, handles, pyactor
+
+
+# File-type detection — extended with new types
+
+TABLE_KEYWORDS = {'table', 'nd_table', 'ndtable'}
+SYSMON_KEYWORDS = {'sysmon', 'system_monitor', 'systemmonitor', 'monitor'}
+DESKTOP_KEYWORDS = {'desktop', 'desktop_icons', 'desktopicons'}
+PLOT_KEYWORDS = {'plot', 'math_plot', 'mathplot', 'heatmap', 'surface', 'chart', 'graph'}
+GIZMO_KEYWORDS = {'gizmo', 'transform_gizmo', 'transformgizmo'}
+TEXT3D_KEYWORDS = {'text3d', 'text_3d', 'cell', 'bp_cell'}
+NDTABLE_KEYWORDS = {'nd_table_grid', 'ndtablegrid', 'nd_grid'}
+PYACTOR_KEYWORDS = {'pyactor', 'py_actor', 'pyactorempty'}
+
+def spawn_icon(pil_image, location=None, rotation=None, scale=None,
                material_path='/Game/Materials/M_Icon.M_Icon',
                param_name='Texture',
                bp_path='/Game/Blueprints/Assets/BP_Icon.BP_Icon',
-               component_name = 'Sphere'):
+               component_name = 'Sphere',
+               source_path=None):
     """
     Spawn a BP_Icon actor and apply *pil_image* as *param_name* texture.
 
     BP_Icon should have:
       • A StaticMeshComponent (sphere or any mesh)
-      • A Python component pointing to ue_components.IconHoverComponent
-        (hover-shrink effect is handled there)
-
-    The IconHoverComponent class is kept in ue_components.py but is also
-    defined below for reference — do not attach it again here.
+      • A Python component pointing to pyactor_icon.IconSphere
+        (hover-shrink + click-to-open handled there)
 
     Requires Pillow and a material at *material_path* with a
     TextureSampleParameter2D named *param_name*.
+
+    Parameters
+    ----------
+    source_path : str or None
+        Filesystem path the icon represents (e.g. the .exe or .png the
+        PIL image was extracted from).  If provided, the path is attached
+        to the spawned actor as ``actor.source_path`` so that
+        ``pyactor_icon.IconSphere`` can open it on click using the OS
+        default handler (``os.startfile`` on Windows — same as a Windows
+        Explorer double-click).
     """
+    if location is None:
+        location = FVector(0, 0, 0)
+    if rotation is None:
+        rotation = FRotator(0, 0, 0)
+    if scale is None:
+        scale = FVector(1, 1, 1)
     world = _get_world()
-    # print("ue_spawn.py world", world)
 
-    actor = None # TODO: Almost certainly needs to be a class variable to stop GC from collecting it
+    actor = None
 
-    # Spawn BP_Icon (hover effect comes from its Python component)
+    # Spawn BP_Icon (hover/click/physics configured in Blueprint)
     try:
         bp = ue.load_object(Blueprint, bp_path)
-        actor = world.actor_spawn(bp.GeneratedClass) # , location)
-        print("PRINTING ACTOR", actor)
+        actor = world.actor_spawn(bp.GeneratedClass)
         actor.set_actor_transform(FTransform(location, rotation, scale))
         target_comp = find_component(actor, component_name)
     except Exception as e:
-        ue.log_warning(f'spawn_icon: could not load BP_Icon at "{bp_path}": {e}. '
-                       'Make sure BP_Icon exists in your project.')
+        ue.log_warning(f'spawn_icon: could not load BP_Icon at "{bp_path}": {e}')
         return None
 
+    # Attach the source path to the actor.  Note: world.actor_spawn()
+    # already ran BP_Icon's BeginPlay (and therefore IconSphere.begin_play)
+    # synchronously, so this assignment happens AFTER begin_play has
+    # finished.  That's fine — IconSphere reads source_path lazily via
+    # _get_source_path() every time the user clicks, so it picks up the
+    # value whenever it arrives.
+    if source_path is not None:
+        try:
+            actor.source_path = source_path
+        except Exception as e:
+            ue.log_warning(f'spawn_icon: could not attach source_path: {e}')
 
     try:
         tex = pil_image_to_texture(pil_image)
@@ -884,27 +2218,80 @@ def spawn_icon(pil_image, location=FVector(0,0,0), rotation=FRotator(0,0,0), sca
     _set_transform(actor, location, rotation, scale)
     return actor
 
-# ---------------------------------------------------------------------------
-# File-type detection
-# ---------------------------------------------------------------------------
 
-IMAGE_EXTS  = {'.png', '.jpg', '.jpeg', '.bmp', '.tga', '.tiff', '.exr',
+def spawn_icon_from_path(path, location=None, rotation=None, scale=None,
+                         material_path='/Game/Materials/M_Icon.M_Icon',
+                         param_name='Texture',
+                         bp_path='/Game/Blueprints/Assets/BP_Icon.BP_Icon',
+                         component_name='Sphere',
+                         source_path=None,
+                         simulate_physics=True):
+    """Extract the Windows shell icon from *path* and spawn a BP_Icon for it.
+
+    Wraps ``extract_icon + spawn_icon``.  All spawn_icon-style parameters
+    (material_path, param_name, bp_path, component_name) are forwarded so
+    callers can swap the host Blueprint or its texture parameter.
+
+    The spawned actor gets ``source_path`` attached (defaults to *path*) so
+    pyactor_icon.IconSphere can open the file with the OS default handler
+    on click (same as a Windows Explorer double-click).
+
+    Parameters
+    ----------
+    path             : str       filesystem path (e.g. an .exe)
+    simulate_physics : bool      enable physics on the *component_name*
+                                 component.  Note: enabling this can break
+                                 click/hover detection in some BPs.
+    source_path      : str|None  override what gets attached as
+                                 ``actor.source_path`` (defaults to *path*).
+    """
+    from icon_to_image import extract_icon
+    info = extract_icon(path, preview=True, return_info=True)
+    actor = spawn_icon(info["image"],
+                       location=location, rotation=rotation, scale=scale,
+                       material_path=material_path,
+                       param_name=param_name,
+                       bp_path=bp_path,
+                       component_name=component_name,
+                       source_path=source_path if source_path is not None else path)
+    if actor and simulate_physics:
+        try:
+            actor.get_actor_component(component_name).SetSimulatePhysics(True)
+        except Exception as e:
+            ue.log_warning(
+                f'spawn_icon_from_path: SetSimulatePhysics failed: {e}')
+    return actor
+
+
+# File-type detection
+
+IMAGE_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tga', '.tiff', '.exr',
                '.hdr', '.webp', '.ico', '.gif', '.psd'}
-VIDEO_EXTS  = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.webm', '.flv',
+VIDEO_EXTS = {'.mp4', '.avi', '.mov', '.mkv', '.wmv', '.webm', '.flv',
                '.ts', '.m4v'}
-SOUND_EXTS  = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff'}
-OBJ_EXTS    = {'.fbx', '.obj', '.dae', '.collada', '.3ds', '.ply', '.stl',
+SOUND_EXTS = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff'}
+OBJ_EXTS = {'.fbx', '.obj', '.dae', '.collada', '.3ds', '.ply', '.stl',
                '.gltf', '.glb', '.blend', '.dxf', '.x3d', '.wrl', '.off'}
-PRIMITIVE_NAMES  = {'cube', 'sphere', 'cylinder', 'cone', 'plane'}
-CAMERA_KEYWORDS  = {'camera', 'cam', 'cine', 'cinecamera'}
-EARTH_KEYWORDS   = {'earth', 'globe', 'cesium', 'cesiumearth'}
+PRIMITIVE_NAMES = {'cube', 'sphere', 'cylinder', 'cone', 'plane'}
+CAMERA_KEYWORDS = {'camera', 'cam', 'cine', 'cinecamera'}
+CAMERA_PAWN_KEYWORDS = {'camera_pawn', 'campawn', 'flycam', 'flycamera',
+                        'pawn_camera', 'possessable_camera'}
+EARTH_KEYWORDS = {'earth', 'globe', 'cesium', 'cesiumearth'}
 
 
 def _detect_type(path_or_name):
     lower = path_or_name.lower()
     if lower in PRIMITIVE_NAMES:  return 'primitive'
+    if lower in CAMERA_PAWN_KEYWORDS: return 'camera_pawn'
     if lower in CAMERA_KEYWORDS:  return 'camera'
     if lower in EARTH_KEYWORDS:   return 'earth'
+    if lower in NDTABLE_KEYWORDS: return 'nd_table'
+    if lower in TABLE_KEYWORDS:   return 'table'
+    if lower in SYSMON_KEYWORDS:  return 'sysmon'
+    if lower in DESKTOP_KEYWORDS: return 'desktop'
+    if lower in GIZMO_KEYWORDS:   return 'gizmo'
+    if lower in TEXT3D_KEYWORDS:  return 'text3d'
+    if lower in PYACTOR_KEYWORDS: return 'pyactor'
     ext = os.path.splitext(lower)[1]
     if ext in IMAGE_EXTS:         return 'image'
     if ext in VIDEO_EXTS:         return 'video'
@@ -915,9 +2302,7 @@ def _detect_type(path_or_name):
     return None
 
 
-# ---------------------------------------------------------------------------
 # Main spawn()
-# ---------------------------------------------------------------------------
 
 def spawn(
     path_or_type,
@@ -961,7 +2346,33 @@ def spawn(
     # Earth / Cesium options
     earth_preset='satellite',
     earth_asset_id=None,
-    earth_bp_path='/Game/Blueprints/BP_CesiumEarth',
+    earth_bp_path='/Game/Blueprints/Assets/BP_CesiumEarth',
+    # Table options
+    table_data=None,
+    orientation='wall_table',
+    render_gridlines=True,
+    render_text=True,
+    cell_spacing=100.0,
+    # Desktop icon options
+    desktop_path=None,
+    icon_spacing=150,
+    max_icons=50,
+    # Text3D / BP_Cell
+    text='',
+    text3d_bp_path='/Game/Blueprints/Assets/BP_Cell.BP_Cell',
+    text3d_component_name='Text3DComponent',
+    # PyActor
+    python_module=None,
+    python_class=None,
+    pyactor_components=None,
+    pyactor_bp_path='/Game/Blueprints/Assets/BP_PyActorEmpty.BP_PyActorEmpty',
+    # Gizmo
+    gizmo_uobject=None,
+    gizmo_input_manager=None,
+    # Common — applies to spawn_icon-style functions
+    component_name=None,
+    source_path=None,
+    name=None,
 ):
     """
     Universal spawn function for UnrealEnginePython.
@@ -976,7 +2387,9 @@ def spawn(
     obj         .fbx .obj .glb .gltf .dae .ply .stl .blend .3ds …
                                                          (auto-converts to FBX)
     primitive   'cube' 'sphere' 'cylinder' 'cone' 'plane'
-    camera      'camera' 'cam' 'cine'
+    camera      'camera' 'cam' 'cine'       (CineCameraActor — view target only)
+    camera_pawn 'camera_pawn' 'flycam'      (DefaultPawn + CineCameraComponent,
+                                             possessable and flyable)
     earth       'earth' 'globe' 'cesium'  (Cesium globe via BP_CesiumEarth)
     blueprint   '/Game/…' UE content path
     class       pass uclass= parameter
@@ -1011,7 +2424,8 @@ def spawn(
         ue.log_warning(
             f'spawn: cannot detect type for "{path_or_type}". '
             'Pass type= explicitly. '
-            'Supported: image, video, sound, obj, primitive, camera, class, blueprint.'
+            'Supported: image, video, sound, obj, primitive, camera, earth, '
+            'table, sysmon, desktop, class, blueprint.'
         )
         return None
 
@@ -1060,6 +2474,21 @@ def spawn(
             dof_blade_count=dof_blade_count,
         )
 
+    elif detected == 'camera_pawn':
+        return spawn_camera_pawn(
+            location=location, rotation=rotation,
+            preset=camera_preset,
+            focal_length=focal_length,
+            aperture=aperture,
+            sensor_width=sensor_width,
+            focus_distance=focus_distance,
+            min_focal_length=min_focal_length,
+            max_focal_length=max_focal_length,
+            min_aperture=min_aperture,
+            max_aperture=max_aperture,
+            dof_blade_count=dof_blade_count,
+        )
+
     elif detected == 'earth':
         return spawn_earth(
             location=location, rotation=rotation, scale=scale,
@@ -1067,6 +2496,23 @@ def spawn(
             asset_id=earth_asset_id,
             bp_path=earth_bp_path,
         )
+
+    elif detected == 'table':
+        if table_data is None:
+            ue.log_warning('spawn: type="table" requires table_data= parameter.')
+            return None
+        return spawn_table(table_data, location=location,
+                           orientation=orientation,
+                           render_gridlines=render_gridlines,
+                           render_text=render_text,
+                           cell_spacing=cell_spacing)
+
+    elif detected == 'sysmon':
+        return spawn_system_monitor(location, rotation, scale)
+
+    elif detected == 'desktop':
+        return spawn_desktop_icons(location, desktop_path=desktop_path,
+                                   spacing=icon_spacing, max_icons=max_icons)
 
     elif detected == 'class':
         if uclass is None:
@@ -1077,14 +2523,41 @@ def spawn(
     elif detected == 'blueprint':
         return spawn_blueprint(path_or_type, location, rotation, scale)
 
+    elif detected == 'gizmo':
+        return spawn_gizmo(location=location, rotation=rotation, scale=scale,
+                           uobject=gizmo_uobject,
+                           input_manager=gizmo_input_manager,
+                           source_path=source_path)
+
+    elif detected == 'text3d':
+        return spawn_text3d(text=text,
+                            location=location, rotation=rotation, scale=scale,
+                            bp_path=text3d_bp_path,
+                            component_name=component_name or text3d_component_name,
+                            source_path=source_path)
+
+    elif detected == 'pyactor':
+        if python_module is None or python_class is None:
+            ue.log_warning(
+                'spawn: type="pyactor" requires python_module= and python_class= parameters.')
+            return None
+        return spawn_pyactor(python_module, python_class,
+                             location=location, rotation=rotation, scale=scale,
+                             components=pyactor_components,
+                             bp_path=pyactor_bp_path,
+                             source_path=source_path,
+                             name=name)
+
+    elif detected == 'nd_table':
+        return spawn_nd_table(location=location, rotation=rotation, scale=scale,
+                              source_path=source_path)
+
     else:
         ue.log_warning(f'spawn: unknown type "{detected}".')
         return None
 
 
-# ---------------------------------------------------------------------------
 # Usage examples
-# ---------------------------------------------------------------------------
 #
 # from ue_spawn import spawn, spawn_icon, spawn_earth, disable_panini
 # from ue_spawn import CAMERA_PRESETS, EARTH_PRESETS
@@ -1105,6 +2578,13 @@ def spawn(
 #
 # # 3-D mesh (GLB → auto-converted to FBX via trimesh)
 # mesh = spawn('C:/models/chair.glb', location=FVector(0, 0, 0))
+#
+# # 3-D mesh (GLB → runtime parsing via glTFRuntime, no asset import)
+# import os, unreal_engine as ue
+# from ue_spawn import spawn_gltf_runtime
+# duck = spawn_gltf_runtime(
+#     os.path.join(os.path.abspath(ue.get_content_dir()), 'Models', 'Duck.glb'),
+#     location=FVector(0, 0, 100))
 #
 # # 3-D mesh (Blender file → Blender CLI conversion)
 # mesh = spawn('C:/models/scene.blend', location=FVector(100, 0, 0))

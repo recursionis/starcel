@@ -33,20 +33,20 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData\Private"
 /I Runtime
 /I Runtime\Projects\Public
 /I Runtime\TraceLog\Public
 /I Runtime\Core\Public
 /I Runtime\Json\Public
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Inc\LargeData"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\MPFR\include"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\GMP\include"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\boost\include"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\xtensor\include"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\hdf5\include"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Inc\LargeData"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\MPFR\include"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\GMP\include"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\boost\include"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\xtensor\include"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\ThirdParty\hdf5\include"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData\Public"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\CoreUObject
 /I Runtime\CoreUObject\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\Engine
@@ -268,9 +268,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.Cpp17.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.Cpp17.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.Cpp17.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Module.LargeData.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Definitions.LargeData.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Module.LargeData.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Module.LargeData.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Definitions.LargeData.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4Editor\Development\LargeData\Module.LargeData.cpp.obj"
 /TP
 /GR-
 /W4

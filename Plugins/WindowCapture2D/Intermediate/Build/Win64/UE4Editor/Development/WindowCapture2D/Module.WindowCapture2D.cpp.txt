@@ -1,8 +1,8 @@
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Definitions.WindowCapture2D.h
-C:/Users/nicho/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/CaptureMachine.cpp
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\CaptureMachine.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\CaptureMachineProperties.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\CaptureMachineProperties.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Definitions.WindowCapture2D.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/CaptureMachine.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\CaptureMachine.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\CaptureMachineProperties.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\CaptureMachineProperties.generated.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/WindowsHWrapper.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/PreWindowsApi.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/MinWindows.h
@@ -103,8 +103,8 @@ C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\stralign.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\imm.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\ime_cmodes.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/PostWindowsApi.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\CaptureMachine.generated.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Private\../Private/Utils/WCWorkerThread.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\CaptureMachine.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Private\../Private/Utils/WCWorkerThread.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\dwmapi.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\wtypes.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\rpc.h
@@ -142,14 +142,14 @@ C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\poppack.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\dpa_dsa.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\pshpack1.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\poppack.h
-C:/Users/nicho/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/Utils/WCWorkerThread.cpp
-C:/Users/nicho/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCapture2D.cpp
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCapture2D.h
-C:/Users/nicho/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCaptureActor.cpp
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCaptureActor.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\WindowCaptureActor.generated.h
-C:/Users/nicho/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCaptureWidget.cpp
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCaptureWidget.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/Utils/WCWorkerThread.cpp
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCapture2D.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCapture2D.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCaptureActor.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCaptureActor.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\WindowCaptureActor.generated.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/WindowCapture2D/Source/WindowCapture2D/Private/WindowCaptureWidget.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public\WindowCaptureWidget.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\UMG\Public\blueprint/UserWidget.h
 C:\UE_4.27Chaos_Source\Engine\Source\Runtime\UMG\Public\Components/SlateWrapperTypes.h
 C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UMG\SlateWrapperTypes.generated.h
@@ -249,4 +249,4 @@ C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\PropertyPat
 C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UMG\DynamicPropertyPath.generated.h
 C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UMG\WidgetBlueprintGeneratedClass.generated.h
 C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UMG\UserWidget.generated.h
-C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\WindowCaptureWidget.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D\WindowCaptureWidget.generated.h

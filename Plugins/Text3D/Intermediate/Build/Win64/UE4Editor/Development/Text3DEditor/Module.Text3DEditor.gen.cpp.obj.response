@@ -33,10 +33,10 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3DEditor\Private"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3DEditor"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3DEditor\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3DEditor\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3DEditor"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3DEditor\Public"
 /I Runtime
 /I Runtime\TraceLog\Public
 /I Runtime\Core\Public
@@ -51,8 +51,8 @@
 /I Runtime\InputCore\Public
 /I Runtime\ApplicationCore\Public
 /I Runtime\RHI\Public
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\Engine
 /I Runtime\Engine\Classes
 /I Runtime\Engine\Public
@@ -265,9 +265,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Module.Text3DEditor.gen.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Definitions.Text3DEditor.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Module.Text3DEditor.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Module.Text3DEditor.gen.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Definitions.Text3DEditor.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Module.Text3DEditor.gen.cpp.obj"
 /TP
 /GR-
 /W4

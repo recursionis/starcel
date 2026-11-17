@@ -23,9 +23,7 @@ import copy
 import inspect
 
 
-# ============================================================================
 # CELL REFERENCE PROXY (for variable syntax)
-# ============================================================================
 
 class CellReference:
     """
@@ -124,9 +122,7 @@ def create_cell_globals():
     return cell_refs
 
 
-# ============================================================================
 # CELL CLASS (with numpy backend option)
-# ============================================================================
 
 class Cell:
     """Cell storage - raw values, formulas, metadata"""
@@ -150,9 +146,7 @@ class Cell:
         return f"Cell({', '.join(parts)})"
 
 
-# ============================================================================
 # ENHANCED AXIS CLASS
-# ============================================================================
 
 class Axis:
     """
@@ -289,9 +283,7 @@ def spreadsheet_labels(num_labels: int) -> List[str]:
     return labels
 
 
-# ============================================================================
 # UNDO/REDO SYSTEM
-# ============================================================================
 
 class UndoRedoSystem:
     """
@@ -362,9 +354,7 @@ class UndoRedoSystem:
         return True
 
 
-# ============================================================================
 # ENHANCED DEPENDENCY GRAPH
-# ============================================================================
 
 class DependencyGraph:
     """
@@ -496,9 +486,7 @@ class DependencyGraph:
         return "\n".join(lines)
 
 
-# ============================================================================
 # TABLE CLASS (ENHANCED)
-# ============================================================================
 
 class Table:
     """
@@ -1062,11 +1050,15 @@ class Table:
         
     def _get_formula_context(self) -> Dict:
         """Get context for formula evaluation"""
-        import math
+        import math, builtins
         context = {
-            '__builtins__': __builtins__,
+            '__builtins__': builtins.__dict__ if hasattr(builtins, '__dict__') else builtins,
             'math': math,
             'np': np,
+            # Common builtins explicitly for safety
+            'max': max, 'min': min, 'sum': sum, 'abs': abs,
+            'round': round, 'len': len, 'int': int, 'float': float,
+            'str': str, 'bool': bool, 'list': list,
         }
         
         # Add global tables

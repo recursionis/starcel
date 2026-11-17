@@ -29,30 +29,18 @@ import struct
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-_WIN_TICKS        = 10_000_000
-_EPOCH_DIFF_TICKS = (
-    datetime.datetime(1970, 1, 1) - datetime.datetime(1601, 1, 1)
-).total_seconds() * _WIN_TICKS
+from utils import filetime_to_dt as _filetime_to_dt
 
 
-def _filetime_to_dt(raw: int) -> Optional[datetime.datetime]:
-    if raw in (0, 2**64 - 1):
-        return None
-    try:
-        return datetime.datetime.fromtimestamp((raw - _EPOCH_DIFF_TICKS) / _WIN_TICKS)
-    except (OSError, ValueError):
-        return None
-
-
-REQ_FILE_NAME    = 0x00000001
-REQ_PATH         = 0x00000002
-REQ_SIZE         = 0x00000010
+REQ_FILE_NAME = 0x00000001
+REQ_PATH = 0x00000002
+REQ_SIZE = 0x00000010
 REQ_DATE_CREATED = 0x00000020
 REQ_DATE_MODIFIED= 0x00000040
-REQ_ATTRIBUTES   = 0x00000100
+REQ_ATTRIBUTES = 0x00000100
 
-SORT_NAME_ASC    = 1
-SORT_SIZE_DESC   = 6
+SORT_NAME_ASC = 1
+SORT_SIZE_DESC = 6
 
 
 class EverythingAPI:
@@ -81,28 +69,28 @@ class EverythingAPI:
 
     def _setup(self) -> None:
         d = self._dll
-        d.Everything_SetSearchW.argtypes    = [ctypes.c_wchar_p]
-        d.Everything_SetSearchW.restype     = None
+        d.Everything_SetSearchW.argtypes = [ctypes.c_wchar_p]
+        d.Everything_SetSearchW.restype = None
         d.Everything_SetRequestFlags.argtypes = [ctypes.c_uint]
-        d.Everything_SetRequestFlags.restype  = None
-        d.Everything_SetSort.argtypes       = [ctypes.c_uint]
-        d.Everything_SetSort.restype        = None
-        d.Everything_SetMax.argtypes        = [ctypes.c_uint]
-        d.Everything_SetMax.restype         = None
-        d.Everything_QueryW.argtypes        = [ctypes.c_bool]
-        d.Everything_QueryW.restype         = ctypes.c_bool
+        d.Everything_SetRequestFlags.restype = None
+        d.Everything_SetSort.argtypes = [ctypes.c_uint]
+        d.Everything_SetSort.restype = None
+        d.Everything_SetMax.argtypes = [ctypes.c_uint]
+        d.Everything_SetMax.restype = None
+        d.Everything_QueryW.argtypes = [ctypes.c_bool]
+        d.Everything_QueryW.restype = ctypes.c_bool
         d.Everything_GetNumResults.argtypes = []
-        d.Everything_GetNumResults.restype  = ctypes.c_uint
+        d.Everything_GetNumResults.restype = ctypes.c_uint
         d.Everything_GetTotResults.argtypes = []
-        d.Everything_GetTotResults.restype  = ctypes.c_uint
+        d.Everything_GetTotResults.restype = ctypes.c_uint
         d.Everything_GetResultFileNameW.argtypes = [ctypes.c_uint]
-        d.Everything_GetResultFileNameW.restype  = ctypes.c_wchar_p
+        d.Everything_GetResultFileNameW.restype = ctypes.c_wchar_p
         d.Everything_GetResultPathW.argtypes = [ctypes.c_uint]
-        d.Everything_GetResultPathW.restype  = ctypes.c_wchar_p
-        d.Everything_GetResultSize.argtypes  = [ctypes.c_uint, ctypes.POINTER(ctypes.c_ulonglong)]
-        d.Everything_GetResultSize.restype   = ctypes.c_bool
-        d.Everything_IsResultFolder.argtypes = [ctypes.c_uint]
-        d.Everything_IsResultFolder.restype  = ctypes.c_bool
+        d.Everything_GetResultPathW.restype = ctypes.c_wchar_p
+        d.Everything_GetResultSize.argtypes = [ctypes.c_uint, ctypes.POINTER(ctypes.c_ulonglong)]
+        d.Everything_GetResultSize.restype = ctypes.c_bool
+        d.Everything_IsFolderResult.argtypes = [ctypes.c_uint]
+        d.Everything_IsFolderResult.restype = ctypes.c_bool
 
     def _query(self, query: str, max_results: int = 1,
                flags: int = REQ_FILE_NAME | REQ_PATH | REQ_SIZE) -> None:
@@ -132,6 +120,6 @@ class EverythingAPI:
                 "path":      path,
                 "full_path": os.path.join(path, name),
                 "size":      size_buf.value,
-                "is_folder": self._dll.Everything_IsResultFolder(i),
+                "is_folder": self._dll.Everything_IsFolderResult(i),
             })
         return results

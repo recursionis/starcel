@@ -33,10 +33,10 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Private"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public"
 /I Runtime
 /I Runtime\TraceLog\Public
 /I Runtime\Core\Public
@@ -265,9 +265,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Definitions.SaveExtension.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Definitions.SaveExtension.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp.obj"
 /TP
 /GR-
 /W4

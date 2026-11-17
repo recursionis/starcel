@@ -1,9 +1,19 @@
+import os
 import unreal_engine as ue
 from unreal_engine.classes import KismetMathLibrary
-from unreal_engine import FVector, FRotator, FQuat
+from unreal_engine import FVector, FRotator, FQuat, FTransform
 from constants import FiniteRepetitionSelector
 from input_devices import Keyboard, Mouse, HotkeyManager, TraceHelper
 import math
+
+try:
+    from unreal_engine.classes import StaticMeshActor, StaticMesh, Material
+    from unreal_engine.enums import EComponentMobility
+except Exception:
+    StaticMeshActor = None
+    StaticMesh = None
+    Material = None
+    EComponentMobility = None
 
 # TYPING REFERENCE (never changes):
 #   FVector  -> .x  .y  .z
@@ -33,9 +43,9 @@ class PyPawnDrone:
     SCALE_LERP_SPEED = 20.0
     DEBUG = False
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Lifecycle                                                           #
-    # ------------------------------------------------------------------ #
+    # #
 
     def begin_play(self):
         self.pawn = self.uobject
@@ -46,38 +56,171 @@ class PyPawnDrone:
         self.legacy_mode = True # keep true as quat mode is broken
 
         rot = self.uobject.get_actor_rotation()   # FRotator
-        self._yaw   = rot.yaw
+        self._yaw = rot.yaw
         self._pitch = rot.pitch
-        self._roll  = rot.roll
+        self._roll = rot.roll
 
         self._axis_forward = 0.0
-        self._axis_right   = 0.0
-        self._axis_up      = 0.0
+        self._axis_right = 0.0
+        self._axis_up = 0.0
         self._axis_mouse_x = 0.0
         self._axis_mouse_y = 0.0
 
-        self._target_scale      = self.uobject.get_actor_scale()  # FVector
+        self._target_scale = self.uobject.get_actor_scale()  # FVector
         self._target_arm_length = None   # init from component on first tick
 
-        self.size_selector  = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
+        self.size_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
         self.speed_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
-        self.arm_selector   = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
+        self.arm_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
 
         self.keyboard = Keyboard()
-        self.mouse    = Mouse()
-        self.input    = HotkeyManager(self.uobject, self.keyboard, self.mouse)
+        self.mouse = Mouse()
+        self.input = HotkeyManager(self.uobject, self.keyboard, self.mouse)
+
+        # Crosshair image plane attached to Screen component
+        self.crosshair_actor = None
+        self._spawn_crosshair()
+
         self._dbg("PyPawnDrone: begin_play OK")
 
+    # #
+    #  Crosshair — tiny image plane attached to Screen cube center        #
+    # #
+
+    CROSSHAIR_PATH = r'C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Materials\crosshair.png'
+    CROSSHAIR_MATS = (
+        '/Game/Materials/M_TexturePicture',
+        '/Game/Materials/M_TextureUnlit',
+    )
+    CROSSHAIR_PARAM = 'Texture'
+    CROSSHAIR_SCALE = .0285   # multiplier so tiny PNGs are visible at distance
+    SCREEN_NAME = 'Screen'
+
+    def _spawn_crosshair(self):
+        """Add a StaticMeshComponent (cube) to the owning actor, attach it
+        to the Screen component, and texture it with crosshair.png.
+
+        This does NOT spawn a separate actor or touch the Screen's own
+        material — it creates a new component on the same actor."""
+        from unreal_engine_tools import find_component
+        from unreal_engine.classes import StaticMeshComponent
+
+        screen = find_component(self.uobject, self.SCREEN_NAME)
+        if screen is None:
+            self._dbg(f'PyPawnDrone: no "{self.SCREEN_NAME}" component — '
+                      'crosshair skipped')
+            return
+
+        if not os.path.exists(self.CROSSHAIR_PATH):
+            ue.log_warning(f'PyPawnDrone: crosshair not found: '
+                           f'"{self.CROSSHAIR_PATH}"')
+            return
+
+        try:
+            from PIL import Image as PILImage
+            from unreal_engine_tools import pil_image_to_texture
+
+            pil_img = PILImage.open(self.CROSSHAIR_PATH).convert('RGBA')
+            img_w, img_h = float(pil_img.width), float(pil_img.height)
+
+            # Load material
+            mat = None
+            mat_name = None
+            for mp in self.CROSSHAIR_MATS:
+                if mat is not None:
+                    break
+                for path in (mp + '.' + mp.split('/')[-1], mp):
+                    try:
+                        mat = ue.load_object(Material, path)
+                        mat_name = mp.split('/')[-1]
+                        break
+                    except Exception:
+                        pass
+
+            if mat is None:
+                ue.log_warning(f'PyPawnDrone: no usable crosshair material '
+                               f'(tried {[m.split("/")[-1] for m in self.CROSSHAIR_MATS]}) '
+                               '— skipping crosshair')
+                return
+
+            tex = pil_image_to_texture(pil_img)
+            if tex is None:
+                ue.log_warning('PyPawnDrone: pil_image_to_texture returned None')
+                return
+
+            # Spawn a SEPARATE actor (add_actor_component crashes BP actors
+            # with construction scripts during begin_play)
+            from unreal_engine_tools import get_world
+            world = self.uobject.get_world() or get_world()
+            actor = world.actor_spawn(StaticMeshActor)
+            # Disable collision so the Screen's SpringArm probe doesn't trip
+            # on the crosshair and collapse the arm to the drone center.
+            actor.SetActorEnableCollision(False)
+            smc = actor.StaticMeshComponent
+            smc.Mobility = EComponentMobility.Movable
+            cube = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube')
+            smc.SetStaticMesh(cube)
+
+            mid = smc.create_material_instance_dynamic(mat)
+            mid.set_material_texture_parameter(self.CROSSHAIR_PARAM, tex)
+            smc.set_material(0, mid)
+
+            # attach_to_component defaults are SnapToTarget(loc) / KeepWorld(rot) /
+            # SnapToTarget(scale), which wipes the relative transform on attach.
+            # Pass all-KeepRelative (0) so post-attach SetRelative* calls stick.
+            actor.attach_to_component(screen, '', 0, 0, 0, False)
+
+            # Mark scale absolute so parent (Screen / pawn) scale changes
+            # after spawn don't stretch the cube. The Screen's world scale
+            # reads as (1,1,1) at begin_play but ends up non-uniform later;
+            # without this the cube inherits that stretch.
+            try:
+                smc.SetAbsolute(False, False, True)
+            except Exception:
+                try:
+                    smc.bAbsoluteScale = True
+                except Exception:
+                    pass
+
+            tgt = (img_w * self.CROSSHAIR_SCALE / 100.0)
+            actor.set_actor_scale(FVector(0.001, tgt, tgt))
+
+            # y_rel = -(50.0 + 0.5 / py)
+            actor.K2_SetActorRelativeLocation(FVector(0, 0, 0))
+
+            self.crosshair_actor = actor  # keep ref for cleanup
+            ue.log(f'PyPawnDrone: crosshair {int(img_w)}x{int(img_h)} px '
+                   f'component attached to "{self.SCREEN_NAME}" (mat={mat_name})')
+        except Exception as e:
+            ue.log_warning(f'PyPawnDrone: crosshair spawn failed: {e}')
+
     def end_play(self, reason):
+        if hasattr(self, 'crosshair_actor') and self.crosshair_actor:
+            try:
+                self.crosshair_actor.DestroyComponent()
+            except Exception:
+                try:
+                    self.crosshair_actor.actor_destroy()
+                except Exception:
+                    pass
         if hasattr(self, 'input') and self.input:
             self.input.shutdown()
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Input setup                                                         #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _setup_input(self):
         self._dbg("PyPawnDrone: _setup_input")
+        pc = self.uobject.get_player_controller()
+        if pc is None:
+            ue.log_warning("PyPawnDrone: _setup_input called before Possess; aborting")
+            return
+        # APawn::EnableInput is a no-op override (just toggles bInputEnabled)
+        # and does NOT create the pawn's InputComponent, so pawn.bind_axis
+        # raises "no input manager for this uobject". Bind through the PC's
+        # InputComponent instead — InitInputSystem guarantees it exists.
+        self.input = HotkeyManager(pc, self.keyboard, self.mouse)
         self.input.bind_axis("MoveForward", self._on_axis_forward)
         self.input.bind_axis("MoveRight",   self._on_axis_right)
         self.input.bind_axis("MoveUp",      self._on_axis_up)
@@ -90,9 +233,9 @@ class PyPawnDrone:
         self.input.bind_press("MouseScrollUp",   self._on_scroll_up)
         self.input.bind_press("MouseScrollDown", self._on_scroll_down)
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Helpers                                                             #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _get_component(self, name):
         try:
@@ -114,9 +257,9 @@ class PyPawnDrone:
         self.continuous_tilt = not self.continuous_tilt
         if not self.continuous_tilt:
             rot = self.uobject.get_actor_rotation()
-            self._yaw   = rot.yaw
+            self._yaw = rot.yaw
             self._pitch = rot.pitch
-            self._roll  = rot.roll
+            self._roll = rot.roll
         self._dbg(f"PyPawnDrone: continuous_tilt={'ON' if self.continuous_tilt else 'OFF'}")
 
     def toggle_debug(self):
@@ -127,17 +270,35 @@ class PyPawnDrone:
         if self.DEBUG:
             ue.log(f"[DBG] {msg}")
 
-    # ------------------------------------------------------------------ #
-    #  Axis handlers                                                       #
-    # ------------------------------------------------------------------ #
+    def _is_typing(self):
+        """True when a Text3D actor is focused for typing — drone input
+        (movement, rotation, scroll modes, MMB roll, Alt freelook) should
+        be suppressed so 'w', mouse moves, AltGr, etc. don't double as
+        drone controls. Release handlers stay ungated so any state set
+        before typing started still gets cleaned up on key release."""
+        try:
+            from pyactor_global_click import PyActorGlobalClick
+            return PyActorGlobalClick.is_any_focused()
+        except Exception:
+            return False
 
-    def _on_axis_forward(self, v): self._axis_forward = v
-    def _on_axis_right(self, v):   self._axis_right   = v
-    def _on_axis_up(self, v):      self._axis_up      = v
-    def _on_mouse_x(self, v):      self._axis_mouse_x = v
-    def _on_mouse_y(self, v):      self._axis_mouse_y = v
+    # #
+    #  Axis handlers                                                       #
+    # #
+
+    # Axis setters belt-and-brace _apply_movement / _apply_rotation: storing
+    # 0.0 while typing means a stale class or any other reader of these
+    # attributes (Blueprint, future tick path, hot-reloaded duplicate) still
+    # sees no input.
+    def _on_axis_forward(self, v): self._axis_forward = 0.0 if self._is_typing() else v
+    def _on_axis_right(self, v):   self._axis_right = 0.0 if self._is_typing() else v
+    def _on_axis_up(self, v):      self._axis_up = 0.0 if self._is_typing() else v
+    def _on_mouse_x(self, v):      self._axis_mouse_x = 0.0 if self._is_typing() else v
+    def _on_mouse_y(self, v):      self._axis_mouse_y = 0.0 if self._is_typing() else v
 
     def _on_mmb_pressed(self):
+        if self._is_typing():
+            return
         self.roll_mode = True
         self._dbg("PyPawnDrone: roll mode ON")
 
@@ -145,11 +306,13 @@ class PyPawnDrone:
         self.roll_mode = False
         self._dbg("PyPawnDrone: roll mode OFF")
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Alt (free-look) -- only fires when Ctrl is NOT held                #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _on_alt_pressed(self):
+        if self._is_typing():
+            return
         if self.input.is_key_down("Ctrl"):
             self._dbg("PyPawnDrone: alt+ctrl pressed -> size mode, no freelook")
             return
@@ -182,11 +345,13 @@ class PyPawnDrone:
         except Exception as e:
             ue.log_warning(f"PyPawnDrone: alt released error: {e}")
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Scroll -- Ctrl > Alt > Shift priority                              #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _on_scroll_up(self):
+        if self._is_typing():
+            return
         if self.input.is_key_down("Ctrl"):
             self._on_ctrl_scroll_up()
         elif self.input.is_key_down("LeftAlt"):
@@ -195,6 +360,8 @@ class PyPawnDrone:
             self._on_shift_scroll_up()
 
     def _on_scroll_down(self):
+        if self._is_typing():
+            return
         if self.input.is_key_down("Ctrl"):
             self._on_ctrl_scroll_down()
         elif self.input.is_key_down("LeftAlt"):
@@ -243,9 +410,9 @@ class PyPawnDrone:
         except Exception as e:
             ue.log_warning(f"PyPawnDrone: arm scroll error: {e}")
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Tick                                                                #
-    # ------------------------------------------------------------------ #
+    # #
 
     def tick(self, dt):
         if not hasattr(self, "_axis_forward"):
@@ -255,23 +422,23 @@ class PyPawnDrone:
         self._apply_scale_lerp(dt)
         self._apply_arm_lerp(dt)
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Scale lerp -- FVector uses .x .y .z                               #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _apply_scale_lerp(self, dt):
         cur = self.uobject.get_actor_scale()   # FVector: .x .y .z
         tgt = self._target_scale               # FVector: .x .y .z
-        a   = min(1.0, self.SCALE_LERP_SPEED * dt)
+        a = min(1.0, self.SCALE_LERP_SPEED * dt)
         self.uobject.set_actor_scale(FVector(
             cur.x + (tgt.x - cur.x) * a,
             cur.y + (tgt.y - cur.y) * a,
             cur.z + (tgt.z - cur.z) * a,
         ))
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Arm lerp                                                            #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _apply_arm_lerp(self, dt):
         sa = self._get_component('FreeLookSpringArm')
@@ -293,20 +460,22 @@ class PyPawnDrone:
         except Exception as e:
             ue.log_warning(f"PyPawnDrone: arm lerp error: {e}")
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Movement                                                            #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _apply_movement(self, dt):
-        fwd   = self._axis_forward
+        if self._is_typing():
+            return
+        fwd = self._axis_forward
         right = self._axis_right
-        up    = self._axis_up
+        up = self._axis_up
         if fwd == 0.0 and right == 0.0 and up == 0.0:
             return
-        rot       = self.uobject.get_actor_rotation()
-        fwd_vec   = KismetMathLibrary.GetForwardVector(rot)
+        rot = self.uobject.get_actor_rotation()
+        fwd_vec = KismetMathLibrary.GetForwardVector(rot)
         right_vec = KismetMathLibrary.GetRightVector(rot)
-        up_vec    = KismetMathLibrary.GetUpVector(rot)
+        up_vec = KismetMathLibrary.GetUpVector(rot)
         delta = (
             fwd_vec   * (fwd   * self.move_speed) +
             right_vec * (right * self.move_speed) +
@@ -314,17 +483,19 @@ class PyPawnDrone:
         )
         self.uobject.set_actor_location(self.uobject.get_actor_location() + delta)
 
-    # ------------------------------------------------------------------ #
+    # #
     #  Rotation                                                            #
-    # ------------------------------------------------------------------ #
+    # #
 
     def _apply_rotation(self, dt):
+        if self._is_typing():
+            return
         # FRotator attrs: .roll .pitch .yaw  (constructor: roll, pitch, yaw)
         mx = self._axis_mouse_x
         my = self._axis_mouse_y
         rs = self.rotation_speed
 
-        alt_held  = self.input.is_key_down("LeftAlt")
+        alt_held = self.input.is_key_down("LeftAlt")
         ctrl_held = self.input.is_key_down("Ctrl")
 
         # Ctrl+Alt -> size-only mode, skip all rotation

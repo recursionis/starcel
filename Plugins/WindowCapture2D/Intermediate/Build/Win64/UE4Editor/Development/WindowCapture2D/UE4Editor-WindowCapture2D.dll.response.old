@@ -34,8 +34,8 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.obj"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.cpp.obj"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp.obj"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Default.rc2.res"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\CoreUObject\UE4Editor-CoreUObject.lib"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\UE4Editor-Engine.lib"
@@ -68,7 +68,7 @@
 "setupapi.lib"
 "dwmapi.lib"
 "imm32.lib"
-/OUT:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Binaries\Win64\UE4Editor-WindowCapture2D.dll"
-/IMPLIB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\UE4Editor-WindowCapture2D.suppressed.lib"
-/PDB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Binaries\Win64\UE4Editor-WindowCapture2D.pdb"
+/OUT:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Binaries\Win64\UE4Editor-WindowCapture2D.dll"
+/IMPLIB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\UE4Editor-WindowCapture2D.suppressed.lib"
+/PDB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Binaries\Win64\UE4Editor-WindowCapture2D.pdb"
 /ignore:4078

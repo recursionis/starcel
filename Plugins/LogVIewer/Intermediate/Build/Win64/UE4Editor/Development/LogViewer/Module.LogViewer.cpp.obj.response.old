@@ -33,7 +33,7 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source\LogViewer\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source\LogViewer\Private"
 /I Runtime
 /I Runtime\Projects\Public
 /I Runtime\TraceLog\Public
@@ -241,8 +241,8 @@
 /I Runtime\AIModule\Public
 /I Runtime\AIModule\Classes
 /I Developer\DesktopPlatform\Public
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source\LogViewer\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Source\LogViewer\Public"
 /I ThirdParty\PhysX3\PxShared\include
 /I ThirdParty\PhysX3\PxShared\include\cudamanager
 /I ThirdParty\PhysX3\PxShared\include\filebuf
@@ -263,9 +263,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Definitions.LogViewer.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Definitions.LogViewer.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp.obj"
 /TP
 /GR-
 /W4

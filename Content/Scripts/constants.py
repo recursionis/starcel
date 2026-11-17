@@ -76,18 +76,6 @@ class Constants:
                                     "𝖕", "𝖖", "𝖗"]
 
 
-        file_path = "quotes.pkl"
-        self.__quotes = None
-        try:
-            with open(file_path, 'rb') as file:
-                loaded_quotes_hex = pickle.load(file)
-                self.__quotes = [bytes.fromhex(h).decode('utf-8') for h in loaded_quotes_hex]
-                self.__quotes.append(worldhello.hello_world())
-            print("Successfully unpickled quotes")
-        except:
-            print("Failed to unpickle quotes")
-
-
 
 
 
@@ -102,10 +90,10 @@ class WorldSize():
         # self.ue4_world_max = 88000000000 # bEnableLargeWorlds = true, UE_USE_UE4_WORLD_MAX=0. Although, this reports larger: https://old.reddit.com/r/unrealengine/comments/1axhmhm/is_the_88_million_km_max_world_size_total_area_or/kro5la5/
 
         # all in meters
-        self.observable_universe = 8.8 * 10 ^ 26
-        self.milky_way_galaxy = 9 * 10 ^ 20
-        self.solar_system = 3 * 10 ^ 13
-        self.au = 1.496 * 10 ^ 11
+        self.observable_universe = 8.8 * 10 ** 26
+        self.milky_way_galaxy = 9 * 10 ** 20
+        self.solar_system = 3 * 10 ** 13
+        self.au = 1.496 * 10 ** 11
         self.earth_size = 12756000  # includes bulge at the equator. Notice that it fits into the tiled ue4 world
         self.usa = 4500000
         self.usa_state = 800000
@@ -116,11 +104,11 @@ class WorldSize():
         self.hand = .2
 
         self.large_manmade_radiowave_wavelength = 100000000
-        self.max_visible_wavelength = 7.8 * 10 ^ (-7)
-        self.min_visible_wavelength = 3.8 * 10 ^ (-7)
-        self.euv_wavelength = 10 ^ (-8)
-        self.smallest_observed_wavelength = 10 ^ (-23)  # smallest wavelength gamma ray
-        self.planck_length = 1.616 * 10 ^ (-35)
+        self.max_visible_wavelength = 7.8 * 10 ** (-7)
+        self.min_visible_wavelength = 3.8 * 10 ** (-7)
+        self.euv_wavelength = 10 ** (-8)
+        self.smallest_observed_wavelength = 10 ** (-23)  # smallest wavelength gamma ray
+        self.planck_length = 1.616 * 10 ** (-35)
 
         # diameters in nm
         self.good_particle_physics__size = 0.000005
@@ -138,11 +126,11 @@ class WorldSize():
         self.nist_siliconkg = 93600000
 
         # in kg
-        self.electron_weight = 9.1093837 * 10 ^ (-31)
-        self.photon_am_weight = 9.52 * 10 ^ (-50)  # AM Radio. Using Planck's constant.
+        self.electron_weight = 9.1093837 * 10 ** (-31)
+        self.photon_am_weight = 9.52 * 10 ** (-50)  # AM Radio. Using Planck's constant.
         # 2.09024042 × 10^(-28)nm particle width by idiot math using electrons weight and size, 2 orders of magnitude difference between this and planck length
-        self.photon_visible_weight = 4.42 * 10 ^ (-36)  # 9.70468767*10^(-15)nm by idiot math
-        self.photon_gamma_weight = 2.21 * 10 ^ (-19)  # 485.234384nm by idiot math
+        self.photon_visible_weight = 4.42 * 10 ** (-36)  # 9.70468767*10^(-15)nm by idiot math
+        self.photon_gamma_weight = 2.21 * 10 ** (-19)  # 485.234384nm by idiot math
 
         self.speed_of_light = 299792458 # (m / s)
         radius = 1
@@ -208,11 +196,11 @@ class FiniteRepetitionSelector:
         if current_operator not in self.OPERATORS:
             raise ValueError(f"Unknown operator '{current_operator}'. Choose from {self.OPERATORS}")
 
-        self.current_operator      = current_operator
-        self.current_operand       = current_operand
-        self.autonegate            = autonegate
-        self.autonegate_threshold  = autonegate_threshold
-        self.use_reals             = use_reals
+        self.current_operator = current_operator
+        self.current_operand = current_operand
+        self.autonegate = autonegate
+        self.autonegate_threshold = autonegate_threshold
+        self.use_reals = use_reals
 
         self._real = None
         if use_reals:
@@ -223,7 +211,7 @@ class FiniteRepetitionSelector:
                 ue.log_warning("FiniteRepetitionSelector: 'reals' package not found – falling back to Python floats.")
                 self.use_reals = False
 
-    # ── helpers ──────────────────────────────────────────────────────────────
+    # helpers
 
     def _to_r(self, v):
         """Wrap v in a constructive Real if the backend is active."""
@@ -241,7 +229,7 @@ class FiniteRepetitionSelector:
             return -value
         return value
 
-    # ── tetration helpers ─────────────────────────────────────────────────────
+    # tetration helpers
 
     def _tetrate(self, base: float, height: int) -> float:
         """base ↑↑ height  (right-associative tower)."""
@@ -270,46 +258,46 @@ class FiniteRepetitionSelector:
             result = self._tetrate(base, round(result))
         return result
 
-    # ── public API ────────────────────────────────────────────────────────────
+    # public API
 
     def increase_value(self, value: float) -> float:
         value = self.autonegate_value(value)
-        op    = self._op()
-        b     = self.current_operand
+        op = self._op()
+        operand = self.current_operand
 
         if op == 0:   # C/S  (successor)
             return self._to_f(self._to_r(value) + 1)
         if op == 1:   # +
-            return self._to_f(self._to_r(value) + self._to_r(b))
+            return self._to_f(self._to_r(value) + self._to_r(operand))
         if op == 2:   # *
-            return self._to_f(self._to_r(value) * self._to_r(b))
+            return self._to_f(self._to_r(value) * self._to_r(operand))
         if op == 3:   # ^
-            return self._to_f(self._to_r(value) ** self._to_r(b))
+            return self._to_f(self._to_r(value) ** self._to_r(operand))
         if op == 4:   # ↑  tetration
-            return self._tetrate(value, round(b))
+            return self._tetrate(value, round(operand))
         if op == 5:   # ↑↑ pentation
-            return self._pentate(value, round(b))
+            return self._pentate(value, round(operand))
         return value
 
     def decrease_value(self, value: float) -> float:
         value = self.autonegate_value(value)
-        op    = self._op()
-        b     = self.current_operand
+        op = self._op()
+        operand = self.current_operand
 
         if op == 0:   # C/S  (predecessor)
             return self._to_f(self._to_r(value) - 1)
         if op == 1:   # -
-            return self._to_f(self._to_r(value) - self._to_r(b))
+            return self._to_f(self._to_r(value) - self._to_r(operand))
         if op == 2:   # /
-            if b == 0:
+            if operand == 0:
                 raise ZeroDivisionError("Operand is zero for division.")
-            return self._to_f(self._to_r(value) / self._to_r(b))
+            return self._to_f(self._to_r(value) / self._to_r(operand))
         if op == 3:   # root  (inverse power)
-            if b == 0:
+            if operand == 0:
                 raise ZeroDivisionError("Operand is zero for root.")
-            return self._to_f(self._to_r(value) ** self._to_r(1.0 / b))
+            return self._to_f(self._to_r(value) ** self._to_r(1.0 / operand))
         if op == 4:   # inverse tetration (iterated log)
-            return self._tetrate_inverse(value, round(b))
+            return self._tetrate_inverse(value, round(operand))
         if op == 5:   # no clean inverse for pentation; return as-is with warning
             ue.log_warning("FiniteRepetitionSelector: no analytic inverse for pentation; value unchanged.")
             return value
@@ -388,7 +376,36 @@ class SpatialDimensionSelector():
 
 
 
+class Axis:
+    def __init__(self, x="x", y="y", z="z"):
+        self.x = x
+        self.y = y
+        self.z = z
 
+    def swap_axis(self, input):
+        # for i in range(input[0]):
+        #     input[0][i] = input[1][i]
+        return [input[1],input[0]]
+
+    def get_render_order(self, axis_list=None):
+        return axis_list or [self.x, self.y, self.z]
+
+    def setup_axis(self):
+        default_16d_axis = ["x", "y", "z", "w", "v", "u", "t", "s", "r", "q", "p", "o", "n", "m", "l", "k"]
+
+        default_3d_axis = default_16d_axis[:3] # 48 possible orientations for the 3 axis and their negatives in orthogonal(90 degree) space. 3! * 2^3
+        default_0d_axis = 0 # or [] # 1 orientation in nD
+        default_1d_axis = default_16d_axis[:1] # 2 in 1d. 4 in 2d. 12 in 3D
+        default_2d_axis = default_16d_axis[:2] # 8 in 2d. 24 in 3D
+        default_4d_axis = default_16d_axis[:4] # 384 possible orientations for the 4 axis and their negatives in orthogonal(90 degree) space. 4! * 2^4
+
+        unreal_default_axis = default_3d_axis # on start, unreal has z up, y right, and x away from camera
+        unreal_default_walltable_axis = [unreal_default_axis[1], -unreal_default_axis[2], unreal_default_axis[0]] # best for 2D and 3D tables on screens
+        unreal_default_groundtable_axis = [unreal_default_axis[1], -unreal_default_axis[0], -unreal_default_axis[2]]
+        unreal_default_groundtable_axis_zup = [unreal_default_axis[1], -unreal_default_axis[0], unreal_default_axis[2]]
+        unreal_default_wallgraph_axis = [unreal_default_axis[1], unreal_default_axis[2], unreal_default_axis[0]] # usually used for 2D graphs on screens. not usually used in 3D
+        unreal_default_groundgraph_axis = [unreal_default_axis[1], unreal_default_axis[0], unreal_default_axis[2]]
+        # self.swap_axis()
 
 
 # class Cylinder():

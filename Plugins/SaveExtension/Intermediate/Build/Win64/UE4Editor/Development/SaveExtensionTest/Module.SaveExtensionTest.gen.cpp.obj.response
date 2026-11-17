@@ -33,7 +33,7 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Private"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\UnrealEd
 /I Editor
 /I Programs\UnrealLightmass\Public
@@ -240,11 +240,11 @@
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\AIModule
 /I Runtime\AIModule\Public
 /I Runtime\AIModule\Classes
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtensionTest"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Public"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtensionTest"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\Foliage
 /I Runtime\Foliage\Public
 /I ThirdParty\PhysX3\PxShared\include
@@ -267,9 +267,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Module.SaveExtensionTest.gen.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Definitions.SaveExtensionTest.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Module.SaveExtensionTest.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Module.SaveExtensionTest.gen.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Definitions.SaveExtensionTest.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtensionTest\Module.SaveExtensionTest.gen.cpp.obj"
 /TP
 /GR-
 /W4

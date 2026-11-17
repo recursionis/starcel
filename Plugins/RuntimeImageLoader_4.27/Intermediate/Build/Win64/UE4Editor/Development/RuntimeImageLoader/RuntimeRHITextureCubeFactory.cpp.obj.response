@@ -34,7 +34,7 @@
 /wd4838
 /I .
 /I Runtime\Renderer\Private
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\CoreUObject
 /I Runtime
 /I Runtime\CoreUObject\Public
@@ -242,9 +242,9 @@
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\ClothingSystemRuntimeInterface
 /I Runtime\ClothingSystemRuntimeInterface\Public
 /I Runtime\ImageCore\Public
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Inc\RuntimeImageLoader"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Inc\RuntimeImageLoader"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Public"
 /I ThirdParty\PhysX3\PxShared\include
 /I ThirdParty\PhysX3\PxShared\include\cudamanager
 /I ThirdParty\PhysX3\PxShared\include\filebuf
@@ -266,9 +266,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private\TextureFactory\RuntimeRHITextureCubeFactory.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\Definitions.RuntimeImageLoader.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\RuntimeRHITextureCubeFactory.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private\TextureFactory\RuntimeRHITextureCubeFactory.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\Definitions.RuntimeImageLoader.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\RuntimeRHITextureCubeFactory.cpp.obj"
 /TP
 /GR-
 /W4

@@ -33,7 +33,7 @@
 /wd4244
 /wd4838
 /I .
-/I ..\Plugins\Experimental\Text3D\Source\Text3D\Private
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private"
 /I ThirdParty
 /I ..\Plugins\Experimental\GeometryProcessing\Source
 /I ..\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public
@@ -56,9 +56,9 @@
 /I Runtime\Json\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\StaticMeshDescription
 /I Runtime\StaticMeshDescription\Public
-/I ..\Plugins\Experimental\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D
-/I ..\Plugins\Experimental\Text3D\Source
-/I ..\Plugins\Experimental\Text3D\Source\Text3D\Public
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\Engine
 /I Runtime\Engine\Classes
 /I Runtime\Engine\Public
@@ -270,9 +270,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
-"C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Module.Text3D.gen.cpp"
-/FI"C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Definitions.Text3D.h"
-/Fo"C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Module.Text3D.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Module.Text3D.gen.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Definitions.Text3D.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Module.Text3D.gen.cpp.obj"
 /TP
 /GR-
 /W4

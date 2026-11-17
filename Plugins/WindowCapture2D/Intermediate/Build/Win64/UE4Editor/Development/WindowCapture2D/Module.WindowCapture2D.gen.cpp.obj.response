@@ -33,7 +33,7 @@
 /wd4244
 /wd4838
 /I .
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Private"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Private"
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\CoreUObject
 /I Runtime
 /I Runtime\CoreUObject\Public
@@ -240,9 +240,9 @@
 /I Editor\Kismet\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\ClothingSystemRuntimeInterface
 /I Runtime\ClothingSystemRuntimeInterface\Public
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source"
-/I "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Inc\WindowCapture2D"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source"
+/I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Source\WindowCapture2D\Public"
 /I ThirdParty\PhysX3\PxShared\include
 /I ThirdParty\PhysX3\PxShared\include\cudamanager
 /I ThirdParty\PhysX3\PxShared\include\filebuf
@@ -263,9 +263,9 @@
 /FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
 /Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp"
-/FI"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Definitions.WindowCapture2D.h"
-/Fo"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp"
+/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Definitions.WindowCapture2D.h"
+/Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\WindowCapture2D\Intermediate\Build\Win64\UE4Editor\Development\WindowCapture2D\Module.WindowCapture2D.gen.cpp.obj"
 /TP
 /GR-
 /W4

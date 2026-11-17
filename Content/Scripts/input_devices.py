@@ -1,10 +1,59 @@
 import unreal_engine as ue
 from unreal_engine.enums import EMouseCursor, ECollisionChannel
+from unreal_engine.classes import StarcelHelper, InputSettings
 import time
 
 
 def _clean(s: str):
     return s.replace(" ", "").replace("_", "").lower()
+
+
+def _load_project_input_names():
+    """Read axis/action mapping names from Project Settings > Input.
+    Returns (axis_map, action_map): lowercase token -> canonical name.
+
+    Tries GetAxisNames/GetActionNames first, then falls back to iterating
+    the AxisMappings/ActionMappings UPROPERTY arrays. UnrealEnginePython's
+    binding for the output-param Get*Names variants can return empty on UE 4.27.
+    """
+    axis_map, action_map = {}, {}
+    try:
+        settings = ue.get_mutable_default(InputSettings)
+    except Exception as e:
+        ue.log_warning(f'input_devices: could not read project input settings: {e}')
+        return axis_map, action_map
+
+    def _add(m, name):
+        if name:
+            m[_clean(name)] = name
+
+    # Preferred: GetAxisNames / GetActionNames (may be empty on 4.27).
+    try:
+        for n in (settings.GetAxisNames() or []):
+            _add(axis_map, str(n))
+    except Exception:
+        pass
+    try:
+        for n in (settings.GetActionNames() or []):
+            _add(action_map, str(n))
+    except Exception:
+        pass
+
+    # Fallback: iterate mapping arrays directly.
+    if not axis_map:
+        try:
+            for m in (settings.AxisMappings or []):
+                _add(axis_map, str(getattr(m, 'AxisName', '') or ''))
+        except Exception:
+            pass
+    if not action_map:
+        try:
+            for m in (settings.ActionMappings or []):
+                _add(action_map, str(getattr(m, 'ActionName', '') or ''))
+        except Exception:
+            pass
+
+    return axis_map, action_map
 
 
 class Keyboard:
@@ -153,7 +202,7 @@ class Keyboard:
         self.keyboard_ANSI_shift = [
             ["~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "Backspace"],
             ["Tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|"],
-            ["Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\"" "Enter"],
+            ["Caps", "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\"", "Enter"],
             ["LeftShift", "Z", "X", "C", "V", "B", "N", "M", "<", ">", "?", "RightShift"],
             ["LeftCtrl", "Win", "LeftAlt", "Space", "RightAlt", "Win", "Menu", "RightCtrl"]
         ]
@@ -182,17 +231,14 @@ class Keyboard:
 
         self._build_normalize_map()
 
-    def _clean(self, t: str):
-        return t.replace(" ", "").replace("_", "").lower()
-
     def _build_normalize_map(self):
         self.normalize_map = {}
         for k, v in self.LEGEND_TO_UE.items():
-            self.normalize_map[self._clean(k)] = v
+            self.normalize_map[_clean(k)] = v
         for k in self.ue_keys:
-            self.normalize_map[self._clean(k)] = k
+            self.normalize_map[_clean(k)] = k
         for k, v in self.ALIASES.items():
-            self.normalize_map[self._clean(k)] = v
+            self.normalize_map[_clean(k)] = v
 
     def normalize(self, token):
         if not token:
@@ -292,17 +338,14 @@ class Mouse:
         }
         self._build_normalize_map()
 
-    def _clean(self, t: str):
-        return t.replace(" ", "").replace("_", "").lower()
-
     def _build_normalize_map(self):
         self.normalize_map = {}
         for k, v in self.LEGEND_TO_UE.items():
-            self.normalize_map[self._clean(k)] = v
+            self.normalize_map[_clean(k)] = v
         for k in self.ue_keys:
-            self.normalize_map[self._clean(k)] = k
+            self.normalize_map[_clean(k)] = k
         for k, v in self.ALIASES.items():
-            self.normalize_map[self._clean(k)] = v
+            self.normalize_map[_clean(k)] = v
 
     def normalize(self, token):
         if not token:
@@ -364,16 +407,55 @@ class HotkeyManager:
         self.sequence_progress = {}
         self._axis_handlers = {}
         self._last_axis_values = {}
-        self._cursor_visible = True
         self.poll_rate = poll_rate
         self._repeat_bindings = []
         self._pollers = []
         self._key_registry = {}  # For future keyboard visualization
         self._is_shutting_down = False
 
+        self._axis_names, self._action_names = _load_project_input_names()
+
         self.player_controller = self.uobject.get_player_controller()
 
-    # ---------------- Shutdown ----------------
+        # Seed from PC so toggle_cursor() doesn't no-op on first call when
+        # bShowMouseCursor is False but our flag would default to True.
+        try:
+            self._cursor_visible = bool(self.player_controller.bShowMouseCursor)
+        except Exception:
+            self._cursor_visible = False
+
+    def resolve_axis_name(self, token):
+        """Return the canonical axis name for *token*.
+
+        Always returns the token (or its canonical-case form) so that
+        UE's own bind_axis can resolve it — unknown tokens are silently
+        ignored by UE, matching the pre-validation behavior. The local
+        _axis_names table is only used for case-normalization; on UE 4.27
+        the InputSettings reflection is unreliable, so a missing entry
+        is not treated as an error."""
+        if not token:
+            return None
+        if self._axis_names:
+            canonical = self._axis_names.get(_clean(token))
+            if canonical is not None:
+                return canonical
+        return token
+
+    def resolve_action_name(self, token):
+        """Return the canonical action name for *token*. Same fallback
+        behavior as resolve_axis_name."""
+        if not token:
+            return None
+        if self._action_names:
+            canonical = self._action_names.get(_clean(token))
+            if canonical is not None:
+                return canonical
+            ue.log_warning(
+                f"bind_action: '{token}' is not a defined action mapping. "
+                f"Check Project Settings > Input > Action Mappings.")
+        return token
+
+    # Shutdown
     def shutdown(self):
         """Call this in uObject_EndPlay to clean up properly"""
         self._is_shutting_down = True
@@ -397,7 +479,7 @@ class HotkeyManager:
         self._repeat_bindings.clear()
         ue.log("HotkeyManager shutdown complete")
 
-    # ---------------- Cursor ----------------
+    # Cursor
     def enable_mouse_events(self, click=True, over=True):
         """Enable mouse click and mouse-over events"""
         try:
@@ -429,6 +511,18 @@ class HotkeyManager:
     def toggle_cursor(self):
         """Toggle cursor visibility"""
         self.show_cursor(not self._cursor_visible)
+        vw, vh = ue.get_viewport_size()
+        self.set_mouse_position(vw / 2, vh / 2)
+        def _delayed_click(delta):
+            StarcelHelper.ClickLMB()
+            ue.log("LMB click fired")
+            return False
+
+        # UEP GCs the ticker if no reference is held — see unreal_engine_tools.py:584
+        # ('assignment required or gc will destroy'). Store on self to keep alive.
+        if not hasattr(self, '_click_tickers'):
+            self._click_tickers = []
+        self._click_tickers.append(ue.add_ticker(_delayed_click, 0.02))
 
     def print_cursor_info(self):
         """Print cursor configuration information"""
@@ -453,7 +547,7 @@ class HotkeyManager:
             'world_dir': direction
         }
 
-    # ---------------- Normalize ----------------
+    # Normalize
     def normalize_input_token(self, token):
         """Normalize input token to UE format"""
         k = self.keyboard.normalize(token)
@@ -472,7 +566,7 @@ class HotkeyManager:
             parts = chord
         return tuple(self.normalize_input_token(p) for p in parts)
 
-    # ---------------- Key Registry (for future visualization) ----------------
+    # Key Registry (for future visualization)
     def _register_binding(self, keys, binding_type, callback_name=None):
         """Register a binding for future keyboard visualization"""
         key_tuple = keys if isinstance(keys, tuple) else (keys,)
@@ -493,7 +587,7 @@ class HotkeyManager:
             return self._key_registry
         return self._key_registry.get(self.normalize_input_token(key), [])
 
-    # ---------------- Chords ----------------
+    # Chords
     def bind_chord_event(self, chord, event_type, callback):
         """Bind a chord (key combination) to a callback"""
         primary = chord[-1]
@@ -615,7 +709,7 @@ class HotkeyManager:
         parsed_chord = self.parse_chord(chord)
         self.bind_chord_event(parsed_chord, ue.IE_DOUBLE_CLICK, callback)
 
-    # ---------------- Repeat (poll based) ----------------
+    # Repeat (poll based)
     def bind_repeat(self, chord, callback):
         """Bind a key to repeat while held down (uses polling)"""
         chord = self.parse_chord(chord)
@@ -639,7 +733,7 @@ class HotkeyManager:
         self._repeat_bindings.append(ticker)
         self._register_binding(chord, "repeat", callback.__name__ if hasattr(callback, '__name__') else None)
 
-    # ---------------- Poll (non-binding check) ----------------
+    # Poll (non-binding check)
     def bind_poll(self, chord, callback, rate=None):
         """Poll a key state continuously without overriding engine bindings
         This checks key state without binding, so it won't interfere with actions like Jump
@@ -686,12 +780,14 @@ class HotkeyManager:
                 return False
         return True
 
-    # ---------------- Axis ----------------
+    # Axis
     def bind_axis(self, axis_name, callback, deadzone=0.0, poll=True):
         """Bind an axis input to a callback
         Note: For MouseX/MouseY, use bind_axis_poll instead as bind_axis may not work reliably
         """
-        axis = self.normalize_input_token(axis_name)
+        axis = self.resolve_axis_name(axis_name)
+        if axis is None:
+            return
 
         def _handler(v):
             if abs(v) < deadzone:
@@ -722,7 +818,9 @@ class HotkeyManager:
         """Bind an axis using only polling (more reliable for MouseX/MouseY)
         Use this for mouse movement tracking
         """
-        axis = self.normalize_input_token(axis_name)
+        axis = self.resolve_axis_name(axis_name)
+        if axis is None:
+            return
         poll_rate = rate if rate is not None else self.poll_rate
 
         def poller(dt):
@@ -758,7 +856,9 @@ class HotkeyManager:
 
     def bind_axis_for_sequence(self, axis_name, condition_fn, callback):
         """Internal: bind axis for sequence detection"""
-        axis = self.normalize_input_token(axis_name)
+        axis = self.resolve_axis_name(axis_name)
+        if axis is None:
+            return
 
         def _handler(v):
             if condition_fn(v):
@@ -766,14 +866,17 @@ class HotkeyManager:
 
         self.uobject.bind_axis(axis, _handler)
 
-    # ---------------- Actions ----------------
+    # Actions
     def bind_action(self, name, pressed_cb=None, released_cb=None):
         """Bind an action defined in project input settings"""
+        action = self.resolve_action_name(name)
+        if action is None:
+            return
         if pressed_cb:
-            self.uobject.bind_action(name, ue.IE_PRESSED, pressed_cb)
+            self.uobject.bind_action(action, ue.IE_PRESSED, pressed_cb)
         if released_cb:
-            self.uobject.bind_action(name, ue.IE_RELEASED, released_cb)
-        self._register_binding((name,), "action", pressed_cb.__name__ if pressed_cb and hasattr(pressed_cb, '__name__') else None)
+            self.uobject.bind_action(action, ue.IE_RELEASED, released_cb)
+        self._register_binding((action,), "action", pressed_cb.__name__ if pressed_cb and hasattr(pressed_cb, '__name__') else None)
 
     def is_action_pressed(self, name):
         """Check if action is currently pressed"""
@@ -787,7 +890,7 @@ class HotkeyManager:
         """Get list of engine-defined action mappings"""
         return ue.get_engine_defined_action_mappings()
 
-    # ---------------- Key State ----------------
+    # Key State
     def was_pressed(self, key):
         """Check if key was just pressed this frame"""
         return self.player_controller.WasInputKeyJustPressed(key)
@@ -796,7 +899,7 @@ class HotkeyManager:
         """Check if key was just released this frame"""
         return self.player_controller.WasInputKeyJustReleased(key)
 
-    # ---------------- Mouse ----------------
+    # Mouse
     def get_mouse_position(self, deproject=False):
         """Get mouse position in screen coordinates
         If deproject=True, also returns world position and direction
@@ -824,7 +927,7 @@ class HotkeyManager:
         success, world_pos, world_dir = self.player_controller.DeprojectMousePositionToWorld()
         return success, world_pos, world_dir
 
-    # ---------------- Mouse Delta (Timer) ----------------
+    # Mouse Delta (Timer)
     def log_mouse_delta_timer(self, rate=0.05):
         """Start logging mouse delta at specified rate"""
 
@@ -836,3 +939,327 @@ class HotkeyManager:
                 ue.log(f"MouseDelta {dx:.3f}, {dy:.3f}")
 
         self.uobject.set_timer(rate, tick, True)
+
+
+# Binding doc generator
+#
+# rebuild_generated_modules() in unreal_engine_tools.py invokes this to write
+# a Markdown index of every input binding in the codebase. The output file is
+# chmod'd read-only so a stale hand-edit can't drift from the source.
+
+_NATIVE_KEY_EVENT = {"bind_key", "bind_chord_event"}
+_HM_KEY_EVENT = {"bind_press", "bind_release", "bind_double_click",
+                 "bind_repeat", "bind_poll"}
+_BIND_AXIS = {"bind_axis", "bind_axis_poll", "bind_input_axis"}
+_BIND_ACTION = {"bind_action"}
+_BIND_SEQUENCE = {"bind_sequence"}
+_KEY_CHECK = {"is_input_key_down", "is_key_down", "is_chord_down",
+              "was_pressed", "was_released",
+              "WasInputKeyJustPressed", "WasInputKeyJustReleased"}
+_ALL_BIND_NAMES = (_NATIVE_KEY_EVENT | _HM_KEY_EVENT | _BIND_AXIS
+                   | _BIND_ACTION | _BIND_SEQUENCE | _KEY_CHECK)
+
+_MOUSE_TOKENS = {
+    "leftmousebutton", "rightmousebutton", "middlemousebutton",
+    "thumbmousebutton", "thumbmousebutton2",
+    "mousex", "mousey", "mouse2d",
+    "mousescrollup", "mousescrolldown", "mousewheelaxis",
+}
+
+_SCAN_SKIP_DIRS = {"__pycache__", "unreal_engine"}
+_SCAN_SKIP_FILES = {"input_devices.py", "gen_cli.py"}
+
+
+def _is_mouse_token(token):
+    if not token:
+        return False
+    for piece in str(token).split("+"):
+        if _clean(piece) in _MOUSE_TOKENS:
+            return True
+    return False
+
+
+def _ast_literal_key(node):
+    """Return the literal string from a key/chord/axis arg, or None for dynamic."""
+    import ast
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.List):
+        parts = []
+        for el in node.elts:
+            if isinstance(el, ast.Constant) and isinstance(el.value, str):
+                parts.append(el.value)
+            else:
+                parts.append("<dynamic>")
+        return " -> ".join(parts) if parts else None
+    return None
+
+
+def _ast_unparse(node):
+    import ast
+    try:
+        return ast.unparse(node).strip()
+    except Exception:
+        return f"<{type(node).__name__}>"
+
+
+def _ast_extract_call(method, args, keywords):
+    """Return (key_node, callback_node) for a binding call."""
+    if not args:
+        return None, None
+    key_node = args[0]
+    cb = None
+    if method in _NATIVE_KEY_EVENT:
+        # bind_key(key, event, callback) / bind_chord_event(chord, event, callback)
+        if len(args) > 2:
+            cb = args[2]
+    elif method in _BIND_ACTION:
+        if len(args) >= 3:
+            # native: bind_action(name, event, callback)
+            cb = args[2]
+        else:
+            # HotkeyManager: bind_action(name, pressed_cb=, released_cb=)
+            for kw in keywords:
+                if kw.arg in ("pressed_cb", "released_cb", "callback"):
+                    cb = kw.value
+                    break
+    elif method in (_HM_KEY_EVENT | _BIND_AXIS | _BIND_SEQUENCE):
+        if len(args) > 1:
+            cb = args[1]
+        else:
+            for kw in keywords:
+                if kw.arg in ("callback", "cb"):
+                    cb = kw.value
+                    break
+    return key_node, cb
+
+
+def _ast_find_purpose(tree, callback_node):
+    """Find a one-line purpose string for *callback_node* by looking up its
+    function definition in *tree* and returning its first docstring line."""
+    import ast
+    if callback_node is None:
+        return ""
+    if isinstance(callback_node, ast.Lambda):
+        body = _ast_unparse(callback_node.body)
+        return f"lambda: {body}" if body else "lambda"
+    name = None
+    if isinstance(callback_node, ast.Attribute):
+        name = callback_node.attr
+    elif isinstance(callback_node, ast.Name):
+        name = callback_node.id
+    if not name:
+        return ""
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == name:
+            doc = ast.get_docstring(n)
+            if doc:
+                return doc.splitlines()[0].strip()
+            return ""
+    return ""
+
+
+def _md_cell(s):
+    if s is None:
+        s = ""
+    s = s.replace("|", r"\|").replace("\n", " ").strip()
+    return s or "—"
+
+
+def generate_input_bindings_doc(scripts_dir=None, output_path=None):
+    """Scan the Scripts tree for input bindings and write a read-only Markdown index.
+
+    Walks every .py file under *scripts_dir* (skipping __pycache__,
+    unreal_engine/ stubs, and the binding-defining files themselves) and
+    collects each call to:
+
+        Native UE   : bind_key, bind_axis, bind_action, bind_input_axis,
+                      is_input_key_down, WasInputKeyJustPressed,
+                      WasInputKeyJustReleased
+        HotkeyManager: bind_press, bind_release, bind_double_click,
+                       bind_repeat, bind_poll, bind_chord_event,
+                       bind_sequence, bind_axis, bind_axis_poll,
+                       bind_action, is_key_down, is_chord_down,
+                       was_pressed, was_released
+
+    Each call site contributes a row recording the key/chord/axis/action,
+    the bound callback, the callback's first docstring line if available,
+    and the file:line. The output is chmod'd read-only so a hand-edit
+    can't drift from source — regenerate via rebuild_generated_modules().
+    """
+    import ast
+    import os
+    import stat
+    from datetime import datetime, timezone
+
+    if scripts_dir is None:
+        scripts_dir = os.path.join(os.path.abspath(ue.get_content_dir()), "Scripts")
+    if output_path is None:
+        output_path = os.path.join(scripts_dir, "input_bindings.md")
+
+    files_scanned = 0
+    parse_errors = []
+    bind_rows = []
+    check_rows = []
+
+    for root, dirs, files in os.walk(scripts_dir):
+        dirs[:] = [d for d in dirs if d not in _SCAN_SKIP_DIRS]
+        for fname in files:
+            if not fname.endswith(".py"):
+                continue
+            if fname in _SCAN_SKIP_FILES:
+                continue
+            full = os.path.join(root, fname)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    src = f.read()
+            except Exception as e:
+                parse_errors.append((full, str(e)))
+                continue
+            try:
+                tree = ast.parse(src, filename=full)
+            except SyntaxError as e:
+                parse_errors.append((full, f"SyntaxError: {e}"))
+                continue
+            files_scanned += 1
+
+            rel = os.path.relpath(full, scripts_dir).replace("\\", "/")
+
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                method = None
+                if isinstance(node.func, ast.Attribute):
+                    method = node.func.attr
+                elif isinstance(node.func, ast.Name):
+                    method = node.func.id
+                if method not in _ALL_BIND_NAMES:
+                    continue
+
+                key_node, cb_node = _ast_extract_call(method, node.args, node.keywords)
+                key_str = _ast_literal_key(key_node) if key_node is not None else None
+                if key_str is None:
+                    # Non-literal key: render the source expression with an
+                    # <expr> marker so it's clearly distinguishable from a
+                    # literal key in the output.
+                    if key_node is None:
+                        key_str = "<no-arg>"
+                    else:
+                        key_str = f"<expr: {_ast_unparse(key_node)}>"
+                callback = _ast_unparse(cb_node) if cb_node is not None else "—"
+                purpose = _ast_find_purpose(tree, cb_node)
+
+                if method in _BIND_AXIS:
+                    category = "axis"
+                elif method in _BIND_ACTION:
+                    category = "action"
+                elif method in _BIND_SEQUENCE:
+                    category = "sequence"
+                elif method in _KEY_CHECK:
+                    category = "check"
+                else:
+                    category = "mouse" if _is_mouse_token(key_str) else "key"
+
+                row = {
+                    "key": key_str,
+                    "method": method,
+                    "callback": callback,
+                    "purpose": purpose,
+                    "location": f"{rel}:{node.lineno}",
+                    "category": category,
+                }
+                if category == "check":
+                    check_rows.append(row)
+                else:
+                    bind_rows.append(row)
+
+    bind_rows.sort(key=lambda r: (r["category"], r["key"].lower(), r["location"]))
+    check_rows.sort(key=lambda r: (r["key"].lower(), r["location"]))
+
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    section_titles = [
+        ("key",      "Keyboard / Chord Bindings"),
+        ("mouse",    "Mouse Bindings"),
+        ("axis",     "Axis Bindings"),
+        ("action",   "Action Bindings"),
+        ("sequence", "Sequence Bindings"),
+    ]
+
+    lines = []
+    lines.append("# Input Bindings (auto-generated)")
+    lines.append("")
+    lines.append(f"_Generated at {generated_at}_")
+    lines.append("")
+    lines.append("This file is regenerated by `input_devices.generate_input_bindings_doc()` "
+                 "from `unreal_engine_tools.rebuild_generated_modules()`. "
+                 "**Do not edit by hand** — the file is set read-only and any local edits "
+                 "will be overwritten on the next rebuild.")
+    lines.append("")
+    lines.append(f"- Files scanned: **{files_scanned}**")
+    lines.append(f"- Bindings found: **{len(bind_rows)}**")
+    lines.append(f"- State checks found: **{len(check_rows)}**")
+    lines.append("")
+
+    for cat_id, cat_title in section_titles:
+        rows = [r for r in bind_rows if r["category"] == cat_id]
+        if not rows:
+            continue
+        first_col = "Name" if cat_id in ("axis", "action", "sequence") else "Key / Chord"
+        lines.append(f"## {cat_title}")
+        lines.append("")
+        lines.append(f"| {first_col} | Method | Callback | Purpose | Location |")
+        lines.append("| --- | --- | --- | --- | --- |")
+        for r in rows:
+            lines.append(
+                f"| `{_md_cell(r['key'])}` "
+                f"| `{_md_cell(r['method'])}` "
+                f"| `{_md_cell(r['callback'])}` "
+                f"| {_md_cell(r['purpose'])} "
+                f"| {_md_cell(r['location'])} |"
+            )
+        lines.append("")
+
+    if check_rows:
+        lines.append("## Key State Checks (non-binding)")
+        lines.append("")
+        lines.append("Read-only queries — these check whether a key is currently down or was "
+                     "just pressed/released, but don't bind a callback.")
+        lines.append("")
+        lines.append("| Key | Method | Location |")
+        lines.append("| --- | --- | --- |")
+        for r in check_rows:
+            lines.append(
+                f"| `{_md_cell(r['key'])}` "
+                f"| `{_md_cell(r['method'])}` "
+                f"| {_md_cell(r['location'])} |"
+            )
+        lines.append("")
+
+    if parse_errors:
+        lines.append("## Files Skipped Due to Parse Errors")
+        lines.append("")
+        for path, err in parse_errors:
+            lines.append(f"- `{os.path.basename(path)}`: {err}")
+        lines.append("")
+
+    content = "\n".join(lines)
+
+    # Clear read-only bit if the file already exists, write fresh content,
+    # then re-apply read-only. Windows honors only S_IWRITE/S_IREAD.
+    if os.path.exists(output_path):
+        try:
+            os.chmod(output_path, stat.S_IWRITE | stat.S_IREAD)
+        except OSError:
+            pass
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    try:
+        os.chmod(output_path, stat.S_IREAD)
+    except OSError:
+        pass
+
+    print(f"Generated {output_path} "
+          f"({files_scanned} files scanned, "
+          f"{len(bind_rows)} bindings, {len(check_rows)} checks)")
+    return output_path

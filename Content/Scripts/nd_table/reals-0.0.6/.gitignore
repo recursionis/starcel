@@ -1,0 +1,9 @@
+.venv
+dist
+reals/__pycache__
+tests/__pycache__
+reals.egg-info
+.pytest_cache
+.mypy_cache
+build/
+*.pyc

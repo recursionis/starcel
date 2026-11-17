@@ -53,6 +53,22 @@ Axes / decoration:
     p.title(t) / p.xlabel(x) / p.ylabel(y) / p.zlabel(z)
     p.xlim(lo,hi) / p.ylim(lo,hi) / p.zlim(lo,hi)
 
+Orientation presets (pass to create_plotter as orientation=...):
+    'default'            identity — math axes → UE axes 1-to-1
+    'wall_graph'         vertical surface, graph-style  (alias: 'wall')
+    'wall_table'         vertical surface, table/screen (alias: 'screen')
+    'ground_table'       horizontal surface, Z-up depth (alias: 'floor','table','ground')
+    'ground_table_zdown' horizontal surface, Z-down (sunken look)
+
+Surface render modes (set p.mesh_mode before show()):
+    'triangles'     — per-triangle tilted Plane actors (default)
+    'spheres'       — sphere at each unique vertex
+    'sphere_lines'  — spheres at vertices + cylinder edges
+    'curvable_plane'— single BP_CurvablePlane actor driven by the grid's
+                      control points (requires BP_CurvablePlane with a
+                      ProceduralMeshComponent + a Blueprint function
+                      `SetSurface(Vertices, Indices)` callable from Python)
+
 LineStyle kwargs (pass to any draw method):
     color=(r,g,b,a)
     linewidth=0.02              # fraction of x-domain width (default)
@@ -67,6 +83,15 @@ LineStyle kwargs (pass to any draw method):
 Debug:
     debug=True                  # [Plotter] summary per operation
     advanced_debug=True         # [Plotter++] full arrays, timing, GA tables
+
+TODO (performance — see UnrealActorFactory docstring for the full plan):
+    Every primitive (triangle plane, gridline cylinder, sphere-line edge,
+    sphere-mode vertex) is currently a standalone StaticMeshActor spawned
+    via world.actor_spawn(). A 32-res surface = 1000+ actors per plot.
+    These should be replaced with a single InstancedStaticMeshComponent
+    per mesh type (Plane, Cylinder, Sphere) under ONE parent actor per
+    plot, using PerInstanceSMData + FTransform.get_matrix() — same pattern
+    as the commented-out lattice draft in main.test_cylinder.
 """
 
 from __future__ import annotations
@@ -96,21 +121,23 @@ from ue_math_core import (
     _dbg, _adbg, _timed,
 )
 
-# ── Optional SymPy ────────────────────────────────────────────────────────────
+# Optional SymPy
 try:
     import sympy as _sp
     SYMPY_AVAILABLE = True
 except ImportError:
     SYMPY_AVAILABLE = False
 
-# ── Unreal Engine imports (guarded so the file works offline) ─────────────────
+# Unreal Engine imports (guarded so the file works offline)
 try:
     import unreal_engine as ue
-    from unreal_engine import FVector, FRotator, FLinearColor
+    from unreal_engine import FVector, FRotator, FLinearColor, FTransform
     from unreal_engine.classes import (
-        Actor, StaticMeshActor, StaticMesh,
+        Actor, StaticMeshActor, StaticMesh, Material,
         ProceduralMeshComponent, TextRenderComponent,
+        KismetMathLibrary,
     )
+    from unreal_engine.enums import EComponentMobility
     UE_AVAILABLE = True
 except ImportError:
     UE_AVAILABLE = False
@@ -119,15 +146,18 @@ except ImportError:
         def __repr__(self): return f"FVector({self.x:.2f},{self.y:.2f},{self.z:.2f})"
     class FRotator:
         def __init__(self, p=0, y=0, r=0): pass
+    class FTransform:
+        def __init__(self, *a): pass
     class FLinearColor:
         def __init__(self, r=0, g=0, b=0, a=1): pass
+    class Material: pass
     class Actor: pass
     class StaticMeshActor: pass
     class StaticMesh: pass
     class ProceduralMeshComponent: pass
     class TextRenderComponent: pass
 
-_P  = "[Plotter]  "
+_P = "[Plotter]  "
 _PA = "[Plotter++]"
 
 _PALETTE = [
@@ -142,21 +172,19 @@ _PALETTE = [
 ]
 
 
-# ============================================================================
 # LINE STYLE
-# ============================================================================
 
 @dataclass
 class LineStyle:
     color:          Tuple[float,float,float,float] = (1.0, 0.4, 0.1, 1.0)
     linewidth:      float = 0.02
-    linewidth_mode: str   = 'domain'   # 'domain' | 'absolute'
+    linewidth_mode: str = 'domain'   # 'domain' | 'absolute'
     opacity:        float = 1.0
-    shape:          str   = 'cylinder' # 'cylinder' | 'square_tube'
+    shape:          str = 'cylinder' # 'cylinder' | 'square_tube'
     dash_pattern:   Optional[Tuple[float,float]] = None
-    end_cap:        str   = 'flat'     # 'flat'|'none'|'sphere'|'cone'
-    circle_res:     int   = 10
-    label:          str   = ''
+    end_cap:        str = 'flat'     # 'flat'|'none'|'sphere'|'cone'
+    circle_res:     int = 10
+    label:          str = ''
     translucent_material: str = '/Game/Materials/M_Color_Translucent.M_Color_Translucent'
 
     @staticmethod
@@ -172,21 +200,115 @@ class LineStyle:
         return self.linewidth
 
 
-# ============================================================================
 # PLOT BOUNDS
-# ============================================================================
+
+# Axis orientation presets
+#
+# UE default world axes:  X = forward (away from camera)
+#                         Y = right
+#                         Z = up
+#
+# Each preset is three (dx, dy, dz) unit-vector tuples that map math-space
+# (plot_x, plot_y, plot_z) into UE world-space.  Negative entries flip an axis.
+#
+#   wall_table   — vertical surface (monitor / whiteboard).
+#                  Plot X → UE Y (right), Plot Y → UE -Z (down the screen),
+#                  Plot Z → UE X (depth into wall).
+#                  Best for 2-D and 3-D tables / heat-maps on screens.
+#
+#   wall_graph   — vertical surface, graph orientation.
+#                  Plot X → UE Y (right), Plot Y → UE Z (up),
+#                  Plot Z → UE X (depth into wall).
+#                  Standard for 2-D Cartesian graphs hung on a wall.
+#
+#   ground_table — horizontal surface (floor / desk), Z-up spread.
+#                  Plot X → UE Y (right), Plot Y → UE -X (forward),
+#                  Plot Z → UE Z (up, so 3-D surfaces rise from the floor).
+#
+#   ground_table_zdown — same but depth goes downward (sunken / inset look).
+#
+#   default      — identity: math axes map directly to UE axes (X→X, Y→Y, Z→Z).
+
+_ORIENTATION_PRESETS: Dict[str, List[Tuple[float,float,float]]] = {
+    # (plot_x basis, plot_y basis, plot_z basis)  in UE world-space
+    'wall_table':        [(0, 1, 0),  (0, 0, -1), (1, 0, 0)],
+    'wall_graph':        [(0, 1, 0),  (0, 0,  1), (1, 0, 0)],
+    'ground_table':      [(0, 1, 0),  (-1, 0, 0), (0, 0,  1)],
+    'ground_table_zdown':[(0, 1, 0),  (-1, 0, 0), (0, 0, -1)],
+    'default':           [(1, 0, 0),  (0, 1, 0),  (0, 0,  1)],
+}
+
+_ORIENTATION_ALIASES: Dict[str, str] = {
+    'wall':   'wall_graph',
+    'screen': 'wall_table',
+    'floor':  'ground_table',
+    'ground': 'ground_table',
+    'table':  'ground_table',
+    'none':   'default',
+}
+
 
 @dataclass
 class PlotBounds:
-    x_range:      Vec2  = (-5.0, 5.0)
-    y_range:      Vec2  = (-5.0, 5.0)
-    z_range:      Vec2  = (-5.0, 5.0)
+    x_range:      Vec2 = (-5.0, 5.0)
+    y_range:      Vec2 = (-5.0, 5.0)
+    z_range:      Vec2 = (-5.0, 5.0)
     units_per_uu: float = 100.0
+    # Orientation preset name — see _ORIENTATION_PRESETS above.
+    # Pass e.g. 'wall_graph', 'ground_table', 'wall_table', or 'default'.
+    orientation:  str = 'default'
+
+    # resolved basis vectors (set by __post_init__)
+    _ox: Tuple[float,float,float] = field(init=False, repr=False)
+    _oy: Tuple[float,float,float] = field(init=False, repr=False)
+    _oz: Tuple[float,float,float] = field(init=False, repr=False)
+
+    def __post_init__(self):
+        self._apply_orientation(self.orientation)
+
+    def _apply_orientation(self, name: str):
+        """Resolve preset name (including aliases) and store basis vectors."""
+        key = _ORIENTATION_ALIASES.get(name, name)
+        if key not in _ORIENTATION_PRESETS:
+            import warnings
+            warnings.warn(
+                f"PlotBounds: unknown orientation '{name}', falling back to 'default'.",
+                stacklevel=3,
+            )
+            key = 'default'
+        self.orientation = key
+        ox, oy, oz = _ORIENTATION_PRESETS[key]
+        self._ox = ox
+        self._oy = oy
+        self._oz = oz
+
+    @staticmethod
+    def get_orientation_vector(preset: str, axis_index: int) -> FVector:
+        """
+        Return the UE FVector basis for a given preset and plot-axis index.
+        axis_index: 0 = plot-X, 1 = plot-Y, 2 = plot-Z, 3+ = extra spread axes.
+        Extra axes (4-D and beyond) alternate between the first two basis vectors.
+        """
+        key = _ORIENTATION_ALIASES.get(preset, preset)
+        vectors = _ORIENTATION_PRESETS.get(key, _ORIENTATION_PRESETS['default'])
+        if axis_index < len(vectors):
+            v = vectors[axis_index]
+        else:
+            # Higher-dimensional spread: alternate between ox and oy
+            v = vectors[0] if axis_index % 2 == 0 else vectors[1]
+        return FVector(*v)
 
     def to_uu(self, x: float, y: float, z: float = 0.0) -> FVector:
-        return FVector(x*self.units_per_uu,
-                       y*self.units_per_uu,
-                       z*self.units_per_uu)
+        """
+        Map math-space (x, y, z) → UE world-space FVector via the active
+        orientation basis, then scale by units_per_uu.
+        """
+        s = self.units_per_uu
+        ox, oy, oz = self._ox, self._oy, self._oz
+        ux = (x*ox[0] + y*oy[0] + z*oz[0]) * s
+        uy = (x*ox[1] + y*oy[1] + z*oz[1]) * s
+        uz = (x*ox[2] + y*oy[2] + z*oz[2]) * s
+        return FVector(ux, uy, uz)
 
     @property
     def x_span(self) -> float:
@@ -206,14 +328,48 @@ class PlotBounds:
                 self.z_range[0]<=z<=self.z_range[1])
 
 
-# ============================================================================
 # UNREAL ACTOR FACTORY
-# ============================================================================
 
 class UnrealActorFactory:
     """
     Low-level Unreal spawning. All UE API calls live here.
     Every method is a no-op (with a print) when UE is not available.
+
+    ─────────────────────────────────────────────────────────────────────────
+    TODO: PERFORMANCE — replace world.actor_spawn(StaticMeshActor) with
+    InstancedStaticMeshComponent instances.
+    ─────────────────────────────────────────────────────────────────────────
+    Every gridline, mesh triangle, sphere-node, and sphere-line cylinder
+    currently calls `world.actor_spawn(StaticMeshActor)` which creates a
+    full Actor + MID + scene proxy per primitive.  At resolution=32 a single
+    surface is ~1000 triangle planes + another ~1000 edge cylinders — that
+    is 1000s of UObjects, draw calls and transform updates per plot.
+
+    The correct approach (see main.test_cylinder + the commented-out lattice
+    draft above it) is ONE parent actor per plot with a single
+    InstancedStaticMeshComponent per mesh type:
+
+        new_actor = world.actor_spawn(Actor)
+        new_actor.add_actor_root_component(InstancedStaticMeshComponent, 'Root')
+        isc = new_actor.get_component_by_type(InstancedStaticMeshComponent)
+        isc.StaticMesh = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cylinder')
+        isc.PerInstanceSMData = [
+            InstancedStaticMeshInstanceData(
+                Transform=FTransform(loc_i, rot_i, scale_i).get_matrix())
+            for each edge i
+        ]
+        # Re-fetch the component after PerInstanceSMData is assigned — the
+        # old instance is garbage-collected:
+        isc = new_actor.get_component_by_type(InstancedStaticMeshComponent)
+
+    Three ISCs total would replace every spawn in this factory:
+        • triangles   → InstancedStaticMeshComponent of /Engine/BasicShapes/Plane
+        • sphere_lines→ ISC of Cylinder + ISC of Sphere
+        • grid/axes   → another Cylinder ISC (or share the lines one)
+
+    Until that refactor lands, every mesh_mode is O(N) actor_spawn() calls,
+    and clear() has to destroy each one individually.
+    ─────────────────────────────────────────────────────────────────────────
     """
 
     TRANSLUCENT_MATERIAL = '/Game/Materials/M_Color_Translucent.M_Color_Translucent'
@@ -223,67 +379,108 @@ class UnrealActorFactory:
                  origin: FVector = None,
                  debug: bool = False,
                  advanced_debug: bool = False):
-        self.world   = world
-        self.origin  = origin or FVector(0,0,0)
+        self.world = world
+        self.origin = origin or FVector(0,0,0)
         self._spawned: List[Any] = []
-        self.debug   = debug
-        self.adv     = advanced_debug
+        self.debug = debug
+        self.adv = advanced_debug
+        # Surface render mode: 'triangles' | 'spheres' | 'sphere_lines'
+        self.mesh_mode = 'triangles'
+        # Mesh used for point vertices in spheres / sphere_lines modes
+        self.point_mesh = '/Engine/BasicShapes/Sphere.Sphere'
+        # Cached color material
+        self._m_color = None
 
-    # ── Cylinder segment (primitive line) ────────────────────────────────────
+    def _apply_color(self, smc, color: Tuple):
+        """Apply M_Color material with color param to a StaticMeshComponent."""
+        try:
+            if self._m_color is None:
+                self._m_color = ue.load_object(Material,
+                    '/Game/Materials/M_Color.M_Color')
+            mid = smc.create_material_instance_dynamic(self._m_color)
+            mid.set_material_vector_parameter('Color',
+                FVector(color[0], color[1], color[2]))
+            smc.set_material(0, mid)
+        except Exception as e:
+            if self.debug: print(f"{_P}apply_color error: {e}")
+
+    # Cylinder segment (primitive line)
 
     def spawn_cylinder(self,
                        p0: FVector, p1: FVector,
                        radius: float,
                        color: Tuple) -> Optional[Any]:
+        """
+        Spawn a cylinder connecting world points *p0* and *p1*
+        (both already relative to self.origin).
+
+        Rotation uses the same pattern as main.test_cylinder:
+            rot = KismetMathLibrary.FindLookAtRotation(p0, p1)
+            rot.pitch += 90    # default Cylinder.Cylinder is Z-up
+        Cylinder.Cylinder is 100 UU tall / 50 UU radius, so length scales
+        by dist/100 and radius by r/50.
+        """
         if not UE_AVAILABLE or not self.world:
             _adbg(f"spawn_cylinder {p0} → {p1} r={radius:.2f}", self.adv)
             return None
-        dx,dy,dz = p1.x-p0.x, p1.y-p0.y, p1.z-p0.z
-        length = math.sqrt(dx**2+dy**2+dz**2)
-        if length < 1e-6: return None
-        mid = FVector((p0.x+p1.x)/2+self.origin.x,
-                      (p0.y+p1.y)/2+self.origin.y,
-                      (p0.z+p1.z)/2+self.origin.z)
+
+        # World-space endpoints (include plotter origin)
+        wp0 = FVector(p0.x + self.origin.x,
+                      p0.y + self.origin.y,
+                      p0.z + self.origin.z)
+        wp1 = FVector(p1.x + self.origin.x,
+                      p1.y + self.origin.y,
+                      p1.z + self.origin.z)
+
+        midpoint = (wp0 + wp1) / 2
+        distance = KismetMathLibrary.Vector_Distance(wp0, wp1)
+        if distance < 1e-3:
+            return None
+
+        rot = KismetMathLibrary.FindLookAtRotation(wp0, wp1)
+        rot.pitch += 90   # Cylinder.Cylinder points up the Z axis by default
+
         try:
-            actor = self.world.actor_spawn(StaticMeshActor, mid)
-            mc    = actor.StaticMeshComponent
-            mesh  = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cylinder.Cylinder')
-            if mesh: mc.StaticMesh = mesh
-            actor.set_actor_scale3d(FVector(radius/50, radius/50, length/200))
-            pitch = math.degrees(math.atan2(math.sqrt(dx**2+dy**2), dz)) - 90
-            yaw   = math.degrees(math.atan2(dy, dx))
-            actor.set_actor_rotation(FRotator(pitch, yaw, 0))
-            mat = mc.create_and_set_material_instance_dynamic(0)
-            if mat: mat.set_vector_parameter_value('Color', FLinearColor(*color))
+            actor = self.world.actor_spawn(StaticMeshActor)
+            smc = actor.StaticMeshComponent
+            mesh = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cylinder.Cylinder')
+            smc.SetStaticMesh(mesh)
+            smc.Mobility = EComponentMobility.Movable
+            actor.set_actor_transform(FTransform(
+                midpoint,
+                rot,
+                FVector(radius / 50.0, radius / 50.0, distance / 100.0)))
+            self._apply_color(smc, color)
             self._spawned.append(actor)
             return actor
         except Exception as e:
             if self.debug: print(f"{_P}cylinder error: {e}")
             return None
 
-    # ── Sphere ────────────────────────────────────────────────────────────────
+    # Sphere
 
     def spawn_sphere(self, pos: FVector, radius: float, color: Tuple) -> Optional[Any]:
+        """Spawn a point mesh (default: Sphere) at *pos* with given *radius*."""
         if not UE_AVAILABLE or not self.world:
             _adbg(f"spawn_sphere @ {pos} r={radius:.2f}", self.adv)
             return None
         p = FVector(pos.x+self.origin.x, pos.y+self.origin.y, pos.z+self.origin.z)
+        s = radius/50.0
         try:
-            actor = self.world.actor_spawn(StaticMeshActor, p)
-            mc    = actor.StaticMeshComponent
-            mesh  = ue.load_object(StaticMesh, '/Engine/BasicShapes/Sphere.Sphere')
-            if mesh: mc.StaticMesh = mesh
-            s = radius/50.0
-            actor.set_actor_scale3d(FVector(s,s,s))
-            mat = mc.create_and_set_material_instance_dynamic(0)
-            if mat: mat.set_vector_parameter_value('Color', FLinearColor(*color))
+            actor = self.world.actor_spawn(StaticMeshActor)
+            smc = actor.StaticMeshComponent
+            mesh = ue.load_object(StaticMesh, self.point_mesh)
+            smc.SetStaticMesh(mesh)
+            smc.Mobility = EComponentMobility.Movable
+            actor.set_actor_transform(FTransform(p, FRotator(0,0,0), FVector(s,s,s)))
+            self._apply_color(smc, color)
             self._spawned.append(actor)
             return actor
         except Exception as e:
-            if self.debug: print(f"{_P}sphere error: {e}")
+            if self.debug: print(f"{_P}point_mesh error: {e}")
             return None
 
-    # ── Arrow ─────────────────────────────────────────────────────────────────
+    # Arrow
 
     def spawn_arrow(self, origin: FVector, tip: FVector,
                     shaft_r: float, color: Tuple) -> List[Any]:
@@ -294,71 +491,371 @@ class UnrealActorFactory:
         if h: actors.append(h)
         return actors
 
-    # ── Procedural mesh ──────────────────────────────────────────────────────
+    # Surface mesh via tilted plane quads
+    # ProceduralMeshComponent.create_mesh_section_linear_color is not exposed
+    # by add_actor_component in this UEP build.  Instead we tile the surface
+    # with small StaticMeshActor planes (same approach as spawn_cylinder).
 
     def spawn_proc_mesh(self, mesh: MeshData,
                         color: Tuple,
-                        opacity: float = 1.0) -> Optional[Any]:
+                        opacity: float = 1.0,
+                        mode: str = None) -> Optional[Any]:
+        """Render a triangle mesh. mode overrides self.mesh_mode if given.
+
+        Modes
+        -----
+        'triangles'     — per-triangle tilted Plane actors (default)
+        'spheres'       — sphere at each unique vertex
+        'sphere_lines'  — spheres at vertices + cylinder edges
+        'curvable_plane'— single BP_CurvablePlane with ProceduralMesh section
+        """
+        m = (mode or self.mesh_mode).lower()
         if not UE_AVAILABLE or not self.world:
-            print(f"{_P}proc_mesh {len(mesh.vertices)}v {len(mesh.indices)}t "
+            print(f"{_P}proc_mesh[{m}] {len(mesh.vertices)}v {len(mesh.indices)}t "
                   f"color={color[:3]} opacity={opacity:.2f}")
             return None
+        if m == 'spheres':
+            return self._proc_mesh_spheres(mesh, color)
+        if m == 'sphere_lines':
+            return self._proc_mesh_sphere_lines(mesh, color)
+        if m in ('curvable_plane', 'bezier', 'bezier_plane', 'pmc'):
+            return self._proc_mesh_curvable_plane(mesh, color, opacity)
+        return self._proc_mesh_triangles(mesh, color)
+
+    def _proc_mesh_triangles(self, mesh: MeshData, color: Tuple) -> Optional[Any]:
+        """Per-triangle tilted Plane actors."""
+        verts = mesh.vertices
+        faces = mesh.indices
+        plane_mesh = ue.load_object(StaticMesh, '/Engine/BasicShapes/Plane.Plane')
+        actors_ok = 0
+
+        for face in faces:
+            try:
+                i0, i1, i2 = int(face[0]), int(face[1]), int(face[2])
+                v0 = verts[i0];  v1 = verts[i1];  v2 = verts[i2]
+
+                cx = (v0[0]+v1[0]+v2[0])/3 + self.origin.x
+                cy = (v0[1]+v1[1]+v2[1])/3 + self.origin.y
+                cz = (v0[2]+v1[2]+v2[2])/3 + self.origin.z
+
+                e1 = (v1[0]-v0[0], v1[1]-v0[1], v1[2]-v0[2])
+                e2 = (v2[0]-v0[0], v2[1]-v0[1], v2[2]-v0[2])
+                nx = e1[1]*e2[2] - e1[2]*e2[1]
+                ny = e1[2]*e2[0] - e1[0]*e2[2]
+                nz = e1[0]*e2[1] - e1[1]*e2[0]
+                nm = math.sqrt(nx*nx + ny*ny + nz*nz)
+                if nm < 1e-9:
+                    continue
+                nx /= nm;  ny /= nm;  nz /= nm
+
+                area = nm / 2.0
+                scale = math.sqrt(area) / 50.0
+
+                pitch = math.degrees(math.atan2(
+                    math.sqrt(nx*nx + ny*ny), nz)) - 90
+                yaw = math.degrees(math.atan2(ny, nx))
+
+                actor = self.world.actor_spawn(StaticMeshActor)
+                smc = actor.StaticMeshComponent
+                smc.SetStaticMesh(plane_mesh)
+                smc.Mobility = EComponentMobility.Movable
+                actor.set_actor_transform(FTransform(
+                    FVector(cx, cy, cz),
+                    FRotator(pitch, yaw, 0),
+                    FVector(scale, scale, scale)))
+                self._apply_color(smc, color)
+                self._spawned.append(actor)
+                actors_ok += 1
+            except Exception as e:
+                if self.debug: print(f"{_P}quad error: {e}")
+
+        if self.debug:
+            print(f"{_P}proc_mesh[triangles]: {actors_ok}/{len(faces)} quads rendered")
+        return actors_ok > 0 or None
+
+    def _proc_mesh_spheres(self, mesh: MeshData, color: Tuple) -> Optional[Any]:
+        """Sphere at each unique vertex."""
+        verts = mesh.vertices
+        faces = mesh.indices
+
+        # Estimate radius from a sample edge length (halved for tighter fit)
+        r = 4.0
+        if len(faces) > 0:
+            f = faces[0]
+            i0, i1 = int(f[0]), int(f[1])
+            dx = verts[i0][0]-verts[i1][0]
+            dy = verts[i0][1]-verts[i1][1]
+            dz = verts[i0][2]-verts[i1][2]
+            r = max(2.0, math.sqrt(dx*dx+dy*dy+dz*dz) * 0.075)
+
+        # Collect unique vertex indices that appear in faces
+        used = set()
+        for f in faces:
+            used.add(int(f[0])); used.add(int(f[1])); used.add(int(f[2]))
+        if not used:
+            used = set(range(len(verts)))
+
+        # Note: spawn_sphere adds self.origin internally, so pass raw mesh coords
+        for vi in used:
+            v = verts[vi]
+            self.spawn_sphere(FVector(v[0], v[1], v[2]), r, color)
+
+        if self.debug:
+            print(f"{_P}proc_mesh[spheres]: {len(used)} spheres  r={r:.1f}")
+        return len(used) > 0 or None
+
+    def _proc_mesh_sphere_lines(self, mesh: MeshData, color: Tuple) -> Optional[Any]:
+        """Spheres at vertices + cylinders along every unique edge."""
+        verts = mesh.vertices
+        faces = mesh.indices
+
+        # Collect unique edges as sorted (lo, hi) index pairs
+        edges: set = set()
+        for f in faces:
+            i0, i1, i2 = int(f[0]), int(f[1]), int(f[2])
+            edges.add((min(i0,i1), max(i0,i1)))
+            edges.add((min(i1,i2), max(i1,i2)))
+            edges.add((min(i0,i2), max(i0,i2)))
+
+        # Estimate radii from a sample edge (spheres 50% smaller, lines 70% thinner)
+        cyl_r, sph_r = 0.6, 3.0
+        if edges:
+            ia, ib = next(iter(edges))
+            dx = verts[ia][0]-verts[ib][0]
+            dy = verts[ia][1]-verts[ib][1]
+            dz = verts[ia][2]-verts[ib][2]
+            elen = math.sqrt(dx*dx+dy*dy+dz*dz)
+            cyl_r = max(0.45, elen * 0.012)
+            sph_r = max(2.0, elen * 0.05)
+
+        # Note: spawn_sphere/spawn_cylinder add self.origin internally
+        vert_ids = set()
+        for ia, ib in edges:
+            vert_ids.add(ia); vert_ids.add(ib)
+        for vi in vert_ids:
+            v = verts[vi]
+            self.spawn_sphere(FVector(v[0], v[1], v[2]), sph_r, color)
+
+        # Cylinder per edge (spawn_cylinder adds self.origin internally)
+        for ia, ib in edges:
+            va, vb = verts[ia], verts[ib]
+            p0 = FVector(va[0], va[1], va[2])
+            p1 = FVector(vb[0], vb[1], vb[2])
+            self.spawn_cylinder(p0, p1, cyl_r, color)
+
+        if self.debug:
+            print(f"{_P}proc_mesh[sphere_lines]: "
+                  f"{len(vert_ids)} spheres  {len(edges)} edges  "
+                  f"sph_r={sph_r:.1f}  cyl_r={cyl_r:.1f}")
+        return len(edges) > 0 or None
+
+    # Bezier / curvable plane (BP_CurvablePlane + PMC)
+
+    def _proc_mesh_curvable_plane(self,
+                                  mesh: MeshData,
+                                  color: Tuple,
+                                  opacity: float = 1.0) -> Optional[Any]:
+        """
+        Drive a single BP_CurvablePlane actor with the sampled surface mesh.
+
+        Instead of spawning thousands of per-triangle plane actors, this mode
+        spawns ONE BP_CurvablePlane Blueprint whose ProceduralMeshComponent
+        is updated by calling a Blueprint-exposed function with the mesh
+        vertices + indices.
+
+        Expected Blueprint functions on BP_CurvablePlane (try in this order):
+            1. SetSurface(Vertices: TArray<FVector>, Indices: TArray<int>)
+            2. UpdateMesh  (Vertices: TArray<FVector>, Indices: TArray<int>)
+            3. SetMeshData (Vertices: TArray<FVector>, Triangles: TArray<int>)
+
+        If none of those are callable, the method logs a warning listing
+        the exact signatures it tried and falls back to the triangles mode
+        so the plot still shows.
+
+        Control-point mode (also tried first): if the Blueprint exposes
+            SetControlPoints(Points2D: TArray<FVector>, Rows: int, Cols: int)
+        the factory sends only the sampled grid control points and lets
+        the blueprint interpolate a bezier patch itself.  This is the
+        cleanest path when BP_CurvablePlane is authored as a bezier patch.
+        """
         try:
-            actor = self.world.actor_spawn(Actor, self.origin)
-            pmc   = actor.add_actor_component(ProceduralMeshComponent, 'Mesh')
-
-            verts_uu = [FVector(v[0]*100,v[1]*100,v[2]*100) for v in mesh.vertices]
-            tris     = [int(i) for face in mesh.indices for i in face]
-            norms_uu = [FVector(n[0],n[1],n[2]) for n in mesh.normals]
-
-            pmc.create_mesh_section_linear_color(
-                0, verts_uu, tris, norms_uu, [], [], [], True)
-
-            if opacity < 0.999:
-                try:
-                    mat_path = self.TRANSLUCENT_MATERIAL
-                    mat = ue.load_object(
-                        ue.find_class('MaterialInterface'), mat_path)
-                    pmc.set_material(0, mat)
-                    dyn = pmc.create_and_set_material_instance_dynamic(0)
-                    if dyn:
-                        c4 = (*color[:3], opacity)
-                        dyn.set_vector_parameter_value('Color', FLinearColor(*c4))
-                        dyn.set_scalar_parameter_value('Opacity', opacity)
-                        dyn.set_scalar_parameter_value('Emissive Multiplier', 1.0)
-                except Exception as te:
-                    if self.debug: print(f"{_P}translucent mat error: {te}")
-            else:
-                mat = pmc.create_and_set_material_instance_dynamic(0)
-                if mat:
-                    mat.set_vector_parameter_value('Color', FLinearColor(*color))
-
-            self._spawned.append(actor)
-            return actor
+            from unreal_engine.classes import Blueprint
         except Exception as e:
-            if self.debug: print(f"{_P}proc_mesh error: {e}")
-            return None
+            if self.debug: print(f"{_P}curvable_plane: Blueprint class missing: {e}")
+            return self._proc_mesh_triangles(mesh, color)
 
-    # ── Text label ───────────────────────────────────────────────────────────
+        bp_path = '/Game/Blueprints/Assets/BP_CurvablePlane.BP_CurvablePlane'
+        try:
+            bp = ue.load_object(Blueprint, bp_path)
+        except Exception as e:
+            ue.log_warning(
+                f'{_P}curvable_plane: could not load "{bp_path}": {e}. '
+                'Falling back to triangles mode.')
+            return self._proc_mesh_triangles(mesh, color)
+        if bp is None:
+            ue.log_warning(
+                f'{_P}curvable_plane: "{bp_path}" not found. '
+                'Falling back to triangles mode.')
+            return self._proc_mesh_triangles(mesh, color)
+
+        # Spawn the actor at the plotter origin
+        try:
+            actor = self.world.actor_spawn(bp.GeneratedClass)
+            actor.set_actor_location(self.origin)
+        except Exception as e:
+            ue.log_warning(
+                f'{_P}curvable_plane: actor_spawn failed: {e}. '
+                'Falling back to triangles mode.')
+            return self._proc_mesh_triangles(mesh, color)
+
+        # Build the FVector arrays UE expects
+        verts_fv = []
+        for v in mesh.vertices:
+            verts_fv.append(FVector(float(v[0]), float(v[1]), float(v[2])))
+        tris = []
+        for f in mesh.indices:
+            tris.append(int(f[0])); tris.append(int(f[1])); tris.append(int(f[2]))
+
+        # Detect a grid structure for the control-point / bezier route.
+        # Plotter grids are built as N×M sampled points → assume square-ish.
+        n = len(verts_fv)
+        rows = cols = 0
+        if n > 0:
+            s = int(round(math.sqrt(n)))
+            if s * s == n:
+                rows = cols = s
+            else:
+                # Try a non-square factorisation
+                for r in range(2, n):
+                    if n % r == 0:
+                        rows, cols = r, n // r
+                        if abs(rows - cols) < max(rows, cols) // 2:
+                            break
+
+        # Try each blueprint function signature in order
+        attempted = []
+
+        # 1. Bezier control-point API (preferred if available)
+        if rows > 0 and cols > 0:
+            attempted.append(f'SetControlPoints(verts, {rows}, {cols})')
+            try:
+                ok = actor.call_function('SetControlPoints',
+                                         verts_fv, rows, cols)
+                if ok is not False:
+                    self._apply_color_on_actor(actor, color, opacity)
+                    self._spawned.append(actor)
+                    if self.debug:
+                        print(f"{_P}curvable_plane: SetControlPoints "
+                              f"({rows}x{cols}) on {actor.get_name()}")
+                    return actor
+            except Exception:
+                pass
+
+        # 2. Vertex + index explicit mesh API
+        for fname in ('SetSurface', 'UpdateMesh', 'SetMeshData'):
+            attempted.append(f'{fname}(verts, tris)')
+            try:
+                ok = actor.call_function(fname, verts_fv, tris)
+                if ok is not False:
+                    self._apply_color_on_actor(actor, color, opacity)
+                    self._spawned.append(actor)
+                    if self.debug:
+                        print(f"{_P}curvable_plane: {fname}  "
+                              f"{len(verts_fv)}v {len(tris)//3}t "
+                              f"on {actor.get_name()}")
+                    return actor
+            except Exception:
+                continue
+
+        # 3. Nothing worked — log the tried signatures and fall back
+        try:
+            actor.actor_destroy()
+        except Exception:
+            pass
+        ue.log_warning(
+            f'{_P}curvable_plane: BP_CurvablePlane has no callable Python '
+            'bridge.  Add ONE of the following Blueprint functions '
+            '(marked "Call in Editor" / "BlueprintCallable") to '
+            'BP_CurvablePlane:\n'
+            '  • SetControlPoints(Points: TArray<FVector>, Rows: int, Cols: int)\n'
+            '  • SetSurface    (Vertices: TArray<FVector>, Indices: TArray<int>)\n'
+            '  • UpdateMesh    (Vertices: TArray<FVector>, Indices: TArray<int>)\n'
+            '  • SetMeshData   (Vertices: TArray<FVector>, Triangles: TArray<int>)\n'
+            f'Tried: {attempted}. '
+            'Falling back to triangles mode for this call.')
+        return self._proc_mesh_triangles(mesh, color)
+
+    def _apply_color_on_actor(self, actor, color: Tuple, opacity: float):
+        """
+        Apply M_Color MID to every mesh/procedural component on *actor*.
+        Used by curvable_plane mode where the color material lives on a
+        single PMC instead of per-triangle plane components.
+        """
+        try:
+            comps = actor.get_components()
+        except Exception:
+            return
+        for c in comps:
+            try:
+                cls_name = c.get_class().get_name()
+            except Exception:
+                continue
+            if 'MeshComponent' in cls_name or 'ProceduralMesh' in cls_name:
+                try:
+                    self._apply_color(c, color)
+                except Exception:
+                    pass
+
+    # Text label
 
     def spawn_text(self, pos: FVector, text: str,
-                   size: float = 10.0, color: Tuple = (1,1,1,1)) -> Optional[Any]:
+                   size: float = 10.0, color: Tuple = (1,1,1,1),
+                   rotation: FRotator = None) -> Optional[Any]:
+        """Spawn a Text3D label via BP_Cell.
+
+        *rotation* orients the text.  Default (None) keeps the Blueprint's
+        default orientation.  For ground_table grids, FRotator(0,0,0) faces
+        +X; for wall_table, FRotator(-90,0,0) faces +Y.
+        """
         if not UE_AVAILABLE or not self.world:
             print(f"{_P}text3d '{text}' @ ({pos.x:.0f},{pos.y:.0f},{pos.z:.0f})")
             return None
         p = FVector(pos.x+self.origin.x, pos.y+self.origin.y, pos.z+self.origin.z)
+
+        # Try BP_Cell (Text3D Blueprint)
         try:
-            actor = self.world.actor_spawn(Actor, p)
-            tc    = actor.add_actor_component(TextRenderComponent, 'Label')
-            tc.SetText(text); tc.WorldSize = size
-            tc.TextRenderColor = FLinearColor(*color)
-            self._spawned.append(actor)
-            return actor
+            from unreal_engine.classes import Blueprint
+            bp = ue.load_object(Blueprint,
+                                '/Game/Blueprints/Assets/BP_Cell.BP_Cell')
+            if bp:
+                actor = self.world.actor_spawn(bp.GeneratedClass, p)
+                t3d = actor.get_actor_component('Text3DComponent')
+                if t3d:
+                    t3d.Text = text
+                    try:
+                        sz = max(1.0, size) * 0.25
+                        actor.set_actor_scale(FVector(sz/10, sz/10, sz/10))
+                    except Exception:
+                        pass
+                if rotation is not None:
+                    try:
+                        actor.set_actor_rotation(rotation)
+                    except Exception:
+                        pass
+                self._spawned.append(actor)
+                return actor
+        except Exception:
+            pass
+
+        # Fallback: small sphere as position marker
+        try:
+            r = max(5.0, size * 2)
+            return self.spawn_sphere(pos, r, color)
         except Exception as e:
-            if self.debug: print(f"{_P}text error: {e}")
+            if self.debug: print(f"{_P}text fallback error: {e}")
             return None
 
-    # ── Tube mesh from CurveSegments ─────────────────────────────────────────
+    # Tube mesh from CurveSegments
 
     def spawn_segments_as_tube(self,
                                 segments: List[CurveSegment],
@@ -368,12 +865,12 @@ class UnrealActorFactory:
         """Convert CurveSegments → tube meshes via TubeMeshBuilder."""
         radius = style.resolved_radius(bounds.x_span) * bounds.units_per_uu
         builder = TubeMeshBuilder(
-            radius   = radius,
-            sides    = style.circle_res,
-            shape    = style.shape,
+            radius = radius,
+            sides = style.circle_res,
+            shape = style.shape,
             dash_pattern = style.dash_pattern,
-            end_cap  = style.end_cap,
-            debug    = self.debug,
+            end_cap = style.end_cap,
+            debug = self.debug,
             advanced_debug = self.adv,
         )
         actors = []
@@ -381,19 +878,17 @@ class UnrealActorFactory:
             if len(seg.points) < 2:
                 continue
             if mode == '2d':
-                pts = [(p.x*bounds.units_per_uu,
-                        0.0,
-                        p.y*bounds.units_per_uu) for p in seg.points]
+                pts = [bounds.to_uu(p.x, p.y, 0.0) for p in seg.points]
+                pts = [(v.x, v.y, v.z) for v in pts]
             else:
-                pts = [(p.x*bounds.units_per_uu,
-                        p.y*bounds.units_per_uu,
-                        p.z*bounds.units_per_uu) for p in seg.points]
+                pts = [bounds.to_uu(p.x, p.y, p.z) for p in seg.points]
+                pts = [(v.x, v.y, v.z) for v in pts]
             mesh = builder.build(pts)
             a = self.spawn_proc_mesh(mesh, style.color, style.opacity)
             if a: actors.append(a)
         return actors
 
-    # ── Cleanup ───────────────────────────────────────────────────────────────
+    # Cleanup
 
     def destroy_all(self):
         for a in self._spawned:
@@ -402,9 +897,7 @@ class UnrealActorFactory:
         self._spawned.clear()
 
 
-# ============================================================================
 # GRID & AXES RENDERER
-# ============================================================================
 
 class GridRenderer:
     """Render configurable axis grid lines, tick marks, and axis labels."""
@@ -414,31 +907,34 @@ class GridRenderer:
                  debug: bool = False,
                  advanced_debug: bool = False):
         self.factory = factory
-        self.bounds  = bounds
+        self.bounds = bounds
         self.actors: List[Any] = []
-        self.debug   = debug
-        self.adv     = advanced_debug
+        self.debug = debug
+        self.adv = advanced_debug
 
     def render_grid_2d(self, spacing: float = 1.0,
-                       color: Tuple = (0.3,0.3,0.3,0.5),
-                       radius: float = 0.5):
+                       color: Tuple = (0.85,0.85,0.85,1.0),
+                       radius: float = 1.0):
+        """2D grid in the XY plane (Z=0).  Correct for all orientations."""
         b = self.bounds
         import numpy as np
+        # Vertical lines (one per x tick, spanning y_range)
         for x in np.arange(math.ceil(b.x_range[0]/spacing)*spacing,
                             b.x_range[1]+spacing/2, spacing):
-            p0 = b.to_uu(x, 0, b.y_range[0])
-            p1 = b.to_uu(x, 0, b.y_range[1])
+            p0 = b.to_uu(x, b.y_range[0], 0)
+            p1 = b.to_uu(x, b.y_range[1], 0)
             self.factory.spawn_cylinder(p0, p1, radius, color)
+        # Horizontal lines (one per y tick, spanning x_range)
         for y in np.arange(math.ceil(b.y_range[0]/spacing)*spacing,
                             b.y_range[1]+spacing/2, spacing):
-            p0 = b.to_uu(b.x_range[0], 0, y)
-            p1 = b.to_uu(b.x_range[1], 0, y)
+            p0 = b.to_uu(b.x_range[0], y, 0)
+            p1 = b.to_uu(b.x_range[1], y, 0)
             self.factory.spawn_cylinder(p0, p1, radius, color)
         _dbg("grid_2d rendered", self.debug)
 
     def render_grid_3d(self, spacing: float = 1.0,
-                       color: Tuple = (0.25,0.25,0.25,0.4),
-                       radius: float = 0.4):
+                       color: Tuple = (0.85,0.85,0.85,1.0),
+                       radius: float = 0.8):
         """Full 3D box grid: all three axis families."""
         b = self.bounds
         import numpy as np
@@ -468,14 +964,16 @@ class GridRenderer:
                 self.factory.spawn_cylinder(p0, p1, radius, color)
         _dbg("grid_3d rendered", self.debug)
 
-    def render_axes_2d(self, color: Tuple = (0.7,0.7,0.7,1.0), radius: float = 1.5):
+    def render_axes_2d(self, color: Tuple = (1.0,1.0,1.0,1.0), radius: float = 2.0):
         b = self.bounds
+        # X axis (horizontal)
         self.factory.spawn_cylinder(b.to_uu(b.x_range[0],0,0),
                                      b.to_uu(b.x_range[1],0,0), radius, color)
-        self.factory.spawn_cylinder(b.to_uu(0,0,b.y_range[0]),
-                                     b.to_uu(0,0,b.y_range[1]), radius, color)
+        # Y axis (vertical, in XY plane, Z=0)
+        self.factory.spawn_cylinder(b.to_uu(0,b.y_range[0],0),
+                                     b.to_uu(0,b.y_range[1],0), radius, color)
 
-    def render_axes_3d(self, color: Tuple = (0.7,0.7,0.7,1.0), radius: float = 1.5):
+    def render_axes_3d(self, color: Tuple = (1.0,1.0,1.0,1.0), radius: float = 2.0):
         b = self.bounds
         self.factory.spawn_cylinder(b.to_uu(b.x_range[0],0,0),
                                      b.to_uu(b.x_range[1],0,0), radius, color)
@@ -486,34 +984,62 @@ class GridRenderer:
 
     def render_tick_labels(self, spacing: float = 1.0,
                            color: Tuple = (0.8,0.8,0.8,1.0)):
+        """Spawn Text3D labels at each gridline in the XY plane (Z=0)."""
         b = self.bounds
         import numpy as np
+        # X-axis tick labels (below the grid)
         for x in np.arange(math.ceil(b.x_range[0]/spacing)*spacing,
                              b.x_range[1]+spacing/2, spacing):
-            pos = b.to_uu(x, 0, b.y_range[0] - 0.3)
+            pos = b.to_uu(x, b.y_range[0] - 0.3, 0)
             self.factory.spawn_text(pos, f"{x:.1g}", size=5.0, color=color)
+        # Y-axis tick labels (left of the grid)
         for y in np.arange(math.ceil(b.y_range[0]/spacing)*spacing,
                              b.y_range[1]+spacing/2, spacing):
-            pos = b.to_uu(b.x_range[0]-0.4, 0, y)
+            pos = b.to_uu(b.x_range[0] - 0.4, y, 0)
             self.factory.spawn_text(pos, f"{y:.1g}", size=5.0, color=color)
+
+    def render_tick_labels_3d(self, spacing: float = 1.0,
+                              color: Tuple = (0.8,0.8,0.8,1.0)):
+        """Spawn Text3D tick labels on all three axes of a 3D grid."""
+        b = self.bounds
+        import numpy as np
+
+        # X-axis labels along the front-bottom edge
+        for x in np.arange(math.ceil(b.x_range[0]/spacing)*spacing,
+                             b.x_range[1]+spacing/2, spacing):
+            pos = b.to_uu(x, b.y_range[0] - 0.3, b.z_range[0])
+            self.factory.spawn_text(pos, f"{x:.1g}", size=5.0, color=color,
+                                    rotation=FRotator(0, 0, 0))
+
+        # Y-axis labels along the left-bottom edge
+        for y in np.arange(math.ceil(b.y_range[0]/spacing)*spacing,
+                             b.y_range[1]+spacing/2, spacing):
+            pos = b.to_uu(b.x_range[0] - 0.3, y, b.z_range[0])
+            self.factory.spawn_text(pos, f"{y:.1g}", size=5.0, color=color,
+                                    rotation=FRotator(0, 0, 90))
+
+        # Z-axis labels along the left-front edge
+        for z in np.arange(math.ceil(b.z_range[0]/spacing)*spacing,
+                             b.z_range[1]+spacing/2, spacing):
+            pos = b.to_uu(b.x_range[0] - 0.3, b.y_range[0] - 0.3, z)
+            self.factory.spawn_text(pos, f"{z:.1g}", size=5.0, color=color,
+                                    rotation=FRotator(0, 0, 0))
 
     def render_axis_labels(self, xlabel='', ylabel='', zlabel=''):
         b = self.bounds
         if xlabel:
-            pos = b.to_uu((b.x_range[0]+b.x_range[1])/2, 0, b.y_range[0]-0.7)
+            pos = b.to_uu((b.x_range[0]+b.x_range[1])/2, b.y_range[0]-0.7, 0)
             self.factory.spawn_text(pos, xlabel, size=8.0)
         if ylabel:
-            pos = b.to_uu(b.x_range[0]-0.9, 0, (b.y_range[0]+b.y_range[1])/2)
+            pos = b.to_uu(b.x_range[0]-0.9, (b.y_range[0]+b.y_range[1])/2, 0)
             self.factory.spawn_text(pos, ylabel, size=8.0)
         if zlabel:
-            pos = b.to_uu(b.x_range[0]-0.9, (b.y_range[0]+b.y_range[1])/2,
+            pos = b.to_uu(b.x_range[0]-0.9, 0,
                            (b.z_range[0]+b.z_range[1])/2)
             self.factory.spawn_text(pos, zlabel, size=8.0)
 
 
-# ============================================================================
 # MATH PLOTTER  — main API class
-# ============================================================================
 
 class MathPlotter:
     """
@@ -540,11 +1066,11 @@ class MathPlotter:
                  ga_backend: str = 'vga',
                  debug: bool = False,
                  advanced_debug: bool = False):
-        self.world          = world
-        self.bounds         = bounds or PlotBounds()
-        self.zoom           = zoom
-        self.debug          = debug
-        self.adv            = advanced_debug
+        self.world = world
+        self.bounds = bounds or PlotBounds()
+        self.zoom = zoom
+        self.debug = debug
+        self.adv = advanced_debug
 
         # GA backend
         self.ga = GABackend(backend=ga_backend,
@@ -563,21 +1089,42 @@ class MathPlotter:
 
         # State
         self._queue:        List[Dict] = []
-        self._style_index:  int        = 0
+        self._style_index:  int = 0
         self._pending_style: Optional[LineStyle] = None
-        self._show_grid:    bool       = False
-        self._grid_mode:    str        = '2d'
-        self._grid_spacing: float      = 1.0
-        self._title:        str        = ''
-        self._xlabel:       str        = ''
-        self._ylabel:       str        = ''
-        self._zlabel:       str        = ''
+        self._show_grid:    bool = False
+        self._grid_mode:    str = '2d'
+        self._grid_spacing: float = 1.0
+        self._title:        str = ''
+        self._xlabel:       str = ''
+        self._ylabel:       str = ''
+        self._zlabel:       str = ''
 
         if self.debug:
             print(f"{_P}MathPlotter init  bounds={self.bounds}  "
                   f"ga_backend={ga_backend}  debug={debug}  adv={advanced_debug}")
 
-    # ── Style helpers ─────────────────────────────────────────────────────────
+    # Surface render mode
+
+    @property
+    def mesh_mode(self) -> str:
+        """Surface render mode: 'triangles' | 'spheres' | 'sphere_lines'."""
+        return self.factory.mesh_mode
+
+    @mesh_mode.setter
+    def mesh_mode(self, value: str):
+        self.factory.mesh_mode = value
+
+    @property
+    def point_mesh(self) -> str:
+        """Mesh path for point vertices in spheres/sphere_lines modes.
+        Default: '/Engine/BasicShapes/Sphere.Sphere'."""
+        return self.factory.point_mesh
+
+    @point_mesh.setter
+    def point_mesh(self, value: str):
+        self.factory.point_mesh = value
+
+    # Style helpers
 
     def _next_style(self, **kw) -> LineStyle:
         """Return the next auto-cycle style, overridden by kw and pending aes."""
@@ -611,16 +1158,14 @@ class MathPlotter:
         except Exception:
             return None
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ 2D PLOTS ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def plot(self, f, x_range: Vec2 = None, n: int = 128,
              show_inflections: bool = False, **kw) -> 'MathPlotter':
         """y = f(x) explicit curve."""
-        fn      = self._resolve_fn(f, ('x',))
+        fn = self._resolve_fn(f, ('x',))
         x_range = x_range or self.bounds.x_range
-        style   = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='plot', fn=fn, x_range=x_range,
                                 n=n, style=style,
                                 show_inflections=show_inflections))
@@ -629,7 +1174,7 @@ class MathPlotter:
 
     def implicit(self, F, resolution: int = 80, **kw) -> 'MathPlotter':
         """F(x,y)=0 implicit contour."""
-        fn    = self._resolve_fn(F, ('x','y'))
+        fn = self._resolve_fn(F, ('x','y'))
         style = self._next_style(**kw)
         self._queue.append(dict(type='implicit', fn=fn,
                                 resolution=resolution, style=style))
@@ -639,9 +1184,9 @@ class MathPlotter:
     def contour(self, F, levels: List[float] = None,
                 resolution: int = 60, **kw) -> 'MathPlotter':
         """Contour lines of F(x,y) at given level values."""
-        fn     = self._resolve_fn(F, ('x','y'))
+        fn = self._resolve_fn(F, ('x','y'))
         levels = levels or [0.0]
-        style  = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='contour', fn=fn,
                                 levels=levels, resolution=resolution,
                                 style=style))
@@ -650,7 +1195,7 @@ class MathPlotter:
 
     def heatmap(self, F, resolution: int = 64, **kw) -> 'MathPlotter':
         """F(x,y) as a coloured flat mesh."""
-        fn    = self._resolve_fn(F, ('x','y'))
+        fn = self._resolve_fn(F, ('x','y'))
         style = self._next_style(**kw)
         self._queue.append(dict(type='heatmap', fn=fn,
                                 resolution=resolution, style=style))
@@ -673,28 +1218,26 @@ class MathPlotter:
     def band(self, f_lo, f_hi, x_range: Vec2 = None,
              n: int = 64, **kw) -> 'MathPlotter':
         """Ribbon / band between f_lo(x) and f_hi(x)."""
-        fn_lo   = self._resolve_fn(f_lo, ('x',))
-        fn_hi   = self._resolve_fn(f_hi, ('x',))
+        fn_lo = self._resolve_fn(f_lo, ('x',))
+        fn_hi = self._resolve_fn(f_hi, ('x',))
         x_range = x_range or self.bounds.x_range
-        style   = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='band', fn_lo=fn_lo, fn_hi=fn_hi,
                                 x_range=x_range, n=n, style=style))
         if self.debug: print(f"{_P}queued band")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ 3D SURFACES ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def plot3d(self, f,
                x_range: Vec2 = None,
                y_range: Vec2 = None,
                resolution: int = 64, **kw) -> 'MathPlotter':
         """z = f(x,y) explicit surface — primary 3D plot method."""
-        fn      = self._resolve_fn(f, ('x','y'))
+        fn = self._resolve_fn(f, ('x','y'))
         x_range = x_range or self.bounds.x_range
         y_range = y_range or self.bounds.y_range
-        style   = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='plot3d', fn=fn,
                                 x_range=x_range, y_range=y_range,
                                 resolution=resolution, style=style))
@@ -736,10 +1279,10 @@ class MathPlotter:
                   y_range: Vec2 = None,
                   resolution: int = 20, **kw) -> 'MathPlotter':
         """Wireframe of z=f(x,y) — surfaces lines along u/v isoparametric curves."""
-        fn      = self._resolve_fn(f, ('x','y'))
+        fn = self._resolve_fn(f, ('x','y'))
         x_range = x_range or self.bounds.x_range
         y_range = y_range or self.bounds.y_range
-        style   = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='wireframe', fn=fn,
                                 x_range=x_range, y_range=y_range,
                                 resolution=resolution, style=style))
@@ -752,10 +1295,10 @@ class MathPlotter:
                           resolution: int = 64,
                           colormap: str = 'viridis', **kw) -> 'MathPlotter':
         """z=f(x,y) surface with per-vertex colour mapped from z value."""
-        fn      = self._resolve_fn(f, ('x','y'))
+        fn = self._resolve_fn(f, ('x','y'))
         x_range = x_range or self.bounds.x_range
         y_range = y_range or self.bounds.y_range
-        style   = self._next_style(**kw)
+        style = self._next_style(**kw)
         self._queue.append(dict(type='colormap_surface', fn=fn,
                                 x_range=x_range, y_range=y_range,
                                 resolution=resolution,
@@ -815,9 +1358,7 @@ class MathPlotter:
         if self.debug: print(f"{_P}queued domain_color res={resolution}")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ VECTOR FIELDS ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def vector(self, v, origin=(0,0,0), **kw) -> 'MathPlotter':
         """Single vector arrow."""
@@ -828,7 +1369,7 @@ class MathPlotter:
     def vector_field(self, F, density: int = 8, normalize: bool = True,
                      scale: float = 0.4, mode: str = '2d', **kw) -> 'MathPlotter':
         """Vector field arrows on a grid."""
-        fn    = self._resolve_fn(F, ('x','y') if mode=='2d' else ('x','y','z'))
+        fn = self._resolve_fn(F, ('x','y') if mode=='2d' else ('x','y','z'))
         style = self._next_style(**kw)
         self._queue.append(dict(type='vector_field', fn=fn,
                                 density=density, normalize=normalize,
@@ -840,7 +1381,7 @@ class MathPlotter:
                    step: float = 0.05, max_steps: int = 400,
                    mode: str = '2d', **kw) -> 'MathPlotter':
         """Integral curve (streamline) of a vector field."""
-        fn    = self._resolve_fn(F, ('x','y') if mode=='2d' else ('x','y','z'))
+        fn = self._resolve_fn(F, ('x','y') if mode=='2d' else ('x','y','z'))
         style = self._next_style(**kw)
         self._queue.append(dict(type='streamline', fn=fn, seed=seed,
                                 step=step, max_steps=max_steps,
@@ -848,9 +1389,7 @@ class MathPlotter:
         if self.debug: print(f"{_P}queued streamline seed={seed}")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ GEOMETRIC ALGEBRA ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def ga_primitive(self, mv, origin: Vec3 = (0,0,0),
                      scale: float = 1.0, **kw) -> 'MathPlotter':
@@ -929,9 +1468,7 @@ class MathPlotter:
         if self.debug: print(f"{_P}queued ga_spread max={max_subviews}")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ N-DIMENSIONAL ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def spread(self, fn, var_names: List[str], var_ranges: List[Vec2],
                max_subplots: int = 9, resolution: int = 32,
@@ -951,15 +1488,13 @@ class MathPlotter:
             print(f"{_P}queued spread {len(var_names)}D -> {max_subplots} projections")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ AXES & DECORATION ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def grid(self, show: bool = True, spacing: float = 1.0,
              mode: str = '2d', **kw) -> 'MathPlotter':
-        self._show_grid    = show
+        self._show_grid = show
         self._grid_spacing = spacing
-        self._grid_mode    = mode
+        self._grid_mode = mode
         return self
 
     def title(self, t: str) -> 'MathPlotter':
@@ -983,9 +1518,7 @@ class MathPlotter:
     def zlim(self, lo, hi) -> 'MathPlotter':
         self.bounds.z_range = (lo, hi); return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ GGPLOT / GRAMMAR-OF-GRAPHICS ALIASES ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def aes(self, **kw) -> 'MathPlotter':
         """Stage aesthetic overrides for the next primitive."""
@@ -1013,9 +1546,7 @@ class MathPlotter:
     def geom_isosurface(self, f, **kw)        -> 'MathPlotter': return self.isosurface(f, **kw)
     def geom_wireframe(self, f, **kw)         -> 'MathPlotter': return self.wireframe(f, **kw)
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ EXECUTION ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def show(self) -> 'MathPlotter':
         """Execute all queued drawing commands."""
@@ -1030,6 +1561,7 @@ class MathPlotter:
             if self._grid_mode == '3d':
                 self.grid_renderer.render_grid_3d(spacing=sp)
                 self.grid_renderer.render_axes_3d()
+                self.grid_renderer.render_tick_labels_3d(spacing=sp)
             else:
                 self.grid_renderer.render_grid_2d(spacing=sp)
                 self.grid_renderer.render_axes_2d()
@@ -1067,9 +1599,7 @@ class MathPlotter:
         if self.debug: print(f"{_P}cleared")
         return self
 
-    # ─────────────────────────────────────────────────────────────────────────
     # ══ INTERNAL RENDER DISPATCH ══
-    # ─────────────────────────────────────────────────────────────────────────
 
     def _render(self, item: Dict):
         t = item['type']
@@ -1111,13 +1641,13 @@ class MathPlotter:
         else:
             print(f"{_P}Unknown item type: '{t}'")
 
-    # ── 2D render methods ─────────────────────────────────────────────────────
+    # 2D render methods
 
     def _r_plot(self, item):
-        fn      = item['fn']
+        fn = item['fn']
         x_range = item['x_range']
-        style   = item['style']
-        n       = item['n']
+        style = item['style']
+        n = item['n']
 
         sub = AdaptiveSubdivider(zoom=self.zoom,
                                   tolerance=style.linewidth*0.05,
@@ -1132,10 +1662,10 @@ class MathPlotter:
         self.factory.spawn_segments_as_tube(segs, self.bounds, style, mode='2d')
 
     def _r_implicit(self, item):
-        fn    = item['fn']
-        res   = item['resolution']
+        fn = item['fn']
+        res = item['resolution']
         style = item['style']
-        b     = self.bounds
+        b = self.bounds
 
         # Use intersection with zero
         finder = IntersectionFinder(resolution=res,
@@ -1145,11 +1675,11 @@ class MathPlotter:
         self.factory.spawn_segments_as_tube(segs, b, style, mode='2d')
 
     def _r_contour(self, item):
-        fn     = item['fn']
+        fn = item['fn']
         levels = item['levels']
-        res    = item['resolution']
-        style  = item['style']
-        b      = self.bounds
+        res = item['resolution']
+        style = item['style']
+        b = self.bounds
 
         for level in levels:
             finder = IntersectionFinder(resolution=res,
@@ -1161,9 +1691,9 @@ class MathPlotter:
         if self.debug: print(f"{_P}  contour: {len(levels)} levels")
 
     def _r_heatmap(self, item):
-        fn  = item['fn']
+        fn = item['fn']
         res = item['resolution']
-        b   = self.bounds
+        b = self.bounds
 
         sampler = SurfaceSampler(resolution=res,
                                   debug=self.debug, advanced_debug=self.adv)
@@ -1178,10 +1708,10 @@ class MathPlotter:
         if self.debug: print(f"{_P}  heatmap: {len(mesh.vertices)} verts")
 
     def _r_scatter(self, item):
-        pts   = item['points']
+        pts = item['points']
         style = item['style']
-        b     = self.bounds
-        r     = style.resolved_radius(b.x_span) * b.units_per_uu * 3
+        b = self.bounds
+        r = style.resolved_radius(b.x_span) * b.units_per_uu * 3
         for p in pts:
             if len(p) == 2:
                 pos = b.to_uu(p[0], 0.0, p[1])
@@ -1192,8 +1722,8 @@ class MathPlotter:
 
     def _r_line(self, item):
         p1, p2 = item['p1'], item['p2']
-        style  = item['style']
-        b      = self.bounds
+        style = item['style']
+        b = self.bounds
         if len(p1) == 2: v0 = b.to_uu(p1[0], 0, p1[1])
         else:            v0 = b.to_uu(*p1[:3])
         if len(p2) == 2: v1 = b.to_uu(p2[0], 0, p2[1])
@@ -1202,12 +1732,12 @@ class MathPlotter:
         self.factory.spawn_cylinder(v0, v1, r, style.color)
 
     def _r_band(self, item):
-        fn_lo   = item['fn_lo']
-        fn_hi   = item['fn_hi']
+        fn_lo = item['fn_lo']
+        fn_hi = item['fn_hi']
         x_range = item['x_range']
-        n       = item['n']
-        style   = item['style']
-        b       = self.bounds
+        n = item['n']
+        style = item['style']
+        b = self.bounds
 
         xs = np.linspace(x_range[0], x_range[1], n)
         verts, norms, tris = [], [], []
@@ -1232,15 +1762,15 @@ class MathPlotter:
             self.factory.spawn_proc_mesh(mesh, style.color, style.opacity)
         if self.debug: print(f"{_P}  band: {len(verts)//2} quads")
 
-    # ── 3D surface render methods ─────────────────────────────────────────────
+    # 3D surface render methods
 
     def _r_plot3d(self, item):
-        fn      = item['fn']
+        fn = item['fn']
         x_range = item['x_range']
         y_range = item['y_range']
-        res     = item['resolution']
-        style   = item['style']
-        b       = self.bounds
+        res = item['resolution']
+        style = item['style']
+        b = self.bounds
 
         with _timed("plot3d sample", self.adv):
             sampler = SurfaceSampler(resolution=res,
@@ -1254,11 +1784,11 @@ class MathPlotter:
 
     def _r_parametric_surface(self, item):
         fx, fy, fz = item['fx'], item['fy'], item['fz']
-        u_range    = item['u_range']
-        v_range    = item['v_range']
-        res        = item['resolution']
-        style      = item['style']
-        b          = self.bounds
+        u_range = item['u_range']
+        v_range = item['v_range']
+        res = item['resolution']
+        style = item['style']
+        b = self.bounds
 
         sampler = SurfaceSampler(resolution=res,
                                   debug=self.debug, advanced_debug=self.adv)
@@ -1270,9 +1800,9 @@ class MathPlotter:
 
     def _r_plot_curve3d(self, item):
         fx, fy, fz = item['fx'], item['fy'], item['fz']
-        t_range    = item['t_range']
-        n          = item['n']
-        style      = item['style']
+        t_range = item['t_range']
+        n = item['n']
+        style = item['style']
 
         sub = AdaptiveSubdivider(zoom=self.zoom,
                                   tolerance=style.linewidth*0.05,
@@ -1287,12 +1817,12 @@ class MathPlotter:
         self.factory.spawn_segments_as_tube(segs, self.bounds, style, mode='3d')
 
     def _r_wireframe(self, item):
-        fn      = item['fn']
+        fn = item['fn']
         x_range = item['x_range']
         y_range = item['y_range']
-        res     = item['resolution']
-        style   = item['style']
-        b       = self.bounds
+        res = item['resolution']
+        style = item['style']
+        b = self.bounds
 
         xs = np.linspace(x_range[0], x_range[1], res)
         ys = np.linspace(y_range[0], y_range[1], res)
@@ -1323,9 +1853,9 @@ class MathPlotter:
         self._r_plot3d({**item, 'type': 'plot3d'})
 
     def _r_isosurface(self, item):
-        fn    = item['fn']
+        fn = item['fn']
         style = item['style']
-        b     = self.bounds
+        b = self.bounds
 
         mc = MarchingCubes(
             x_range=item['x_range'], y_range=item['y_range'],
@@ -1340,8 +1870,8 @@ class MathPlotter:
 
     def _r_intersection(self, item):
         F1, F2 = item['F1'], item['F2']
-        style  = item['style']
-        b      = self.bounds
+        style = item['style']
+        b = self.bounds
         finder = IntersectionFinder(resolution=item['resolution'],
                                      debug=self.debug, advanced_debug=self.adv)
 
@@ -1355,8 +1885,8 @@ class MathPlotter:
             self.factory.spawn_proc_mesh(mesh, style.color, style.opacity)
 
     def _r_riemann_surface(self, item):
-        b     = self.bounds
-        bld   = RiemannSurfaceBuilder(
+        b = self.bounds
+        bld = RiemannSurfaceBuilder(
             r_range=item['r_range'], resolution=item['resolution'],
             sheet_gap=item['sheet_gap'],
             debug=self.debug, advanced_debug=self.adv)
@@ -1372,7 +1902,7 @@ class MathPlotter:
         for mesh, sheet_idx in sheets:
             mesh.vertices *= b.units_per_uu
             color = _PALETTE[sheet_idx % len(_PALETTE)]
-            kw    = item.get('kw', {})
+            kw = item.get('kw', {})
             if 'color' in kw: color = kw['color']
             opacity = kw.get('opacity', 0.85)
             self.factory.spawn_proc_mesh(mesh, color, opacity)
@@ -1381,11 +1911,11 @@ class MathPlotter:
             print(f"{_P}  riemann_surface kind={kind}: {len(sheets)} sheets")
 
     def _r_domain_color(self, item):
-        fn         = item['fn']
+        fn = item['fn']
         resolution = item['resolution']
-        x_range    = item['x_range']
-        y_range    = item['y_range']
-        b          = self.bounds
+        x_range = item['x_range']
+        y_range = item['y_range']
+        b = self.bounds
 
         colorizer = DomainColorizer(resolution=resolution,
                                      x_range=x_range, y_range=y_range,
@@ -1394,35 +1924,35 @@ class MathPlotter:
 
         x0,x1 = x_range; y0,y1 = y_range
         verts = np.array([[x0,0,y0],[x1,0,y0],[x1,0,y1],[x0,0,y1]]) * b.units_per_uu
-        inds  = np.array([[0,1,2],[0,2,3]], dtype=int)
+        inds = np.array([[0,1,2],[0,2,3]], dtype=int)
         norms = np.tile([0,1,0], (4,1)).astype(float)
-        uvs   = np.array([[0,0],[1,0],[1,1],[0,1]])
-        mesh  = MeshData(verts, inds, norms, uvs)
+        uvs = np.array([[0,0],[1,0],[1,1],[0,1]])
+        mesh = MeshData(verts, inds, norms, uvs)
 
         avg_color = tuple(float(img[:,:,c].mean()) for c in range(3)) + (1.0,)
         self.factory.spawn_proc_mesh(mesh, avg_color)
         if self.debug: print(f"{_P}  domain_color {img.shape}")
 
-    # ── Vector field render methods ───────────────────────────────────────────
+    # Vector field render methods
 
     def _r_vector(self, item):
         style = item['style']
-        o     = item['origin']
-        v     = item['v']
-        b     = self.bounds
+        o = item['origin']
+        v = item['v']
+        b = self.bounds
         if len(v) == 2:
-            o3  = b.to_uu(o[0], 0, o[1] if len(o)>1 else 0)
+            o3 = b.to_uu(o[0], 0, o[1] if len(o)>1 else 0)
             tip = b.to_uu(o[0]+v[0], 0, (o[1] if len(o)>1 else 0)+v[1])
         else:
-            o3  = b.to_uu(*o[:3])
+            o3 = b.to_uu(*o[:3])
             tip = b.to_uu(o[0]+v[0], o[1]+v[1], o[2]+v[2])
         r = style.resolved_radius(b.x_span) * b.units_per_uu
         self.factory.spawn_arrow(o3, tip, r, style.color)
 
     def _r_vector_field(self, item):
-        fn    = item['fn']
+        fn = item['fn']
         style = item['style']
-        b     = self.bounds
+        b = self.bounds
 
         sampler = VectorFieldSampler(
             density=item['density'], normalize=item['normalize'],
@@ -1438,10 +1968,10 @@ class MathPlotter:
         for arrow in arrows:
             ox,oy,oz = arrow.origin; dx,dy,dz = arrow.direction
             if item['mode'] == '2d':
-                o3  = b.to_uu(ox, 0, oy)
+                o3 = b.to_uu(ox, 0, oy)
                 tip = b.to_uu(ox+dx/b.units_per_uu, 0, oy+dy/b.units_per_uu)
             else:
-                o3  = b.to_uu(ox, oy, oz)
+                o3 = b.to_uu(ox, oy, oz)
                 tip = b.to_uu(ox+dx/b.units_per_uu,
                                oy+dy/b.units_per_uu,
                                oz+dz/b.units_per_uu)
@@ -1450,10 +1980,10 @@ class MathPlotter:
         if self.debug: print(f"{_P}  vector_field: {len(arrows)} arrows")
 
     def _r_streamline(self, item):
-        fn    = item['fn']
-        seed  = item['seed']
+        fn = item['fn']
+        seed = item['seed']
         style = item['style']
-        b     = self.bounds
+        b = self.bounds
 
         solver = IntegralCurveSolver(
             step_size=item['step'], max_steps=item['max_steps'],
@@ -1469,14 +1999,14 @@ class MathPlotter:
             [seg], b, style, mode=item['mode'])
         if self.debug: print(f"{_P}  streamline: {len(seg.points)} pts")
 
-    # ── GA render methods ─────────────────────────────────────────────────────
+    # GA render methods
 
     def _r_ga(self, item):
-        mv     = item['mv']
+        mv = item['mv']
         origin = item['origin']
-        scale  = item['scale']
-        style  = item['style']
-        b      = self.bounds
+        scale = item['scale']
+        style = item['style']
+        b = self.bounds
 
         grade = GABackend.detect_grade(mv)
 
@@ -1493,7 +2023,7 @@ class MathPlotter:
         elif grade == 1:
             # Vector: arrow
             vx, vy, vz = GABackend.extract_vector(mv)
-            o3  = b.to_uu(*origin)
+            o3 = b.to_uu(*origin)
             tip = b.to_uu(origin[0]+vx*scale,
                            origin[1]+vy*scale,
                            origin[2]+vz*scale)
@@ -1555,7 +2085,7 @@ class MathPlotter:
         else:
             # Higher grade: projected grade-1 representation + label
             vx, vy, vz = GABackend.extract_vector(mv)
-            o3  = b.to_uu(*origin)
+            o3 = b.to_uu(*origin)
             tip = b.to_uu(origin[0]+vx*scale,
                            origin[1]+vy*scale,
                            origin[2]+vz*scale)
@@ -1571,20 +2101,20 @@ class MathPlotter:
 
     def _r_ga_rotor(self, item):
         """Visualise rotor action: draw original, arc path, rotated result."""
-        R          = item['R']
-        target_mv  = item['target_mv']
-        origin     = item['origin']
-        scale      = item['scale']
-        steps      = item['steps']
-        style      = item['style']
-        b          = self.bounds
+        R = item['R']
+        target_mv = item['target_mv']
+        origin = item['origin']
+        scale = item['scale']
+        steps = item['steps']
+        style = item['style']
+        b = self.bounds
 
         axis, angle = GABackend.rotor_to_axis_angle(R)
 
         # Draw axis line
         r_ax = style.resolved_radius(b.x_span) * b.units_per_uu * 0.4
         ax_start = b.to_uu(*origin)
-        ax_end   = b.to_uu(origin[0]+axis[0]*scale*2,
+        ax_end = b.to_uu(origin[0]+axis[0]*scale*2,
                             origin[1]+axis[1]*scale*2,
                             origin[2]+axis[2]*scale*2)
         self.factory.spawn_cylinder(ax_start, ax_end, r_ax,
@@ -1594,7 +2124,7 @@ class MathPlotter:
         grade = GABackend.detect_grade(target_mv)
         if grade == 1:
             vx,vy,vz = GABackend.extract_vector(target_mv)
-            o3  = b.to_uu(*origin)
+            o3 = b.to_uu(*origin)
             tip = b.to_uu(origin[0]+vx*scale,
                            origin[1]+vy*scale,
                            origin[2]+vz*scale)
@@ -1652,12 +2182,12 @@ class MathPlotter:
 
     def _r_ga_meet(self, item):
         """Render meet (intersection) — try to call kingdon meet, fall back to midpoint."""
-        mv1    = item['mv1']
-        mv2    = item['mv2']
+        mv1 = item['mv1']
+        mv2 = item['mv2']
         origin = item['origin']
-        scale  = item['scale']
-        style  = item['style']
-        b      = self.bounds
+        scale = item['scale']
+        style = item['style']
+        b = self.bounds
 
         # Try kingdon vee (meet operator)
         result_mv = None
@@ -1684,11 +2214,11 @@ class MathPlotter:
 
     def _r_ga_join(self, item):
         """Render join (span/outer product)."""
-        mv1    = item['mv1']
-        mv2    = item['mv2']
+        mv1 = item['mv1']
+        mv2 = item['mv2']
         origin = item['origin']
-        scale  = item['scale']
-        style  = item['style']
+        scale = item['scale']
+        style = item['style']
 
         result_mv = None
         if KINGDON_AVAILABLE and hasattr(mv1, 'outer'):
@@ -1711,7 +2241,7 @@ class MathPlotter:
             sty2 = LineStyle.from_palette(self._style_index)
             self._r_ga({**item, 'type':'ga', 'mv': mv2, 'origin': origin,
                         'scale': scale, 'style': sty2})
-            b   = self.bounds
+            b = self.bounds
             pos = b.to_uu(*origin)
             self.factory.spawn_text(pos, "∪", size=10.0, color=style.color)
 
@@ -1719,12 +2249,12 @@ class MathPlotter:
 
     def _r_ga_spread(self, item):
         """Decompose higher-grade mv into grade projections, render in grid."""
-        mv           = item['mv']
-        origin       = item['origin']
-        scale        = item['scale']
+        mv = item['mv']
+        origin = item['origin']
+        scale = item['scale']
         max_subviews = item['max_subviews']
-        style        = item['style']
-        b            = self.bounds
+        style = item['style']
+        b = self.bounds
 
         grades_found = []
         grade = GABackend.detect_grade(mv)
@@ -1743,16 +2273,16 @@ class MathPlotter:
         if self.debug:
             print(f"{_P}  ga_spread: grade={grade}  {min(grade+1,max_subviews)} views")
 
-    # ── nD spread render ─────────────────────────────────────────────────────
+    # nD spread render
 
     def _r_spread(self, item):
-        fn             = item['fn']
-        var_names      = item['var_names']
-        var_ranges     = item['var_ranges']
-        max_subplots   = item['max_subplots']
-        resolution     = item['resolution']
+        fn = item['fn']
+        var_names = item['var_names']
+        var_ranges = item['var_ranges']
+        max_subplots = item['max_subplots']
+        resolution = item['resolution']
         subplot_spacing = item['subplot_spacing']
-        b              = self.bounds
+        b = self.bounds
 
         engine = SpreadEngine(
             fn=fn, var_names=var_names, var_ranges=var_ranges,
@@ -1762,7 +2292,7 @@ class MathPlotter:
         projections = engine.generate_projections()
 
         for proj in projections:
-            mesh   = proj['mesh']
+            mesh = proj['mesh']
             offset = proj['offset']
             labels = proj['labels']
 
@@ -1786,9 +2316,7 @@ class MathPlotter:
             print(f"{_P}  spread: {len(projections)} projections rendered")
 
 
-# ============================================================================
 # CONVENIENCE FACTORY
-# ============================================================================
 
 def create_plotter(world=None,
                    origin: FVector = None,
@@ -1797,11 +2325,19 @@ def create_plotter(world=None,
                    z_range: Vec2 = (-5, 5),
                    units_per_uu: float = 100.0,
                    zoom: float = 1.0,
+                   orientation: str = 'default',
                    ga_backend: str = 'vga',
                    debug: bool = False,
                    advanced_debug: bool = False) -> MathPlotter:
     """
     Convenience constructor.
+
+    orientation — controls how math-space axes map to UE world-space axes.
+        'default'           identity (math X→UE X, Y→UE Y, Z→UE Z)
+        'wall_graph'        vertical surface, graph-style (X right, Y up)     alias: 'wall'
+        'wall_table'        vertical surface, table/screen-style (X right, Y down) alias: 'screen'
+        'ground_table'      horizontal surface, Z-up depth                    alias: 'floor', 'table', 'ground'
+        'ground_table_zdown' horizontal surface, Z-down (sunken/inset look)
 
     Example (offline test):
         p = create_plotter(debug=True, advanced_debug=True)
@@ -1810,15 +2346,23 @@ def create_plotter(world=None,
         p.plot3d(lambda x,y: math.sin(x)*math.cos(y))
         p.show()
 
-    Example (in Unreal):
+    Example (wall-mounted monitor in Unreal):
         p = create_plotter(world=get_world(),
-                           origin=FVector(0,0,500),
+                           origin=FVector(0, 0, 150),
+                           orientation='wall_graph',
                            debug=True)
         p.grid(True)
         p.plot(lambda x: x**2)
         p.show()
+
+    Example (floor/table projection):
+        p = create_plotter(world=get_world(),
+                           origin=FVector(0, 0, 0),
+                           orientation='ground_table')
+        p.plot3d(lambda x, y: math.sin(x) * math.cos(y))
+        p.show()
     """
-    bounds = PlotBounds(x_range, y_range, z_range, units_per_uu)
+    bounds = PlotBounds(x_range, y_range, z_range, units_per_uu, orientation)
     return MathPlotter(world=world, origin=origin,
                        bounds=bounds, zoom=zoom,
                        ga_backend=ga_backend,

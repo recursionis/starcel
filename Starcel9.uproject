@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{63BBE2C6-4A5A-CF69-4C32-E29BA0D989F0}",
+	"EngineAssociation": "{27530AB1-4651-9AF4-6F9D-E991149E8123}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -96,7 +96,7 @@
 		},
 		{
 			"Name": "ChaosEditor",
-			"Enabled": false
+			"Enabled": true
 		},
 		{
 			"Name": "ChaosNiagara",
@@ -163,18 +163,33 @@
 			"Enabled": true
 		},
 		{
-			"Name": "AppleProResMedia",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [
-				"Win64"
-			]
-		},
-		{
 			"Name": "AvidDNxMedia",
 			"Enabled": true
 		},
 		{
 			"Name": "MovieRenderPipeline",
+			"Enabled": true,
+			"WhitelistTargets": [
+				"Editor",
+				"Game",
+				"Client"
+			]
+		},
+		{
+			"Name": "GLTFImporter",
+			"Enabled": true
+		},
+		{
+			"Name": "glTFRuntime",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/d2ed3709933d4608a3a8dd746cbc045d"
+		},
+		{
+			"Name": "LiveLink",
+			"Enabled": true
+		},
+		{
+			"Name": "LiveLinkXR",
 			"Enabled": true
 		}
 	]

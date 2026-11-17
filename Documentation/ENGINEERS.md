@@ -1,0 +1,56 @@
+# What new features are planned
+- Multi-language IDE
+	- Syntax highlighting (CodeMirror, highlight.js, etc.) and LSP/intellisense starting with IntelliJ-PyCharm open source
+	- Debugger: step execution, breakpoints (line, conditional, memory, data), cli or environment at breakpoint, variable inspection, call stack, memory/register inspection, thread & concurrency debugging, reverse/time-travel debugging, inline variable values, hover tooltips
+	- Git DAG exploration https://github.com/mhutchie/vscode-git-graph https://gource.io/
+	- Automated refactoring and static analysis
+	- Dependency tracking and package management integration
+	- AST/IR and LLVM
+	- CRDT Collaborative editing
+	- Project templates & scaffolding
+	- Symbol reduction: freely swap between like-symbols and functions https://github.com/codereport/hoogle-translate
+	- Symbols with varying sizes replacement
+	- Rotating symbol replacement so you don't get used to letters and symbols
+	- Bidirectional math code translation https://www.youtube.com/watch?v=gsv9Azpxt1I
+	- Preview result/tree of selected: train trees, tacit functions. S-expressions
+	- Monadic, diadic, triadic, and n-adic chains https://github.com/codereport/jello (extend to Applicatives and Functors) with Code Smells
+	- Combinatorial exploration: permutations of functions
+	- LLM code translation and live code explanation
+	- Use eml function for expression reduction and expansion https://explorer-taupe-five.vercel.app/ https://github.com/almaguer1986/monogate
+	- Fun stuff
+		- C to Assembly
+		- C to lambda calculus with function labels https://github.com/woodrush/lambda-8cc Lambda calculus to binary https://justine.lol/lambda/
+		- C to turing machine instructions https://youtu.be/2VF_wPkiBJY?&t=194 https://github.com/xoreaxeaxeax/movfuscator
+- Math, algebra, calculus (WIP)
+- SVG and LaTeX rendering
+- Units (convert on click) and text editing
+- Computer algebra system (symbolic math)
+- Numerical methods: ODE/PDE solvers, optimization
+- Statistical and probabilistic analysis tools
+- Tensor/array programming (einsum)
+- LEAN integration
+- Logic to type theory conversion https://www.youtube.com/watch?v=QRrcwahx-3s?&t=417
+- Sequent calculus for dialetheia https://github.com/samuelemarro/convergent-sequent-calculator
+- Geometric algebra rendering: PGA, VGA, CGA, STA (WIP)
+- Interactive 3D visualization
+- Multiple Views: cad style, first person view, third person view, map style, etc. 
+- Animation timeline editor
+- Excel, Google Sheets, HDF5, and FOAM3 importer
+- Homoiconic spreadsheets
+- Plotting, charts, digraphs, nodes (OriginLab Pro, seaborn, matplotlib, ggplot2 features)
+- Network visualization https://github.com/fortra/impacket https://github.com/KimiNewt/pyshark https://github.com/secdev/scapy
+- Dynamic graphing and variables with reverse order calculation engine
+- Performance profiling: flame graphs, memory profilers https://github.com/benfred/py-spy
+- Treesize-style system file graph
+- Interactive notebooks
+- Google Sheets/Docs/Slides edit functionality
+- A special character that is like space, tab, and return, but for depth. 
+- Mode `<owner_name>Word<owner_name>` or the more complete and rigorous `<owner_name>L<owner_name>(L=Letter)` to account for ownership when using dialetheia in concurrent communication protocols
+- VRChat/Helios features
+- Physics simulation engine: chaos physics, hair, rigid body, particles, fluids, breaking, nvidia flex physics
+- Add Starcel as a desktop environment for Debian Linux
+- macOS support
+- Tutorial
+- Unify object importing into one plugin
+- Make .uasset generation disabled by default and enable-able from python
+- Academic hall and learning center: history, math, geometric algebra, physics, particles, physical matter

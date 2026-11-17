@@ -30,4 +30,4 @@ for _class in ue.all_classes():
 j = json.dumps(data, indent=4)
 
 with open(os.path.join(ue.get_content_dir(), 'UnrealEnginePythonAutocompletes.json'), 'w') as f:
-    f.write(j)
+    f.write(j)j

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jello CCS Decomposition: Instrumented Analysis of `iota flat &lt; prior : + * r . scan maxr add1`</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --panel: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #4a4a4a;
+    --accent: #2a4d8f;
+    --accent2: #8f2a4d;
+    --rule: #d8d3c7;
+    --code-bg: #f3f0e8;
+    --code-ink: #1a1a1a;
+    --b-color: #1f6feb;
+    --h1-color: #2da44e;
+    --phi-color: #8250df;
+    --m-color: #bc4c00;
+    --warn: #b53939;
+    --ok: #1d7c3c;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+  .container { max-width: 980px; margin: 0 auto; padding: 32px 28px 80px; }
+  header.doc-head {
+    border-bottom: 2px solid var(--rule);
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+  }
+  header.doc-head h1 {
+    font-size: 28px;
+    margin: 0 0 6px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  header.doc-head .subtitle {
+    color: var(--muted);
+    margin: 0;
+    font-size: 15px;
+  }
+  header.doc-head .meta {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  header.doc-head .meta span { white-space: nowrap; }
+  h2 {
+    font-size: 21px;
+    margin: 40px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  h3 { font-size: 17px; margin: 24px 0 8px; font-weight: 600; }
+  h4 { font-size: 15px; margin: 18px 0 6px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  p { margin: 8px 0 12px; }
+  a { color: var(--accent); }
+  code, kbd, samp, pre {
+    font-family: "JetBrains Mono", "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 13.5px;
+  }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; color: var(--code-ink); }
+  pre {
+    background: var(--code-bg);
+    padding: 12px 14px;
+    border-radius: 5px;
+    border: 1px solid var(--rule);
+    overflow-x: auto;
+    margin: 10px 0 16px;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 18px;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th { background: #f1ede2; font-weight: 600; }
+  tr:hover td { background: #faf7ee; }
+  .b      { color: var(--b-color);   font-weight: 600; }
+  .h1c    { color: var(--h1-color);  font-weight: 600; }
+  .phi    { color: var(--phi-color); font-weight: 600; }
+  .mglyph { color: var(--m-color);   font-weight: 600; }
+  .tok    { background: #eef3ff; padding: 1px 5px; border-radius: 3px; color: var(--accent); font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; }
+  .atom   { background: #fff0e6; padding: 1px 5px; border-radius: 3px; color: var(--m-color); font-family: "JetBrains Mono", Consolas, monospace; font-size: 13px; }
+  .warn   { color: var(--warn); font-weight: 600; }
+  .ok     { color: var(--ok);   font-weight: 600; }
+  .pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    background: #e7e3d5;
+    color: #3a3a3a;
+    margin-right: 4px;
+    font-weight: 600;
+  }
+  nav.toc {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-bottom: 30px;
+    columns: 2;
+    column-gap: 28px;
+    font-size: 14px;
+  }
+  nav.toc h4 { margin: 0 0 8px; }
+  nav.toc ol { margin: 0; padding-left: 22px; }
+  nav.toc li { break-inside: avoid; margin: 2px 0; }
+  blockquote {
+    border-left: 3px solid var(--accent);
+    background: #f1f4fb;
+    padding: 10px 14px;
+    margin: 12px 0;
+    color: var(--ink);
+    border-radius: 0 4px 4px 0;
+  }
+  blockquote.bad {
+    border-left-color: var(--warn);
+    background: #fbf0f0;
+  }
+  blockquote.good {
+    border-left-color: var(--ok);
+    background: #effaf1;
+  }
+  .ascii {
+    white-space: pre;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 13px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 14px 18px;
+    border-radius: 6px;
+    overflow-x: auto;
+    line-height: 1.45;
+  }
+  .ascii .green { color: #6ce26c; }
+  .ascii .yellow { color: #e6d36c; }
+  .ascii .red { color: #e26c6c; }
+  .ascii .blue { color: #6cabe2; }
+  .ascii .white { color: #ffffff; }
+  details {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 8px 14px;
+    margin: 10px 0;
+    background: var(--panel);
+  }
+  summary { cursor: pointer; font-weight: 600; }
+  .question {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 5px 5px 0;
+  }
+  .question .qid {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+    letter-spacing: 0.05em;
+  }
+  .question h3 { display: inline; font-size: 15px; margin: 0; }
+  .question p  { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+  .decision {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent2);
+    padding: 10px 14px;
+    margin: 8px 0;
+    border-radius: 0 5px 5px 0;
+  }
+  .decision .did {
+    display: inline-block;
+    background: var(--accent2);
+    color: white;
+    padding: 1px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+    letter-spacing: 0.05em;
+  }
+  .decision .summary-line { font-size: 14px; }
+  .xref {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--m-color);
+    padding: 12px 16px;
+    margin: 0 0 24px;
+    border-radius: 0 5px 5px 0;
+    font-size: 14px;
+  }
+  .xref h4 { margin: 0 0 6px; }
+  .xref ul { margin: 4px 0 0; padding-left: 22px; }
+  .xref li { margin: 3px 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) {
+    nav.toc { columns: 1; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+  .kbd-row { font-family: monospace; font-size: 13px; }
+  .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="doc-head">
+  <h1>Jello CCS Decomposition: Instrumented Analysis of <code>iota flat &lt; prior : + * r . scan maxr add1</code></h1>
+  <p class="subtitle">
+    How surface tokens in the canonical 1-1-2-q-s-2-2-2-s-q-1-1 chain
+    decompose into the four visible combinators (<span class="b">BBBB</span>) of Jello's
+    combinator-chain sequence — instrumented trace, probe-falsified counting rule,
+    open questions for tacit-programming research.
+  </p>
+  <div class="meta">
+    <span><strong>Subject:</strong> Jello / Jellyfish (Jelly fork) — combinator chain analysis</span>
+    <span><strong>Language stack:</strong> Python 3 + jelly CLI</span>
+    <span><strong>Repo path:</strong> <code>Content/Scripts/nd_table/jello/</code></span>
+    <span><strong>Doc ID:</strong> jello_ccs_analysis.html</span>
+    <span><strong>Location:</strong> ProjectsFolder/Documentation/</span>
+  </div>
+</header>
+
+<div class="xref" aria-label="Related documents">
+  <h4>Related documents in this folder</h4>
+  <ul>
+    <li><a href="JELLO.md"><code>JELLO.md</code></a> — the Jello documentation index (start here for navigation across all jello-related material).</li>
+    <li><a href="jello_decisions.md"><code>jello_decisions.md</code></a> — the standalone decision log with the full rationale for each of the 38 decisions summarised in &sect;13 below.</li>
+    <li><a href="constructive_reals.html"><code>constructive_reals.html</code></a> — sibling brief on the vendored Hans Boehm constructive-reals library; engages the same algebraic territory as <a href="#openq">Q8</a> (jello tokens evaluated against <code>CR</code>).</li>
+    <li><a href="ENGINEERS.md"><code>ENGINEERS.md</code></a> — Starcel9 engineering roadmap; jello appears at line 16 as a planned IDE feature ("Monadic, diadic, triadic, and n-adic chains <a href="https://github.com/codereport/jello">https://github.com/codereport/jello</a> (extend to Applicatives and Functors) with Code Smells").</li>
+  </ul>
+</div>
+
+<nav class="toc" aria-label="Table of contents">
+  <h4>Table of Contents</h4>
+  <ol>
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#context">Project Context</a></li>
+    <li><a href="#expression">The Expression Under Study</a></li>
+    <li><a href="#image">The Triggering Image</a></li>
+    <li><a href="#trace">Progressive Evaluation</a></li>
+    <li><a href="#chain">Chain-Arity Decomposition</a></li>
+    <li><a href="#instrumented">Instrumented Combinator Trace</a></li>
+    <li><a href="#visible">The Visible-B Mapping</a></li>
+    <li><a href="#invisible">Invisible-but-Emitted Combinators</a></li>
+    <li><a href="#probes">Probe Variants (Falsification Table)</a></li>
+    <li><a href="#rule">The CCS Counting Rule</a></li>
+    <li><a href="#fix">The Wrong Bullet &amp; Its Fix</a></li>
+    <li><a href="#workflow">Workflow Provenance</a></li>
+    <li><a href="#decisions">Decision Log (Summary)</a></li>
+    <li><a href="#openq">Open Research Questions</a></li>
+    <li><a href="#refs">References</a></li>
+    <li><a href="#repro">Reproducibility Appendix</a></li>
+  </ol>
+</nav>
+
+<section id="abstract">
+<h2>Abstract</h2>
+<p>
+We instrumented the combinator-tree builder in <code>jello/src/draw.py</code> (Jello, a Python wrapper for the Jelly tacit-programming language) to expose the full set of combinators emitted while reducing a representative <strong>1-1-2-q-s-2-2-2-s-q-1-1</strong> chain (twelve surface tokens). Eight combinators are emitted (<span class="b">B &times; 5</span> &mdash; 4 visible plus 1 invisible &mdash; <span class="h1c">h&#8321; &times; 2</span>, <span class="phi">&Phi;&#8321; &times; 1</span>), but only the four visible <span class="b">B</span>s reach the linearized "combinator-chain sequence" (CCS) <span class="b">BBBB</span> printed by <code>Grid.ccs()</code>. The remaining four are dropped either by name (the <span class="h1c">h&#8321;</span>s) or by position (non-leftmost labels on a row). We then ran seven probe variants to falsify a na&iuml;ve "trailing tokens add trailing Bs" hypothesis embedded in the project's README. The probes confirm an alternative rule: <em>each leading monad contributes exactly one B; the remaining structure of the chain is a separator-bounded composition of pre-canned sub-chains</em>. We close with fourteen open research questions touching algebraic structure, type theory, comparability with BQN trains, and possible integration with the Hans Boehm constructive-reals library already vendored alongside this project (see also the sibling <a href="constructive_reals.html"><code>constructive_reals.html</code></a>).
+</p>
+</section>
+
+<section id="context">
+<h2>1. Project Context</h2>
+<p>
+<strong>Jello</strong> is a Python script (<code>jello.py</code>) that wraps the <em>Jellyfish</em> executable &mdash; a fork of Dennis Mitchell's <a href="https://github.com/DennisMitchell/jellylanguage/">Jelly</a> tacit-programming language. The wrapper exposes long-form English-like names (e.g. <span class="tok">iota</span>, <span class="tok">prior</span>, <span class="tok">scan</span>) for Jelly's single-byte atoms (<span class="atom">R</span>, <span class="atom">&#7765;</span>, <span class="atom">\</span>) and prints, for each user expression, both the value and a <em>combinator-tree</em> showing how the chain decomposes into Currying combinators (<span class="b">B</span>, S, &Phi;, &Sigma;, &Delta;, &hellip;) plus Jello-specific lifts (<span class="h1c">h&#8321;</span> for unary quicks like <code>prior</code> and <code>scan</code>).
+</p>
+<p>
+The package lives at <code>Content/Scripts/nd_table/jello/</code> inside a larger Unreal Engine 4.27 project (Starcel9). Jello is listed in the project's engineering roadmap (<a href="ENGINEERS.md"><code>ENGINEERS.md</code></a>, line 16) as a planned IDE feature: <em>"Monadic, diadic, triadic, and n-adic chains <a href="https://github.com/codereport/jello">https://github.com/codereport/jello</a> (extend to Applicatives and Functors) with Code Smells"</em>. Adjacent directories include <code>reals-0.0.6/</code> &mdash; a Python port of Hans Boehm's SGI/HP <strong>constructive reals</strong> library (the <code>UnaryCRFunction.java</code> source shared during this investigation belongs to that family; see <a href="constructive_reals.html"><code>constructive_reals.html</code></a>). Other neighbours include <code>foam</code>, <code>pga_renderer.py</code>, and <code>ndtable.py</code>, but they did not figure into this brief.
+</p>
+<table>
+  <tr><th>Path</th><th>Role</th></tr>
+  <tr><td><code>src/jello.py</code></td><td>REPL entry; tokenizes user input, dispatches to <code>jelly eun</code>, prints colored trace + tree.</td></tr>
+  <tr><td><code>src/tokens.py</code></td><td>Three dicts: <code>monadic</code>, <code>dyadic</code>, <code>niladic</code> + <code>quick</code> + <code>separators</code>. Each maps an English name to a Jelly atom.</td></tr>
+  <tr><td><code>src/draw.py</code></td><td><code>combinator_tree(chain, type, initial_call, grid)</code> &mdash; recursive descent that emits <span class="b">B</span>/<span class="phi">&Phi;&#8321;</span>/<span class="h1c">h&#8321;</span>/&hellip; into a <code>Grid</code>.</td></tr>
+  <tr><td><code>src/grid.py</code></td><td><code>Grid.add_subtree(level, start, end, label)</code> writes box-drawing chars; <code>ccs()</code> extracts the leftmost first-3 chars per row to produce a linearized "CCS" string.</td></tr>
+  <tr><td><code>src/algorithm.py</code></td><td>Advisor: ~30 rewrites (e.g. <code>+ scan &rarr; sums</code>, <code>deltas &gt; 0 &rarr; &lt; prior</code>).</td></tr>
+  <tr><td><code>src/utils.py</code></td><td><code>Chain</code>, <code>Quick</code>, <code>Separator</code> enums; subsequence helpers.</td></tr>
+  <tr><td><code>src/test.py</code></td><td>30+ unit tests; each asserts (monadic CCS, dyadic CCS) for a chain.</td></tr>
+  <tr><td><code>README.md</code></td><td>Tutorial-style. Examples 1&ndash;3 were canonical; Example 4 was added during this investigation.</td></tr>
+</table>
+</section>
+
+<section id="expression">
+<h2>2. The Expression Under Study</h2>
+<table>
+  <tr><th>Field</th><th>Value</th></tr>
+  <tr><td>Surface form</td><td><code>iota flat &lt; prior : + * r . scan maxr add1</code></td></tr>
+  <tr><td>Token count</td><td>12</td></tr>
+  <tr><td>Jelly atoms</td><td><code>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\&#7780;&#8216;</code></td></tr>
+  <tr><td>Chain arity</td><td><code>1-1-2-q-s-2-2-2-s-q-1-1</code></td></tr>
+  <tr><td>Monadic CCS</td><td><span class="b">BBBB</span></td></tr>
+  <tr><td>Dyadic CCS</td><td><span class="b">BBBB</span></td></tr>
+  <tr><td>Test input</td><td><code>[2,4,3]</code></td></tr>
+  <tr><td>Output</td><td><code>4</code></td></tr>
+  <tr><td>Interpretation</td><td>Longest strictly-increasing run, length, in the flattened concatenation of <code>iota</code>'d inputs (1..n for each n in the input).</td></tr>
+</table>
+<h4>Token table</h4>
+<table>
+  <tr><th>Position</th><th>Token</th><th>Arity</th><th>Atom</th><th>Role</th></tr>
+  <tr><td>0</td><td><span class="tok">iota</span></td><td>1 (monad)</td><td><span class="atom">R</span></td><td>1..n for each int</td></tr>
+  <tr><td>2</td><td><span class="tok">flat</span></td><td>1 (monad)</td><td><span class="atom">F</span></td><td>flatten</td></tr>
+  <tr><td>4</td><td><span class="tok">&lt;</span></td><td>2 (dyad)</td><td><span class="atom">&lt;</span></td><td>strict less-than</td></tr>
+  <tr><td>6</td><td><span class="tok">prior</span></td><td>q (quick)</td><td><span class="atom">&#7765;</span></td><td>pair-with-predecessor</td></tr>
+  <tr><td>8</td><td><span class="tok">:</span></td><td>s (separator)</td><td><span class="atom">&eth;</span></td><td>open dyadic sub-chain</td></tr>
+  <tr><td>10</td><td><span class="tok">+</span></td><td>2 (dyad)</td><td><span class="atom">+</span></td><td>addition</td></tr>
+  <tr><td>12</td><td><span class="tok">*</span></td><td>2 (dyad)</td><td><span class="atom">&times;</span></td><td>multiplication</td></tr>
+  <tr><td>14</td><td><span class="tok">r</span></td><td>2 (dyad)</td><td><span class="atom">&#7771;</span></td><td>right argument</td></tr>
+  <tr><td>16</td><td><span class="tok">.</span></td><td>s (separator)</td><td><span class="atom">&micro;</span></td><td>open monadic sub-chain</td></tr>
+  <tr><td>18</td><td><span class="tok">scan</span></td><td>q (quick)</td><td><span class="atom">\</span></td><td>cumulative scan (monadic case)</td></tr>
+  <tr><td>20</td><td><span class="tok">maxr</span></td><td>1 (monad)</td><td><span class="atom">&#7780;</span></td><td>max-reduce</td></tr>
+  <tr><td>22</td><td><span class="tok">add1</span></td><td>1 (monad)</td><td><span class="atom">&#8216;</span></td><td>+1</td></tr>
+</table>
+<p style="font-size:13px;color:var(--muted);">
+"Position" is the grid column assigned by <code>jello.py</code>: <code>i*2</code> for token index <code>i</code>. Spans in later tables refer to these columns.
+</p>
+</section>
+
+<section id="image">
+<h2>3. The Triggering Image</h2>
+<p>
+The investigation began with a screenshot of the Jello REPL evaluating this expression. The screenshot (terminal-window styled, dark background, traffic-light header reading "Jello") contained four logical zones:
+</p>
+<ol>
+  <li><strong>Prompt line:</strong> <code>&gt; [2,4,3] :: iota flat &lt; prior : + * r . scan maxr add1</code> with surface tokens colored (monad green, dyad blue, quick red).</li>
+  <li><strong>Atom row:</strong> <code>R  F  &lt;  &#7765;  &eth;  +  &times;  &#7771;  &micro;  \  &#7780;  &#8216;</code> &mdash; one atom per surface token, horizontally aligned beneath the prompt.</li>
+  <li><strong>Trace block:</strong> ten rows showing each prefix of the atom string and what <code>jelly eun</code> returned for it on <code>[2,4,3]</code>. See <a href="#trace">&sect;4</a>.</li>
+  <li><strong>Combinator footer:</strong> the chain-arity string <code>1-1-2-q-s-2-2-2-s-q-1-1</code> followed by "<em>monadic chain (BBBB)</em>" and an ASCII tree growing downward, with brackets <code>&#9484;&mdash;&mdash;&#9488;</code> at top and combinator labels (<span class="b">B</span>, <span class="h1c">h&#8321;</span>, <span class="phi">&phi;&#8321;</span>) below.</li>
+</ol>
+<p>
+<strong>Visual note worth flagging:</strong> the image draws brackets as <code>&#9484;&mdash;&mdash;&#9488;</code> opening downward; the code in <code>grid.py</code> writes <code>&#9492;&mdash;&mdash;&#9496;</code> opening upward (constants <code>START="&#9492;"</code>, <code>END="&#9496;"</code>, <code>MID="&#9516;"</code>). The image likely has the tree visually inverted relative to the code's grid for human readability. We did <em>not</em> reconcile this &mdash; see <a href="#openq">Q13</a>.
+</p>
+</section>
+
+<section id="trace">
+<h2>4. Progressive Evaluation</h2>
+<p>The image's trace block, transcribed:</p>
+<table>
+  <tr><th>Prefix</th><th>Atoms</th><th>Input</th><th>Output</th></tr>
+  <tr><td>R</td><td><code>R</code></td><td><code>[2,4,3]</code></td><td><code>[[1, 2], [1, 2, 3, 4], [1, 2, 3]]</code></td></tr>
+  <tr><td>RF</td><td><code>RF</code></td><td><code>[2,4,3]</code></td><td><code>[1, 2, 1, 2, 3, 4, 1, 2, 3]</code></td></tr>
+  <tr><td>RF&lt;</td><td><code>RF&lt;</code></td><td><code>[2,4,3]</code></td><td><code>[1, 1, 1, 2, 3, 4, 1, 2, 3]</code></td></tr>
+  <tr><td>RF&lt;&#7765;</td><td><code>RF&lt;&#7765;</code></td><td><code>[2,4,3]</code></td><td><code>[1, 0, 1, 1, 1, 0, 1, 1]</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+</td><td><code>RF&lt;&#7765;&eth;+</code></td><td><code>[2,4,3]</code></td><td><code>[3, 4, 4, 1, 1, 0, 1, 1]</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+&times;</td><td><code>RF&lt;&#7765;&eth;+&times;</code></td><td><code>[2,4,3]</code></td><td><code>[3, 0, 4, 2, 2, 0, 2, 2]</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+&times;&#7771;</td><td><code>RF&lt;&#7765;&eth;+&times;&#7771;</code></td><td><code>[2,4,3]</code></td><td><code>[6, 16, 12, 1, 1, 0, 1, 1]</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\</td><td><code>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\</code></td><td><code>[2,4,3]</code></td><td><code>[1, 0, 1, 2, 3, 0, 1, 2]</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\&#7780;</td><td><code>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\&#7780;</code></td><td><code>[2,4,3]</code></td><td><code>3</code></td></tr>
+  <tr><td>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\&#7780;&#8216;</td><td><code>RF&lt;&#7765;&eth;+&times;&#7771;&micro;\&#7780;&#8216;</code></td><td><code>[2,4,3]</code></td><td><code>4</code></td></tr>
+</table>
+<p>
+After <code>F</code> the array is <code>[1,2,1,2,3,4,1,2,3]</code>. <code>&lt; prior</code> (atoms <code>&lt;&#7765;</code>) flags strictly-increasing transitions: <code>[1,0,1,1,1,0,1,1]</code>. The <code>+ &times; &#7771;</code> mid-chain (a <span class="phi">&Phi;&#8321;</span>, M3, opened by the <code>:</code> separator) folds neighboring runs into a "run length so far" trace via <code>scan</code> (<code>&micro;\</code>); <code>maxr</code> takes the max, <code>add1</code> off-by-ones. The output <code>4</code> matches the four-element strictly-increasing run <code>1,2,3,4</code> in the flattened array.
+</p>
+</section>
+
+<section id="chain">
+<h2>5. Chain-Arity Decomposition</h2>
+<p>
+The chain <code>1-1-2-q-s-2-2-2-s-q-1-1</code> is recursively split by separators (<code>s</code>) into three sub-chains, each typed by its preceding separator:
+</p>
+<table>
+  <tr><th>Sub-chain</th><th>Arity</th><th>Tokens</th><th>Chain type</th><th>Triggered by</th></tr>
+  <tr><td>1</td><td><code>1-1-2-q</code></td><td><span class="tok">iota</span> <span class="tok">flat</span> <span class="tok">&lt;</span> <span class="tok">prior</span></td><td>outer (monadic) or outer (dyadic)</td><td>start of chain</td></tr>
+  <tr><td>2</td><td><code>2-2-2</code></td><td><span class="tok">+</span> <span class="tok">*</span> <span class="tok">r</span></td><td>dyadic</td><td><span class="tok">:</span> (dyadic separator)</td></tr>
+  <tr><td>3</td><td><code>q-1-1</code></td><td><span class="tok">scan</span> <span class="tok">maxr</span> <span class="tok">add1</span></td><td>monadic</td><td><span class="tok">.</span> (monadic separator)</td></tr>
+</table>
+<p>
+After each sub-chain reduces to a single element on the stack, the outer pass concatenates them and re-runs the quick/monad/dyad reduction at the outer level. The <span class="tok">scan</span> quick is a prefix in sub-chain 3; because <code>combinator_tree</code> returns prefix quicks unchanged, <span class="tok">scan</span> bubbles up to the outer level, where it picks up sub-chain 2's result via an <span class="h1c">h&#8321;</span>.
+</p>
+</section>
+
+<section id="instrumented">
+<h2>6. Instrumented Combinator Trace</h2>
+<p>
+We monkey-patched <code>Grid.add_subtree</code> to log every <code>(level, start, end, label)</code> call. Both <code>Chain.MONADIC</code> and <code>Chain.DYADIC</code> produce <em>identical</em> sequences for this chain (no <code>[2,1]</code> or <code>[1,2,1]</code> patterns arise that would diverge between modes). Trace, in emission order:
+</p>
+<table>
+  <tr><th>#</th><th>Level</th><th>Span</th><th>Label</th><th>Origin</th></tr>
+  <tr><td>M0</td><td>0</td><td>4..6</td><td><span class="h1c">h&#8321;</span></td><td>Sub-chain 1, quick pass: collapses <span class="tok">&lt;</span> + <span class="tok">prior</span> (quick at pos 6 grabs the dyad at pos 4).</td></tr>
+  <tr><td>M1</td><td>0</td><td>0..2</td><td><span class="b">B</span></td><td>Sub-chain 1, monad pass iter 1: zips <span class="tok">iota</span> with <span class="tok">flat</span>.</td></tr>
+  <tr><td>M2</td><td>1</td><td>1..5</td><td><span class="b">B</span></td><td>Sub-chain 1, monad pass iter 2: zips M1 with M0.</td></tr>
+  <tr><td>M3</td><td>0</td><td>10..14</td><td><span class="phi">&Phi;&#8321;</span></td><td>Sub-chain 2 (dyadic): matches <code>[2,2,2]</code> dyadic pattern. Returns a single dyad node.</td></tr>
+  <tr><td>M4</td><td>0</td><td>20..22</td><td><span class="b">B</span></td><td>Sub-chain 3 (monadic): zips <span class="tok">maxr</span> with <span class="tok">add1</span> (the quick <span class="tok">scan</span> is prefixed and bubbles up).</td></tr>
+  <tr><td>M5</td><td>1</td><td>12..18</td><td><span class="h1c">h&#8321;</span></td><td>Outer quick pass: <span class="tok">scan</span> (pos 18) reaches leftward past the <span class="tok">.</span> separator and grabs the nearest grabbable node, which is M3 (the collapsed <span class="phi">&Phi;&#8321;</span> over <span class="tok">+ * r</span>, pos 12, still dyad-shaped at the outer level).</td></tr>
+  <tr><td>M6</td><td>2</td><td>3..15</td><td><span class="b">B</span></td><td>Outer monad pass iter 1: zips M2 with M5.</td></tr>
+  <tr><td>M7</td><td>3</td><td>9..21</td><td><span class="b">B</span></td><td>Outer monad pass iter 2: zips M6 with M4. Top of tree.</td></tr>
+</table>
+<p>Eight combinators total: <span class="b">B &times; 5</span> (4 visible &mdash; M1, M2, M6, M7 &mdash; plus 1 invisible &mdash; M4), <span class="h1c">h&#8321; &times; 2</span> (M0, M5), <span class="phi">&Phi;&#8321; &times; 1</span> (M3). Only the 4 visible Bs reach the linearized CCS <span class="b">BBBB</span>.</p>
+</section>
+
+<section id="visible">
+<h2>7. The Visible-B Mapping</h2>
+<p>
+<code>Grid.ccs()</code> linearizes the grid by taking the leftmost-stripped <em>first three characters</em> of each row, dropping rows whose first char is a vertical bar (<code>&#8942;</code>), then stripping the residual box-drawing chars and repeatedly removing the substring <code>"h&#8321;"</code>. The grid has eight rows (rows 0..7 = lvl&times;2 brackets + lvl&times;2+1 labels for four levels). After the filter, only label rows 1, 3, 5, 7 contribute, and only the leftmost label on each row survives the <code>[0:3]</code> slice.
+</p>
+<table>
+  <tr><th>CCS<br>position</th><th>Tree row<br>(label row)</th><th>Span</th><th>Trace<br>entry</th><th>Surface tokens this <span class="b">B</span> composes</th></tr>
+  <tr><td>1st <span class="b">B</span></td><td>1</td><td>0..2</td><td>M1</td><td><span class="tok">iota</span> &compfn; <span class="tok">flat</span></td></tr>
+  <tr><td>2nd <span class="b">B</span></td><td>3</td><td>1..5</td><td>M2</td><td>(M1) &compfn; <span class="tok">&lt; prior</span> via <span class="h1c">h&#8321;</span></td></tr>
+  <tr><td>3rd <span class="b">B</span></td><td>5</td><td>3..15</td><td>M6</td><td>(M2) &compfn; (<span class="tok">+ * r</span> &compfn; <span class="tok">scan</span> via <span class="phi">&Phi;&#8321;</span> raised by <span class="h1c">h&#8321;</span>), across the <span class="tok">:</span> separator</td></tr>
+  <tr><td>4th <span class="b">B</span></td><td>7</td><td>9..21</td><td>M7</td><td>(M6) &compfn; (<span class="tok">maxr</span> &compfn; <span class="tok">add1</span> via M4's <span class="b">B</span>), across the <span class="tok">.</span> separator</td></tr>
+</table>
+<p>
+<strong>Note</strong>: the 4th <span class="b">B</span> survives the <span class="tok">.</span>-subchain having any positive number of trailing monads (m &ge; 1; just one &mdash; see probe P4 &mdash; suffices). Zero monads collapses it &mdash; see P6. The bullet text in <code>README.md</code> says "the <span class="tok">.</span> subchain <span class="tok">maxr add1</span>"; that is overfit to this expression. The general rule is: <em>some</em> monadic terminator in the <span class="tok">.</span>-subchain &mdash; see <a href="#openq">Q3</a> for whether to generalize.
+</p>
+</section>
+
+<section id="invisible">
+<h2>8. Invisible-but-Emitted Combinators</h2>
+<table>
+  <tr><th>Trace #</th><th>Label</th><th>Why dropped from CCS</th></tr>
+  <tr><td>M0</td><td><span class="h1c">h&#8321;</span></td><td>Stripped by <code>ccs()</code>'s <code>while "h&#8321;" in no_bars: no_bars.replace("h&#8321;", "")</code> loop.</td></tr>
+  <tr><td>M3</td><td><span class="phi">&Phi;&#8321;</span></td><td>Lives on label row 1 at column 11&ndash;12, but M1's <span class="b">B</span> is at column 1 &mdash; leftmost wins. The first-3-chars slice on the stripped row returns <code>"B  "</code> and <span class="phi">&Phi;&#8321;</span> never sees the screen.</td></tr>
+  <tr><td>M4</td><td><span class="b">B</span> (secondary)</td><td>Also on label row 1, at column 21. Same reason: M1 dominates the leftmost slot.</td></tr>
+  <tr><td>M5</td><td><span class="h1c">h&#8321;</span></td><td>Both (a) not leftmost on label row 3, and (b) stripped by name. Either filter alone would drop it.</td></tr>
+</table>
+<p>
+The separators <span class="tok">:</span> and <span class="tok">.</span> and the quicks <span class="tok">prior</span>, <span class="tok">scan</span> do not produce their own labels &mdash; quicks reduce to <span class="h1c">h&#8321;</span> (then stripped); separators only restructure the recursive descent.
+</p>
+</section>
+
+<section id="probes">
+<h2>9. Probe Variants (Falsification Table)</h2>
+<p>
+Seven variants run in parallel against the live <code>draw.combinator_chain_sequence</code>. Each variant changes one structural feature; the resulting CCS is the empirical truth against which the original README claim was tested.
+</p>
+<p style="font-size:13.5px;"><strong>Note:</strong> In every probe, monadic CCS equals dyadic CCS &mdash; the chain contains no patterns that would diverge between modes (<code>[2,1]</code> or <code>[1,2,1]</code>).</p>
+<table>
+  <tr><th>#</th><th>Expression</th><th>Arity</th><th>Monadic</th><th>Dyadic</th><th>What it falsifies</th></tr>
+  <tr><td>P1</td><td><code>&lt; prior : + * r . scan maxr add1</code></td><td><code>2-q-s-2-2-2-s-q-1-1</code></td><td><span class="b">BB</span></td><td><span class="b">BB</span></td><td>Base case (no leading monads). Establishes that the post-separator structure alone yields <span class="b">BB</span>.</td></tr>
+  <tr><td>P2</td><td><code>iota flat &lt; prior : + * r . scan maxr add1</code></td><td><code>1-1-2-q-s-2-2-2-s-q-1-1</code></td><td><span class="b">BBBB</span></td><td><span class="b">BBBB</span></td><td>The expression of interest. +2 leading monads = +2 <span class="b">B</span>s.</td></tr>
+  <tr><td>P3</td><td><code>flat &lt; prior : + * r . scan maxr add1</code></td><td><code>1-2-q-s-2-2-2-s-q-1-1</code></td><td><span class="b">BBB</span></td><td><span class="b">BBB</span></td><td>&minus;1 leading monad = &minus;1 <span class="b">B</span>. Confirms linearity.</td></tr>
+  <tr><td>P4</td><td><code>iota flat &lt; prior : + * r . scan add1</code></td><td><code>1-1-2-q-s-2-2-2-s-q-1</code></td><td><span class="b">BBBB</span></td><td><span class="b">BBBB</span></td><td>Drop <span class="tok">maxr</span>. CCS unchanged &rArr; "<span class="tok">maxr add1</span> contributes 2 <span class="b">B</span>s" is false.</td></tr>
+  <tr><td>P5</td><td><code>iota flat &lt; prior : + * r . scan add1 add1</code></td><td><code>1-1-2-q-s-2-2-2-s-q-1-1</code></td><td><span class="b">BBBB</span></td><td><span class="b">BBBB</span></td><td>Swap <span class="tok">maxr</span>&rarr;<span class="tok">add1</span>. CCS unchanged &rArr; <span class="b">B</span>#4 is structural, not token-identity.</td></tr>
+  <tr><td>P6</td><td><code>iota flat &lt; prior : + * r . scan</code></td><td><code>1-1-2-q-s-2-2-2-s-q</code></td><td><span class="b">BBB</span></td><td><span class="b">BBB</span></td><td>Drop the <span class="tok">.</span>-subchain's tail entirely &rArr; &minus;1 <span class="b">B</span>. So <em>some</em> monadic terminator is required for <span class="b">B</span>#4.</td></tr>
+  <tr><td>P7</td><td><code>rev iota flat &lt; prior : + * r . scan maxr add1</code></td><td><code>1-1-1-2-q-s-2-2-2-s-q-1-1</code></td><td><span class="b">BBBBB</span></td><td><span class="b">BBBBB</span></td><td>+1 leading monad = +1 <span class="b">B</span>. Extends linearity beyond two leading monads.</td></tr>
+</table>
+</section>
+
+<section id="rule">
+<h2>10. The CCS Counting Rule (Hypothesis)</h2>
+<p>For chains of the form <code>1{k} &hellip; s &hellip; s &hellip; 1{m}</code> (k leading monads, m trailing monads, with separator-bounded internals):</p>
+<blockquote class="good">
+<strong>Empirical rule (piecewise):</strong> <code>|CCS|<sub>B</sub> = k + 2</code> if the <code>.</code>-tail has &ge;1 monad, otherwise <code>|CCS|<sub>B</sub> = k + 1</code>. Here k is the count of leading monads, and the chain has two separators dividing it into three sub-chains.
+</blockquote>
+<p style="font-size:13.5px;"><strong>Probe-to-rule mapping:</strong> P1: k=0, m=2 &rarr; <span class="b">BB</span>; P2: k=2, m=2 &rarr; <span class="b">BBBB</span>; P3: k=1, m=2 &rarr; <span class="b">BBB</span>; P6: k=2, m=0 &rarr; <span class="b">BBB</span>; P7: k=3, m=2 &rarr; <span class="b">BBBBB</span>.</p>
+<ul>
+  <li>The <strong>+2</strong> is the outer collapse: three sub-chain results need two <span class="b">B</span>s to fold into one. This is a constant for this chain topology.</li>
+  <li>The <strong>+k</strong> is the leading sub-chain's internal collapse: starting from <code>1<sup>k</sup>2q</code>, the quick consumes the dyad, leaving <code>1<sup>k+1</sup></code>, which then needs <code>k</code> <span class="b">B</span>s to fold to one. (k=0 &rarr; 0 inner <span class="b">B</span>s, leaving only the +2 outer = <span class="b">BB</span>, matching P1.)</li>
+  <li>The trailing sub-chain's <span class="b">B</span>s are <em>not</em> leftmost on row 1 once a leading sub-chain exists &mdash; they remain invisible regardless of <code>m</code>. The <span class="tok">.</span>-subchain only needs <em>at least one</em> monad to contribute the structural element that the outer top-<span class="b">B</span> consumes; reducing to zero monads (P6) collapses to <span class="b">BBB</span> (the outer "+2" loses its third arm).</li>
+</ul>
+<p>This rule was confirmed against probes P1&ndash;P7. It has not been proven in general; see <a href="#openq">Q1</a>.</p>
+</section>
+
+<section id="fix">
+<h2>11. The Wrong Bullet &amp; Its Fix</h2>
+<blockquote class="bad">
+<strong>Original (wrong) bullet in <code>README.md</code> Example 4</strong> (authored under <a href="#decisions">D2</a>, with the <span class="tok">maxr add1</span> claim that later proved wrong):<br>
+"The chain collapses to <span class="b">BBBB</span>: the leading <span class="tok">iota</span> and <span class="tok">flat</span> contribute two <span class="b">B</span>s, <span class="tok">prior</span> and <span class="tok">scan</span> each lift their preceding chain through <span class="h1c">h&#8321;</span>, the <span class="tok">+ &times; &#7771;</span> body between the <span class="tok">:</span> and <span class="tok">.</span> separators forms a <span class="phi">&Phi;&#8321;</span>, and <strong>the trailing <span class="tok">maxr add1</span> adds the final two <span class="b">B</span>s</strong>."
+</blockquote>
+<p>The claim in bold is empirically false. Probe P4 (drop <span class="tok">maxr</span>) and P5 (swap <span class="tok">maxr</span>&rarr;<span class="tok">add1</span>) both yield <span class="b">BBBB</span>, proving the "final two <span class="b">B</span>s" do not depend on the pair <span class="tok">maxr add1</span>.</p>
+<blockquote class="good">
+<strong>Fix applied (<code>README.md</code> line 119)</strong> &mdash; applied via workflow <code>wcqrrrd9t</code>, see <a href="#decisions">D8</a>:<br>
+"The chain collapses to <span class="b">BBBB</span>: a row-1 <span class="b">B</span> fuses <span class="tok">iota</span> and <span class="tok">flat</span>, a row-3 <span class="b">B</span> lifts that through an <span class="h1c">h&#8321;</span> over <span class="tok">&lt;</span>+<span class="tok">prior</span> (quick), a row-5 <span class="b">B</span> joins the left tree to a <span class="phi">&Phi;&#8321;</span> over <span class="tok">+ * r</span> lifted by another <span class="h1c">h&#8321;</span> through <span class="tok">scan</span> (quick) across <span class="tok">:</span>, and a row-7 <span class="b">B</span> joins everything to the <span class="tok">.</span>-subchain <span class="tok">scan maxr add1</span> (the <span class="tok">scan</span> quick having bubbled up via <span class="h1c">h&#8321;</span> at M5 into M6 already, so M7's right arm is just <span class="tok">maxr add1</span> via M4's <span class="b">B</span>)."
+</blockquote>
+<p><strong>Residual overfit, noted but not corrected:</strong> the fix still says "<span class="tok">.</span> subchain <span class="tok">maxr add1</span>" &mdash; a generalization (just "any monadic terminator") would also fit probes P4 and P5. We left it specific because surrounding Examples 1&ndash;3 are equally chain-specific.</p>
+</section>
+
+<section id="workflow">
+<h2>12. Workflow Provenance</h2>
+<p>The fix was produced by a deterministic <code>Workflow</code> script (task ID <code>wcqrrrd9t</code>):</p>
+<table>
+  <tr><th>Phase</th><th>Agents</th><th>Output</th></tr>
+  <tr><td>Trace</td><td>1 (schema-bound)</td><td>Instrumented <code>Grid.add_subtree</code>, dumped all 8 emissions, mapped to CCS positions.</td></tr>
+  <tr><td>Probe</td><td>7 (parallel)</td><td>One per probe variant. Schema-validated <code>(arity, monadic, dyadic)</code>.</td></tr>
+  <tr><td>Draft</td><td>3 (parallel)</td><td>Three rewrites of the bullet in styles: <em>terse</em>, <em>structural</em>, <em>walkthrough</em>.</td></tr>
+  <tr><td>Verify drafts</td><td>3 (parallel)</td><td>Adversarial reviewers scored each on (accuracy, falsifiability, clarity, style-fit), 0&ndash;10 each.</td></tr>
+  <tr><td>Apply</td><td>1</td><td>Picked winner (terse, 32/40), applied edit, re-ran <code>test.py</code>, confirmed 68 &#x2705;.</td></tr>
+</table>
+<p>Per-draft scores:</p>
+<table>
+  <tr><th>Style</th><th>Accuracy</th><th>Falsifiability</th><th>Clarity</th><th>Style fit</th><th>Total</th></tr>
+  <tr><td>terse (winner)</td><td>10</td><td>9</td><td>7</td><td>6</td><td>32</td></tr>
+  <tr><td>structural</td><td>7</td><td>5</td><td>5</td><td>3</td><td>20</td></tr>
+  <tr><td>walkthrough</td><td colspan="5">scored but per-axis numbers were not retained; total ranked third behind terse (32/40) and structural (20/40).</td></tr>
+</table>
+<p>Workflow stats: task <code>wcqrrrd9t</code>, 15 agents total, 383k subagent tokens, 32 tool uses, 172 s wall clock.</p>
+</section>
+
+<section id="decisions">
+<h2>13. Decision Log (Summary)</h2>
+<p>
+A one-sentence summary of each of the 38 decisions made over the course of the investigation. Each captures the choice; the full rationale, alternatives considered, and outcome notes live in the standalone log.
+</p>
+<blockquote>
+<strong>See <a href="jello_decisions.md"><code>jello_decisions.md</code></a> for full rationale</strong> &mdash; this section is a navigation index; the markdown sibling carries the canonical decision text.
+</blockquote>
+
+<h4>Conversational arc (D1&ndash;D12)</h4>
+<p>The twelve decisions in this arc cover the user-facing chronology: disambiguating the original "upgrade based on image" request (D1), authoring README Example 4 (D2), adding the unit-test assertion (D3), testing and refuting two successive user hypotheses about which tokens contribute <span class="b">B</span>s (D4&ndash;D7), launching Workflow <code>wcqrrrd9t</code> to fix the wrong bullet (D8&ndash;D10), deferring the Hans Boehm <code>UnaryCRFunction</code> integration (D11), and producing this brief as standalone HTML (D12).</p>
+
+<h4 style="margin-top:18px;">Methodology &amp; tooling (D13&ndash;D38)</h4>
+<p>The twenty-six sub-decisions in this block cover the smaller methodological and tooling choices: up-front codebase exploration before answering (D13), tool-loading discipline (D14), pre-test verification of the token-to-atom map and the CCS string (D15&ndash;D16), Windows encoding workaround and scope-discipline on the pre-existing <code>challenges.md</code> traceback (D17&ndash;D18), empirical disambiguation over clarification questions (D19), workflow-vs-inline choices (D20, D25), the workflow's draft-style and scoring design (D22&ndash;D24), the second workflow <code>w5wwmwxxb</code> for adversarial HTML review (D28&ndash;D29), open-question deferrals (D30&ndash;D31), and the appended-block structure of D13 onward that preserved the D1&ndash;D12 chronology (D32). The remaining sub-decisions (D21, D26, D27, D33&ndash;D38) are smaller framing choices that nonetheless shaped the brief's final form.</p>
+
+</section>
+
+<section id="openq">
+<h2>14. Open Research Questions (for the recipient)</h2>
+<p>The recipient is the intended source of "bleeding-edge research" feedback. These questions are ordered roughly by ratio of payoff to plausible accessibility &mdash; early ones are tighter and more concretely answerable, later ones are speculative.</p>
+
+<div class="question">
+<span class="qid">Q1</span><h3>Prove or refute the CCS counting rule</h3>
+<p>The rule <code>|CCS|<sub>B</sub> = k + 2</code> (for k leading monads, with two separators dividing into three non-empty sub-chains, and at least one monad in the <span class="tok">.</span>-tail) was confirmed against probes P1&ndash;P7. Is it provable from <code>combinator_tree</code>'s recursive structure? Are there chain shapes where it breaks? What is the closed form for <code>|CCS|<sub>B</sub></code> as a function of (k, m, separator-count, internal arity vector)?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q2</span><h3>Is <code>ccs()</code> a faithful linearization?</h3>
+<p>The current <code>Grid.ccs()</code> emits only the leftmost first-3-chars of each label row. It loses <span class="phi">&Phi;&#8321;</span>, <span class="h1c">h&#8321;</span> (intentionally stripped by name), and non-leftmost <span class="b">B</span>s. Is there a canonical <em>complete</em> linearization (analogous to in-order tree traversal) that uniquely identifies the chain modulo provable equivalences? If so, would the README's tutorial sections (Section 4.x) better use it?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q3</span><h3>Generalize the "<span class="tok">.</span>-subchain" descriptor</h3>
+<p>The fix bullet says "the <span class="tok">.</span> subchain <span class="tok">maxr add1</span>", but P4&ndash;P5 show <span class="b">B</span>#4 only requires <em>some</em> monad in the <span class="tok">.</span>-subchain (zero monads, P6, drops the count). What is the right phrasing for an Example bullet that is both chain-faithful (matches the surface text the reader sees) and rule-faithful? Is there a community convention?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q4</span><h3>Empty-leading-sub-chain regression (reframed from a test.py:62 TODO)</h3>
+<p>The TODO at <code>test.py:62</code> (<code># noqa unit_test("+ * r . scan maxr") # 2.2 TODO</code>) tests a chain with no leading-monad sub-chain at all &mdash; only a dyadic mid-chain and a monadic <span class="tok">.</span>-tail, no opening <span class="tok">:</span>. Reframed as a research question: do chains with an empty leading sub-chain (no leading monads <em>and</em> no leading dyad-quick pair) form a regression case where the <code>k + 2</code>/<code>k + 1</code> piecewise rule from &sect;10 still applies, or does the absence of the first separator collapse the +2 outer-fold constant to +1? Either resolve in-tree (run <code>draw.combinator_chain_sequence</code> on the chain, add the assertion) or investigate whether <code>combinator_from_pattern_match</code> has a missing case.</p>
+</div>
+
+<div class="question">
+<span class="qid">Q5</span><h3>Fill the gaps in the dyadic chain table (README &sect;"Dyadic Chains")</h3>
+<p>Row 1 (<code>+ &times; 1 &hellip;</code>, type <code>2-2-0</code>, "dyad-dyad-nilad") has empty IC and SC cells. The combinator table beneath ("Combinator Table (WIP)") is explicitly WIP, listing only S, B&#8321;, E, &epsilon;. What are the missing combinators? Is there a principled way to derive them from &Phi;.&#8322;, &Delta;, etc.?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q6</span><h3>CCS-preserving compilation from BQN k-trains to jello chains</h3>
+<p>Does there exist a CCS-preserving compilation from BQN's k-trains (1-train, 2-train, 3-train, Atop, Over) into jello chains? For every BQN tacit expression <em>e</em>, is there a jello chain <em>c</em> such that <code>|CCS<sub>B</sub>|(c)</code> equals the syntactic train-depth of <em>e</em>? Identify BQN constructs (likely deep modifiers) with no chain analogue.</p>
+</div>
+
+<div class="question">
+<span class="qid">Q7</span><h3>Mine the algorithm-advisor equivalence lattice</h3>
+<p>The advisor at <code>algorithm.py</code> hard-codes ~30 rewrites (e.g., <span class="tok">+ scan</span> &rarr; <span class="tok">sums</span>, <span class="tok">deltas &gt; 0</span> &rarr; <span class="tok">&lt; prior</span>). Can the full equivalence lattice for chains of length &le; 10 be enumerated mechanically &mdash; e.g., by running every chain on a battery of inputs and clustering by output, then verifying provable equivalence on each cluster?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q8</span><h3>Integrate constructive reals</h3>
+<p>The user shared Hans Boehm's <code>UnaryCRFunction</code> (SGI/HP constructive-reals library, also vendored as <code>reals-0.0.6/</code> in the project &mdash; see the sibling brief <a href="constructive_reals.html"><code>constructive_reals.html</code></a>). What would jello tokens look like when evaluated against <code>CR</code> instead of integer Jelly atoms? Specifically: <span class="tok">scan</span>, <span class="tok">maxr</span> on infinite-precision floats &mdash; are they well-defined in the limit, or do they require explicit precision-management?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q9</span><h3>Chain Kolmogorov complexity</h3>
+<p>For a function <em>f</em> with a finite description (e.g., "longest strictly-increasing run length"), what is the shortest jello chain computing <em>f</em>? Decidable for finite input/output domains, but is there an efficient search? Could the <code>--find-by-example</code> facility (currently brute-force over monadic-pair compositions) be extended to chains of length 3&ndash;6?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q10</span><h3>Give <span class="h1c">h&#8321;</span> a principal type</h3>
+<p>The <span class="h1c">h&#8321;</span> glyph appears 2&times; in our trace and is stripped from CCS by name. Its role is to "lift a dyadic chain to monadic" when a unary quick (<span class="tok">prior</span>, <span class="tok">scan</span>) grabs the preceding dyad. Is <span class="h1c">h&#8321;</span> = <span class="b">B</span>W<span class="b">B</span> in SKI-BWCK? Is it Smullyan's Warbler (<em>Wxy = xyy</em>)? Is its System F type <code>&forall;a b. (a &rarr; a &rarr; b) &rarr; (a &rarr; b)</code>?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q11</span><h3>Why exactly four rows? Combinator-tree depth as function of token count</h3>
+<p>Our 12-token expression produced a 4-level tree (label rows 1, 3, 5, 7) and exactly 4 visible <span class="b">B</span>s (5 emitted; M4 dropped by leftmost-on-row filter). Is the tree depth a monotone function of token count? Are there pathological chains whose tree grows superlinearly?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q12</span><h3>The missing &Phi;-family</h3>
+<p>The combinator table lists <span class="phi">&Phi;&#8321;</span> (2y222, all dyadic args), <span class="phi">&Phi;</span> (1y121), <span class="phi">&Phi;.&#8322;</span> (2y122). There is no <span class="phi">&Phi;&#8321;.&#8323;</span> or analogous for 2-2-1. Is this an intentional omission (those reduce to nested S/B&#8321;) or a real gap?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q13</span><h3>Tree-drawing convention: APL root-down vs concatenative root-up</h3>
+<p>The triggering image (&sect;3) draws the tree root-down (APL/J/BQN convention) with brackets <code>&#9484;&mdash;&mdash;&#9488;</code>; <code>grid.py</code> draws root-up with <code>&#9492;&mdash;&mdash;&#9496;</code> (constants <code>START="&#9492;"</code>, <code>END="&#9496;"</code>, <code>MID="&#9516;"</code>). Is this two valid conventions colliding, or a stale screenshot? Resolve: (a) does <code>grid.py.display()</code> apply a vertical flip, or is the image stale; (b) which convention should jello adopt for consistency?</p>
+</div>
+
+<div class="question">
+<span class="qid">Q14</span><h3>Recursion bound on separators</h3>
+<p>This chain has two separators. <code>combinator_tree</code> handles them via recursion. What is the upper bound on separator nesting that the current implementation correctly handles? Are there chains with 3+ separators whose CCS depends on the order of recursion?</p>
+</div>
+
+</section>
+
+<section id="refs">
+<h2>15. References</h2>
+<ul>
+  <li><a href="https://github.com/DennisMitchell/jellylanguage/wiki/Tutorial">Jelly Tutorial</a> (canonical source for Sections 1, 4.2, 4.3 referenced in Examples 1&ndash;3)</li>
+  <li><a href="https://github.com/DennisMitchell/jellylanguage/">Jelly GitHub repo</a></li>
+  <li><a href="https://github.com/codereport/jellyfish">Jellyfish (Jelly fork)</a> &mdash; the executable Jello wraps</li>
+  <li><a href="https://github.com/codereport/jello">Jello GitHub repo</a></li>
+  <li><a href="https://www.youtube.com/watch?v=XkLsy_I_H6w">Jello LiveStream IV (Top 10 algorithms)</a> &mdash; origin of test 3.1 (<code>&lt; prior : + * r . scan maxr add1</code>)</li>
+  <li><a href="https://www.youtube.com/watch?v=AHLe0wfiu3s">Jello LiveStream VII</a> &mdash; combinators including <span class="phi">&Phi;.&#8322;</span></li>
+  <li><a href="https://www.youtube.com/watch?v=k9BNn39gWiM">BQN vs Jelly</a></li>
+  <li><a href="https://mlochbaum.github.io/BQN/">BQN reference</a></li>
+  <li>Hans Boehm, <em>UnaryCRFunction.java</em> (SGI/HP constructive reals, 1999) &mdash; vendored at <code>Content/Scripts/nd_table/reals-0.0.6/</code>; see sibling brief <a href="constructive_reals.html"><code>constructive_reals.html</code></a>.</li>
+  <li>Source brief (full decision rationale): <code>Content/Scripts/nd_table/jello/bbbb_research_brief.html</code>.</li>
+</ul>
+</section>
+
+<section id="repro">
+<h2>16. Reproducibility Appendix</h2>
+
+<h4>Single-command reproducibility</h4>
+<p>All of the analyses in this document &mdash; the instrumented trace from &sect;6, the canonical P1&ndash;P7 probe suite from &sect;9/&sect;10, the &sect;7/&sect;11 chain comparisons &mdash; can be reproduced via a single CLI: <code>Content/Scripts/jello_ccs_probe.py</code>. The script imports <code>draw</code>, <code>jello</code>, <code>grid</code>, and <code>utils</code> directly from <code>Content/Scripts/nd_table/jello/src/</code> (no modification to the jello package) and reconfigures <code>sys.stdout</code> to UTF-8 at top-of-file, so no <code>PYTHONIOENCODING</code> env var is required on Windows.</p>
+<pre><code># Single chain (default)
+python Content/Scripts/jello_ccs_probe.py "iota flat &lt; prior : + * r . scan maxr add1"
+
+# With instrumented combinator trace (reproduces &sect;6)
+python Content/Scripts/jello_ccs_probe.py "iota flat &lt; prior : + * r . scan maxr add1" --trace
+
+# Canonical P1&ndash;P7 probe suite (reproduces &sect;9 / verifies the &sect;10 rule)
+python Content/Scripts/jello_ccs_probe.py --probes
+
+# Two chains side-by-side (reproduces the &sect;7/&sect;11 comparisons)
+python Content/Scripts/jello_ccs_probe.py --compare "iota flat &lt; prior : + * r . scan maxr add1" "flat &lt; prior : + * r . scan maxr add1"
+
+# Machine-readable
+python Content/Scripts/jello_ccs_probe.py "iota flat &lt; prior : + * r . scan maxr add1" --json</code></pre>
+<ul>
+  <li><code>--trace</code> dumps the eight emitted combinators (M0&ndash;M7) with <code>level</code> / <code>start</code>..<code>end</code> / <code>label</code> &mdash; the table in &sect;6.</li>
+  <li><code>--probes</code> runs the canonical P1&ndash;P7 chain set with <code>id</code> / <code>chain</code> / <code>arity</code> / <code>mCCS</code> / <code>dCCS</code> / <code>falsifies</code> columns &mdash; the table in &sect;9 and the falsification basis for &sect;10's piecewise rule.</li>
+  <li><code>--compare</code> prints two chains side-by-side with <code>!=</code> markers on every differing field &mdash; the workhorse for the &sect;7 visible-B mapping and the &sect;11 wrong-bullet / fix-bullet contrast.</li>
+  <li><code>--json</code> emits a flat JSON object (single mode) or list (probes mode) for downstream tooling.</li>
+</ul>
+<p>If you'd rather inline the code (e.g., to audit each step without the CLI wrapper), the original <code>python -c</code> snippets below remain valid and produce identical output.</p>
+
+<h4>Environment</h4>
+<ul>
+  <li>OS: Windows 10/11, console encoding cp1252 (must set <code>PYTHONIOENCODING=utf-8</code> for tests).</li>
+  <li>Python: 3.9 (system).</li>
+  <li>Deps: <code>colorama</code>, <code>prompt_toolkit</code> (per <code>jello/requirements.txt</code>).</li>
+  <li>Engine context: Unreal Engine 4.27 source build (Chaos branch); jello is a Python sidecar, not loaded into UE.</li>
+</ul>
+
+<h4>Run the existing test suite</h4>
+<pre><code>cd "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Scripts\nd_table\jello\src"
+PYTHONIOENCODING=utf-8 python test.py</code></pre>
+<p>Expected: <code>&#x1F7E2;&#x1F7E1;&#x1F534; Jello Tests &#x1F534;&#x1F7E1;&#x1F7E2;</code> then 68 &#x2705; marks. A <code>FileNotFoundError: ../challenges.md</code> at the end is pre-existing and unrelated.</p>
+
+<h4>Inspect the chain for an arbitrary expression</h4>
+<pre><code>cd "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Scripts\nd_table\jello\src"
+PYTHONIOENCODING=utf-8 python -c "
+import draw, jello
+from utils import Chain
+expr = 'iota flat &lt; prior : + * r . scan maxr add1'
+ca = [jello.keyword_arity(e) for e in expr.split()]
+print('arity:    ', jello.chain_arity_to_string(ca))
+print('atoms:    ', jello.convert(expr.split()))
+print('monadic:  ', ''.join(draw.combinator_chain_sequence(ca, Chain.MONADIC)))
+print('dyadic:   ', ''.join(draw.combinator_chain_sequence(ca, Chain.DYADIC)))
+"</code></pre>
+
+<h4>Instrument Grid.add_subtree to log all emissions</h4>
+<pre><code>cd "C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Scripts\nd_table\jello\src"
+PYTHONIOENCODING=utf-8 python -c "
+import draw, jello
+from grid import Grid
+from utils import Chain
+orig = Grid.add_subtree
+calls = []
+def traced(self, level, start, end, s):
+    calls.append((level, start, end, s))
+    return orig(self, level, start, end, s)
+Grid.add_subtree = traced
+expr = 'iota flat &lt; prior : + * r . scan maxr add1'
+ca = [jello.keyword_arity(e) for e in expr.split()]
+calls.clear()
+m = ''.join(draw.combinator_chain_sequence(ca, Chain.MONADIC))
+print('MONADIC CCS:', m)
+for i, c in enumerate(calls):
+    print(f'M{i}: lvl={c[0]} span={c[1]}..{c[2]} label={c[3]!r}')
+"</code></pre>
+<p>This produces the trace in &sect;6 verbatim.</p>
+
+<h4>Files modified in the original investigation</h4>
+<table>
+  <tr><th>File</th><th>Change</th><th>Line</th></tr>
+  <tr><td><code>jello/README.md</code></td><td>Added Example 4 (D2) + corrected bullet 3 (D8).</td><td>115&ndash;120</td></tr>
+  <tr><td><code>jello/src/test.py</code></td><td>Added unit-test assertion for the chain (D3).</td><td>65</td></tr>
+  <tr><td><code>jello/bbbb_research_brief.html</code></td><td>Source brief (full decision rationale).</td><td>&mdash;</td></tr>
+  <tr><td><code>Documentation/jello_ccs_analysis.html</code></td><td>This document (Documentation/-folder adaptation).</td><td>&mdash;</td></tr>
+</table>
+
+<h4>Workflow artifacts</h4>
+<p>The fix workflow is referenced by confirmed task ID <code>wcqrrrd9t</code>. Workflow artifacts (script source and per-agent transcripts) are not retained outside the source brief.</p>
+
+</section>
+
+<footer>
+<p>
+<strong>Legend:</strong>
+<span class="b">&#9632;</span> B (visible combinator) &nbsp;
+<span class="h1c">&#9632;</span> h&#8321; (raise, stripped from CCS) &nbsp;
+<span class="phi">&#9632;</span> &Phi;-family (dyadic chain combinator) &nbsp;
+<span class="mglyph">&#9632;</span> Jelly atoms / m glyph (single-element monadic node)
+</p>
+<p>
+Prepared for external review. The intended outcome is feedback against the open questions in &sect;14. Please treat the empirical claims in &sect;6&ndash;&sect;11 as fact (instrumented + probed) and the rule in &sect;10 as a falsifiable hypothesis whose proof or counter-example is welcome.
+</p>
+<p>
+<strong>Part of the Starcel9 Documentation/ set. Companions: <a href="JELLO.md">JELLO.md</a>, <a href="jello_decisions.md">jello_decisions.md</a>, <a href="constructive_reals.html">constructive_reals.html</a>.</strong>
+</p>
+</footer>
+
+</div>
+</body>
+</html>

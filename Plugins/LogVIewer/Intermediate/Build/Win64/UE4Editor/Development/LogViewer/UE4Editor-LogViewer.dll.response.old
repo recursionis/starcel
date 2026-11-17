@@ -34,7 +34,7 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp.obj"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Default.rc2.res"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Projects\UE4Editor-Projects.lib"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\InputCore\UE4Editor-InputCore.lib"
@@ -74,7 +74,7 @@
 "imm32.lib"
 "uiautomationcore.lib"
 "DXGI.lib"
-/OUT:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Binaries\Win64\UE4Editor-LogViewer.dll"
-/IMPLIB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\UE4Editor-LogViewer.suppressed.lib"
-/PDB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Binaries\Win64\UE4Editor-LogViewer.pdb"
+/OUT:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Binaries\Win64\UE4Editor-LogViewer.dll"
+/IMPLIB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\UE4Editor-LogViewer.suppressed.lib"
+/PDB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Binaries\Win64\UE4Editor-LogViewer.pdb"
 /ignore:4078

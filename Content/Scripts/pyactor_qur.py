@@ -1,0 +1,181 @@
+import unreal_engine as ue
+from unreal_engine import FVector, FRotator, FTransform
+import random
+import os
+import re
+
+try:
+    from unreal_engine.classes import StaticMeshActor, Blueprint, MaterialInterface
+    from unreal_engine.enums import EComponentMobility
+except Exception:
+    StaticMeshActor = Blueprint = MaterialInterface = EComponentMobility = None
+
+try:
+    from unreal_engine_tools import apply_text3d_material
+except Exception:
+    apply_text3d_material = None
+
+try:
+    import worldhello
+except Exception:
+    worldhello = None
+
+# Python component for BP_Qur — spawns a Text3D quote every 60 seconds
+#
+# Blueprint requirements (BP_Qur):
+#   - Skeletal mesh (Qur cat character)
+#   - Python component → pyactor_qur.PyActorQur
+#
+# The quote text is spawned as a BP_Cell (Text3DComponent) actor above
+# the cat, using CatFont_Font, and replaced each interval.
+
+QUOTES = [
+    "Hello World",
+]
+
+FONT_PATH = '/Game/Fonts/CatFont_Font'
+QUOTE_MATERIAL_PATH = '/Game/Materials/M_ShinyGold.M_ShinyGold'
+QUOTE_INTERVAL = 600.0   # 10 minutes between quote changes
+QUOTE_OFFSET = FVector(-55, -10, -35)  # to the right and up from the cat
+TEXT_LINE_LENGTH = 25
+
+
+class PyActorQur:
+    """Spawns a rotating quote above the Qur cat using CatFont."""
+
+    def begin_play(self):
+        self._elapsed = 0.0
+        self._quote_actor = None
+        self._font = None
+        self._first_quote_pending = True
+
+        try:
+            self._font = ue.load_object(ue.find_class('Font'), FONT_PATH)
+        except Exception as e:
+            ue.log_warning(f'PyActorQur: could not load font "{FONT_PATH}": {e}')
+
+        # Load quotes from the txt (falls back to hardcoded QUOTES)
+        file_path = os.path.join(os.path.dirname(__file__), "quotes.txt")
+        self.__quotes = None
+        try:
+            loaded = []
+            with open(file_path, 'r', encoding='utf-8') as file:
+                for line in file:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    shifted = [int(line[i:i+8], 2) for i in range(0, len(line), 8)]
+                    loaded.append(bytes((byte - 3) % 256 for byte in shifted).decode('utf-8'))
+            if worldhello is not None:
+                loaded.append(worldhello.hello_world())
+            self.__quotes = loaded
+            print("Successfully loaded quotes")
+        except Exception:
+            print("Failed to load quotes")
+
+        ue.log(f'PyActorQur: started on {self.uobject.get_name()}')
+        # NOTE: defer first quote spawn to tick() — calling actor_spawn here
+        # can fail with "running a ConstructionScript" on some PIE sessions.
+
+    def tick(self, dt):
+        # Deferred first-quote spawn (avoids ConstructionScript conflict)
+        if self._first_quote_pending:
+            self._first_quote_pending = False
+            self._show_quote()
+            return
+
+        self._elapsed += dt
+        if self._elapsed >= QUOTE_INTERVAL:
+            self._elapsed = 0.0
+            self._show_quote()
+
+    def _show_quote(self):
+        """Destroy old quote actor and spawn a new one with a random quote."""
+        # Destroy previous
+        if self._quote_actor is not None:
+            try:
+                self._quote_actor.actor_destroy()
+            except Exception:
+                pass
+            self._quote_actor = None
+
+        # Prefer loaded quotes, fall back to hardcoded list
+        quote_pool = self.__quotes if self.__quotes else QUOTES
+        quote = random.choice(quote_pool)
+
+        # Spawn BP_Cell (Text3DComponent)
+        try:
+            bp = ue.load_object(Blueprint,
+                                '/Game/Blueprints/Assets/BP_Cell.BP_Cell')
+            world = self.uobject.get_world()
+            loc = self.uobject.get_actor_location()
+            print("QUR LOC", loc)
+            spawn_loc = FVector(loc.x + QUOTE_OFFSET.x,
+                                loc.y + QUOTE_OFFSET.y,
+                                loc.z + QUOTE_OFFSET.z)
+            actor = world.actor_spawn(bp.GeneratedClass, spawn_loc)
+
+            t3d = actor.get_actor_component('Text3DComponent')
+            if t3d:
+                # IMPORTANT: assign materials BEFORE Text/Font. UText3DComponent::
+                # BuildTextMesh re-applies the FrontMaterial/Bevel/Extrude/Back
+                # UPROPERTYs to every per-glyph mesh at the end of every rebuild
+                # (Text3DComponent.cpp:755-760). Setting Text or Font triggers a
+                # rebuild — so any material we set after would only stick until
+                # the next rebuild. Setting the UPROPERTYs first means the very
+                # first build (the one driven by t3d.Text/t3d.Font below) bakes
+                # M_ShinyGold into the glyphs and any later rebuild keeps it.
+                try:
+                    gold = ue.load_object(MaterialInterface, QUOTE_MATERIAL_PATH)
+                except Exception as e:
+                    gold = None
+                    ue.log_warning(f'PyActorQur: could not load {QUOTE_MATERIAL_PATH}: {e}')
+                if gold is not None:
+                    for prop in ('FrontMaterial', 'BevelMaterial',
+                                 'ExtrudeMaterial', 'BackMaterial'):
+                        try:
+                            setattr(t3d, prop, gold)
+                        except Exception as e:
+                            ue.log_warning(f'PyActorQur: setattr({prop}) failed: {e}')
+
+                t3d.Text = re.sub(rf"(.{{1,{TEXT_LINE_LENGTH}}})(?:\s+|$)", r"\1\n", quote)
+                if self._font:
+                    t3d.Font = self._font
+                # Small scale for readable text
+                transform = FTransform(spawn_loc, FRotator(0, 0, 0), FVector(.2, .2, .2))
+                actor.set_actor_transform(transform)
+
+                # Belt-and-braces: also push the material onto each glyph mesh
+                # directly, in case writing the UPROPERTY didn't trigger the
+                # BlueprintSetter and the auto-apply at the tail of BuildTextMesh
+                # didn't run.
+                if apply_text3d_material is not None and gold is not None:
+                    try:
+                        apply_text3d_material(
+                            actor=actor,
+                            component=t3d,
+                            material_path=QUOTE_MATERIAL_PATH,
+                        )
+                    except Exception as e:
+                        ue.log_warning(f'PyActorQur: text3d material apply failed: {e}')
+
+            # # Attach so it follows the cat
+            # owner = self.uobject.get_owner()
+            # try:
+            #     actor.K2_AttachToActor(owner)
+            # except Exception:
+            #     pass
+            # print("QUR QUOTE LOC", spawn_loc)
+            # actor.RelativeLocation = spawn_loc
+
+            self._quote_actor = actor
+            ue.log(f'PyActorQur: "{quote[:30]}..."')
+        except Exception as e:
+            ue.log_warning(f'PyActorQur: quote spawn failed: {e}')
+
+    def end_play(self, reason):
+        if self._quote_actor is not None:
+            try:
+                self._quote_actor.actor_destroy()
+            except Exception:
+                pass

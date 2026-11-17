@@ -34,8 +34,8 @@
 /NODEFAULTLIB:"LIBCPD"
 /FUNCTIONPADMIN
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.obj"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.cpp.obj"
-"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.cpp.obj"
+"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Module.SaveExtension.gen.cpp.obj"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Default.rc2.res"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Core\UE4Editor-Core.lib"
 "C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\UE4Editor-Engine.lib"
@@ -69,7 +69,7 @@
 "setupapi.lib"
 "dwmapi.lib"
 "imm32.lib"
-/OUT:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Binaries\Win64\UE4Editor-SaveExtension.dll"
-/IMPLIB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\UE4Editor-SaveExtension.suppressed.lib"
-/PDB:"C:\Users\nicho\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Binaries\Win64\UE4Editor-SaveExtension.pdb"
+/OUT:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Binaries\Win64\UE4Editor-SaveExtension.dll"
+/IMPLIB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\UE4Editor-SaveExtension.suppressed.lib"
+/PDB:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Binaries\Win64\UE4Editor-SaveExtension.pdb"
 /ignore:4078
