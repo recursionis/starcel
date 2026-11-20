@@ -43,7 +43,7 @@ HEIGHT         = 800.0
 N_APPLES       = 30
 ICON_SCALE_MIN = 0.4
 ICON_SCALE_MAX = 0.8
-SEED           = 1337  # bumped from 42 to reshuffle apple positions
+SEED           = 42
 
 # Drop the cloud below the canopy, then raycast each apple straight up
 # until it hits the tree — apples land on the underside of the branches

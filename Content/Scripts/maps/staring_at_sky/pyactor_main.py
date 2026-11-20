@@ -37,8 +37,8 @@ HEIGHT         = 10000.0
 
 # Star count + per-star uniform scale in [MIN, MAX].
 N_STARS        = 50
-ICON_SCALE_MIN = 1.0
-ICON_SCALE_MAX = 5.0
+ICON_SCALE_MIN = 3.0
+ICON_SCALE_MAX = 7.0
 SEED           = 42
 
 
@@ -105,7 +105,7 @@ class Main:
             # Cylinder is axis-aligned with world Z (rotation=0,0,0), so
             # no rotation step — just translate by CENTER.
             world = FVector(CENTER.x + cx, CENTER.y + cy, CENTER.z + cz)
-            scale = FVector(float(s) * 0.8, float(s) * 0.8, float(s))
+            scale = FVector(float(s), float(s), float(s))
             try:
                 actor = spawn_icon(pil_img, location=world, scale=scale,
                                    source_path=path)

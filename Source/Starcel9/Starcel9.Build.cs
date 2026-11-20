@@ -10,7 +10,8 @@ public class Starcel9 : ModuleRules
         PublicDependencyModuleNames.AddRange(new string[]
         {
             "Core", "CoreUObject", "Engine", "InputCore",
-            "HeadMountedDisplay", "SlateCore", "Slate" //, "Text3D"
+            "HeadMountedDisplay", "SlateCore", "Slate", //, "Text3D"
+            "PakFile", "RenderCore"
         });
 
         //if (Target.Type == TargetType.Server)

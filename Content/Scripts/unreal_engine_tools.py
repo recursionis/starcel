@@ -406,7 +406,7 @@ def find_actor(name, *, fuzzy=True, use_cache=True):
                 _actor_lookup_cache.pop(name, None)
 
     exact, contains = [], []
-    for a in world.all_actors():
+    for a in get_world().all_actors():
         n = a.get_name()
         if n == name:
             exact.append(a)
@@ -435,7 +435,7 @@ py_actor = find_actor("BP_PyActor")
 def find_actors(name, *, fuzzy=True):
     """Find all actors by name. Single pass; fuzzy fallback only if no exact matches."""
     exact, contains = [], []
-    for a in world.all_actors():
+    for a in get_world().all_actors():
         n = a.get_name()
         if n == name:
             exact.append(a)
@@ -488,7 +488,7 @@ def find_component(actor, name):
 
 
 def print_all_actors():
-    actors = world.all_actors()
+    actors = get_world().all_actors()
     for a in actors:
         print(a.get_name())
 
@@ -1013,10 +1013,18 @@ def reset_backgrounds():
     pp_black = find_actor("PostProcessVolumeBlack")
     post_processing_volumes = [pp_camera, pp_nobloom, pp_novignette, pp_white, pp_gray, pp_black]
 
+    # main.Main is auto-spawned into every map (StarcelGameInstance), but only
+    # the main level has the sky/fog/light/post-process setup. Skip elsewhere.
+    if all(a is None for a in itertools.chain(sky_spheres, fogs, sky_lights, post_processing_volumes)):
+        ue.log('Background: no sky/fog/light/post-process actors in this map, skipping')
+        return
+
     # Reset
     # sky_sun_time.SetActorHiddenInGame(True)  # Can't use Visible on this one unless targeting components
     # iterate over tne background actors
     for a in itertools.chain(sky_spheres, fogs, sky_lights, post_processing_volumes):
+        if a is None:
+            continue
         if a in sky_spheres:
             a.SetActorHiddenInGame(True)
         elif a in fogs:
@@ -1074,10 +1082,18 @@ def change_background(background="white", path="file://"):
     pp_black = find_actor("PostProcessVolumeBlack")
     post_processing_volumes = [pp_camera, pp_nobloom, pp_novignette, pp_white, pp_gray, pp_black]
 
+    # main.Main is auto-spawned into every map (StarcelGameInstance), but only
+    # the main level has the sky/fog/light/post-process setup. Skip elsewhere.
+    if all(a is None for a in itertools.chain(sky_spheres, fogs, sky_lights, post_processing_volumes)):
+        ue.log('Background: no sky/fog/light/post-process actors in this map, skipping')
+        return
+
     # Reset
     # sky_sun_time.SetActorHiddenInGame(True)  # Can't use Visible on this one unless targeting components
     # iterate over tne background actors
     for a in itertools.chain(sky_spheres, fogs, sky_lights, post_processing_volumes):
+        if a is None:
+            continue
         if a in sky_spheres:
             a.SetActorHiddenInGame(True)
         elif a in fogs:
@@ -1299,7 +1315,7 @@ def reset_pyactor(py_actor_name = "BP_PyActor"):
     py_actor_class = py_actor.get_class().get_name()
     py_actor.actor_destroy()
     print("PyActor Destroyed", old_py_actor_name)
-    py_actor = world.actor_spawn(ue.find_class(py_actor_class), FVector(0,0,0), FRotator(0,0,0)) # .set_actor_transform(FTransform(location=FVector(0,0,0), rotation=FRotator(0,0,0), scale=FVector(1,1,1)))
+    py_actor = get_world().actor_spawn(ue.find_class(py_actor_class), FVector(0,0,0), FRotator(0,0,0)) # .set_actor_transform(FTransform(location=FVector(0,0,0), rotation=FRotator(0,0,0), scale=FVector(1,1,1)))
     py_actor.set_actor_label(old_py_actor_name)
     py_actor.set_property("PythonModule", "main")
     py_actor.set_property("PythonClass", "Main")

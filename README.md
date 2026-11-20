@@ -32,13 +32,17 @@ Create a Text object by double clicking Enter. Once created, you can use =py() t
 
 The state of the world is not saved in main.py or elsewhere, you will need to make changes there directly or copy your changes from the world elsewhere to save. This will be changed in the future.
 
-Set the UE_PYTHON_DIR environment variable to the location of your python installation, `C:\Users\nicho\AppData\Local\Programs\Python\Python39\` for example.
-
 Add the following to "C:\Program Files\Epic Games\UE_4.27\Engine\Config\BaseEngine.ini"
 ```
 [PlatformPaths]
 UnrealBuildTool=Engine/Binaries/DotNET/UnrealBuildTool.exe
 ```
+
+You may need to set the UE_PYTHON_DIR, PYTHONPATH, and PYTHONHOME environment variables to the location of your python installation, `C:\Users\nicho\AppData\Local\Programs\Python\Python39\` or `C:\Program Files\Python39` for example.
+
+You may need to move Python3.dll and python39.dll into C:\Program Files\Epic Games\UE_4.27\Engine\Binaries\ThirdParty\Python3
+
+Replace C:\UE_4.27Chaos_Source\Engine\Binaries\ThirdParty\Python3 with a copy of your Python3.9 instance. 
 
 ## Questions, Issues, and Support
 Most everything you will need is covered in this readme. 
