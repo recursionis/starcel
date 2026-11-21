@@ -58,7 +58,7 @@ def get_public_ip_via_dns(resolver="8.8.4.4", timeout=3.0):
     return resp[idx + 1: idx + 1 + txt_len].decode("ascii")
 
 # Use this if you want to rebuild the unreal_engine intellisense(.pyi, etc.) and cli
-rebuild_generated_modules()
+# rebuild_generated_modules()
 
 # ret = ue.message_dialog_open(ue.APP_MSG_TYPE_YES_NO, "Do you want to test dialogs?")
 # if ret == ue.APP_RETURN_TYPE_YES:

@@ -115,6 +115,15 @@ class PyActorText3D:
     _prev_vk_down = bytearray(256)
     # Rising-edge tracker for the LMB poll (replaces input_manager).
     _prev_lbutton_down = False
+    # Mouse selection state: actor being drag-selected (LMB held after a
+    # click on it), per-line caret Z cached for the drag, the word range a
+    # double-click-drag grows from, and double/triple-click tracking.
+    _drag_actor = None
+    _drag_rows = None
+    _drag_word = None
+    _click_count = 0
+    _last_click_time = 0.0
+    _last_click_actor = None
     # The PyActorGlobalClick singleton holding the global tick.
     _global_actor = None
     # _ensure_global_typing idempotency flag.
@@ -337,7 +346,10 @@ class PyActorText3D:
         if row_aware:
             cursor_h, cursor_z = cls._caret_vertical_for_row(
                 kernings, meshes, glyph_h, text, string_idx)
-        if cursor_h is None:
+        # Whole-block geometry spans every line, so it's only valid for
+        # single-line text; multi-line falls through to the caret line's
+        # own kerning Z (target_rel.z, row-aware via _caret_ys).
+        if cursor_h is None and not (row_aware and '\n' in text):
             cursor_h, cursor_z = cls._whole_block_vertical(t3d, meshes, glyph_h)
         if cursor_h is None:
             cursor_h = glyph_h
@@ -462,26 +474,49 @@ class PyActorText3D:
                         continue
             return top, bot
 
-        # World band per line; derive world line-spacing from band centers
-        # (fall back to kerning spacing when too few bands are available).
+        # Map text rows to glyph lines.  Rows with no visible glyph (blank or
+        # spaces-only) have no kerning line, so text row N is NOT glyph line
+        # N once a blank row appears above it.  glyph_row[k] = text row of
+        # the k-th glyph line.
+        row_texts = text.split('\n')
+        glyph_row = [r for r, t in enumerate(row_texts)
+                     if any(c not in ' \t' for c in t)]
+        glyph_row = glyph_row[:len(lines)]
+        line_of_row = {r: k for k, r in enumerate(glyph_row)}
+
+        # World band per line; derive world line-spacing (per text row) from
+        # band centers, dividing by the rows between them so blank rows don't
+        # inflate it.  Fall back to kerning spacing when too few bands.
         bands = [band(L['idxs']) for L in lines]
-        centers = [(t + b) * 0.5 for (t, b) in bands if t is not None]
-        if len(centers) >= 2:
-            gaps = sorted(centers[j] - centers[j + 1]
-                          for j in range(len(centers) - 1))
-            spacing = gaps[len(gaps) // 2]
+        samples = []
+        for k in range(min(len(bands), len(glyph_row)) - 1):
+            (t0, b0), (t1, b1) = bands[k], bands[k + 1]
+            dr = glyph_row[k + 1] - glyph_row[k]
+            if t0 is None or t1 is None or dr <= 0:
+                continue
+            samples.append(((t0 + b0) - (t1 + b1)) * 0.5 / dr)
+        if samples:
+            samples.sort()
+            spacing = samples[len(samples) // 2]
         else:
             spacing = kern_spacing or ((glyph_h or cls.CHAR_HEIGHT) * 1.2)
 
         n = len(text)
         si = max(0, min(string_idx, n))
         row = text.count('\n', 0, si)
-        if row < len(lines):
-            top, bot = bands[row]
+        if row in line_of_row:
+            top, bot = bands[line_of_row[row]]
         else:
-            top, bot = bands[-1]
+            # Blank row (or geometry not laid out yet): shift the nearest
+            # glyph line above it (else below it) by whole rows.
+            above = [r for r in glyph_row if r < row]
+            ref_row = above[-1] if above else (glyph_row[0] if glyph_row else None)
+            if ref_row is None:
+                ref_row, (top, bot) = len(lines) - 1, bands[-1]
+            else:
+                top, bot = bands[line_of_row[ref_row]]
             if top is not None:
-                shift = spacing * (row - (len(lines) - 1))
+                shift = spacing * (row - ref_row)
                 top -= shift
                 bot -= shift
         if top is None or bot is None:
@@ -492,63 +527,193 @@ class PyActorText3D:
 
     @classmethod
     def _caret_target_rel(cls, text, string_idx, kernings, meshes, glyph_w):
-        """Relative (x, y, z) of the caret on its own text line, honouring
-        newlines.  Returns None to fall back to legacy glyph-only placement.
-
-          - before a visible glyph on this line → that glyph's left edge
-          - after the line's last visible glyph → its right edge
-          - empty line (just a newline)         → the left margin
-        """
-        n = len(text)
-        si = max(0, min(string_idx, n))
-        line_start = text.rfind('\n', 0, si) + 1
-        nl = text.find('\n', si)
-        line_end = n if nl < 0 else nl
-        after_has = any(c not in ' \n' for c in text[si:line_end])
-        before_has = any(c not in ' \n' for c in text[line_start:si])
-        g = cls._string_idx_to_glyph(text, si)
-
-        if after_has and 0 <= g < len(kernings) and kernings[g] is not None:
-            try:
-                return kernings[g].get_relative_location()
-            except Exception:
-                return None
-
-        if (before_has and 0 <= g - 1 < len(kernings)
-                and kernings[g - 1] is not None):
-            try:
-                r = kernings[g - 1].get_relative_location()
-                w = glyph_w
-                if (meshes is not None
-                        and 0 <= g - 1 < len(meshes)
-                        and meshes[g - 1] is not None):
-                    try:
-                        _, e = meshes[g - 1].GetComponentBounds()
-                        w = e.y * 2.0
-                    except Exception:
-                        pass
-                return FVector(r.x, r.y + w, r.z)
-            except Exception:
-                return None
-
-        # Empty line: left margin (minimum relative Y across glyphs).
-        left_y = None
-        depth_x = 0.0
-        any_z = 0.0
-        for k in kernings:
-            if k is None:
-                continue
-            try:
-                rl = k.get_relative_location()
-            except Exception:
-                continue
-            if left_y is None or rl.y < left_y:
-                left_y = rl.y
-            depth_x = rl.x
-            any_z = rl.z
-        if left_y is None:
+        """Relative (x, y, z) of the caret at ``string_idx`` on its own text
+        line.  Every string index gets its own slot — spaces, indentation,
+        trailing spaces and empty lines included (see _caret_ys).  Returns
+        None to fall back to legacy glyph-only placement."""
+        ys, ref_x, zs = cls._caret_ys(text, kernings, meshes)
+        if ys is None:
             return None
-        return FVector(depth_x, left_y, any_z)
+        si = max(0, min(string_idx, len(text)))
+        return FVector(ref_x, ys[si], zs[si])
+
+    @staticmethod
+    def _median(vals, default):
+        vals = sorted(v for v in vals if v is not None)
+        if not vals:
+            return default
+        return vals[len(vals) // 2]
+
+    @classmethod
+    def _caret_ys(cls, text, kernings, meshes):
+        """Caret position (relative Y and Z) for EVERY string index
+        0..len(text).  Returns (ys, ref_x, zs), or (None, None, None).
+
+        Text3D only creates kerning/mesh slots for visible characters — spaces
+        and newlines get none — so mapping through glyph indices alone
+        collapses a run of spaces into a single caret position.
+
+        Only kerning (layout) positions are used: the glyph mesh components
+        don't expose GetComponentBounds to Python, so ink extents are
+        unavailable.  Here:
+          - a glyph's left edge is its kerning Y; right after it is the next
+            glyph's left edge when adjacent, else left + typical advance
+          - Z is the line's kerning Z; lines with no glyph (blank or
+            spaces-only) are spaced from their neighbours by the measured
+            line pitch
+          - characters with no glyph (spaces, or glyphs not laid out yet) are
+            spread between the surrounding glyphs in proportion to an
+            estimated advance, or extrapolated at line starts/ends and on
+            glyph-less lines; indentation is spread from the left margin.
+        """
+        if not kernings:
+            return None, None, None
+        n = len(text)
+        nk = len(kernings)
+
+        meas = {}       # string idx -> [left_y, right_y or None, rel_z]
+        widths = []
+        ref_x = None
+        g = 0
+        for i, c in enumerate(text):
+            if c in ' \t\n':
+                continue
+            gi = g
+            g += 1
+            if gi >= nk or kernings[gi] is None:
+                continue
+            try:
+                rel = kernings[gi].get_relative_location()
+            except Exception:
+                continue
+            if ref_x is None:
+                ref_x = rel.x
+            w = None
+            if meshes is not None and gi < len(meshes) and meshes[gi] is not None:
+                try:
+                    _, e = meshes[gi].GetComponentBounds()
+                    w = e.y * 2.0
+                    widths.append(w)
+                except Exception:
+                    pass
+            meas[i] = [rel.y, None if w is None else rel.y + w, rel.z]
+        if not meas:
+            return None, None, None
+
+        # Rows: (start, end) string indices; end = index of '\n' or n.
+        rows = []
+        s = 0
+        while True:
+            nl = text.find('\n', s)
+            if nl < 0:
+                rows.append((s, n))
+                break
+            rows.append((s, nl))
+            s = nl + 1
+
+        # Typical advance from directly adjacent glyph pairs on one row.
+        advs = [meas[i + 1][0] - meas[i][0]
+                for rs, re_ in rows for i in range(rs, re_ - 1)
+                if i in meas and i + 1 in meas
+                and meas[i + 1][0] > meas[i][0]]
+        glyph_w = cls._median(widths, cls._median(advs, cls.CHAR_WIDTH))
+        for i, m in meas.items():
+            if m[1] is None:
+                if i + 1 in meas and meas[i + 1][0] > m[0]:
+                    m[1] = meas[i + 1][0]
+                else:
+                    m[1] = m[0] + glyph_w
+
+        # Per-row Z (kerning layout Z).  Glyph-less rows extrapolate from the
+        # nearest measured row by the line pitch.
+        row_z = [None] * len(rows)
+        for r, (rs, re_) in enumerate(rows):
+            for i in range(rs, re_):
+                if i in meas:
+                    row_z[r] = meas[i][2]
+                    break
+        known = [r for r in range(len(rows)) if row_z[r] is not None]
+        pitch = cls._median(
+            [(row_z[a] - row_z[b]) / (b - a) for a, b in zip(known, known[1:])
+             if row_z[a] > row_z[b]],
+            glyph_w * 2.3)
+        for r in range(len(rows)):
+            if row_z[r] is None:
+                above = [k for k in known if k < r]
+                k = above[-1] if above else known[0]
+                row_z[r] = row_z[k] - pitch * (r - k)
+
+        starts = [meas[rs][0] for rs, _ in rows if rs in meas]
+        margin = min(starts) if starts else min(m[0] for m in meas.values())
+
+        # Space width: from indentation and from pure-space runs between
+        # glyphs (minus the normal ink gap between adjacent glyphs).
+        ink_gaps, runs, samples = [], [], []
+        for rs, re_ in rows:
+            prev = None
+            for i in range(rs, re_):
+                if i not in meas:
+                    continue
+                if prev is None:
+                    if i > rs and starts and all(text[j] == ' ' for j in range(rs, i)):
+                        samples.append((meas[i][0] - margin) / (i - rs))
+                else:
+                    k = i - prev - 1
+                    gap = meas[i][0] - meas[prev][1]
+                    if k == 0:
+                        ink_gaps.append(gap)
+                    elif all(text[j] == ' ' for j in range(prev + 1, i)):
+                        runs.append((gap, k))
+                prev = i
+        ink_gap = cls._median(ink_gaps, 0.0)
+        samples += [(gap - ink_gap) / k for gap, k in runs]
+        space_w = cls._median([v for v in samples if v > 0], glyph_w * 0.6)
+
+        def adv(i):
+            return space_w if text[i] in ' \t' else glyph_w
+
+        ys = [0.0] * (n + 1)
+        for rs, re_ in rows:
+            anchors = [i for i in range(rs, re_) if i in meas]
+            if not anchors:
+                y = margin
+                for i in range(rs, re_ + 1):
+                    ys[i] = y
+                    if i < re_:
+                        y += adv(i)
+                continue
+            a0 = anchors[0]
+            lead = range(rs, a0)
+            if (a0 > rs and starts
+                    and all(text[i] == ' ' for i in lead)
+                    and meas[a0][0] > margin):
+                for i in lead:
+                    ys[i] = margin + (meas[a0][0] - margin) * (i - rs) / (a0 - rs)
+            else:
+                y = meas[a0][0]
+                for i in range(a0 - 1, rs - 1, -1):
+                    y -= adv(i)
+                    ys[i] = y
+            for a, b in zip(anchors, anchors[1:] + [None]):
+                ys[a] = meas[a][0]
+                if b is None:
+                    y = meas[a][1]
+                    for i in range(a + 1, re_ + 1):
+                        ys[i] = y
+                        if i < re_:
+                            y += adv(i)
+                    continue
+                total = sum(adv(i) for i in range(a + 1, b))
+                lo, hi = meas[a][1], meas[b][0]
+                acc = 0.0
+                for i in range(a + 1, b):
+                    ys[i] = lo + (hi - lo) * (acc / total if total else 0.0)
+                    acc += adv(i)
+        zs = [0.0] * (n + 1)
+        for r, (rs, re_) in enumerate(rows):
+            for i in range(rs, re_ + 1):
+                zs[i] = row_z[r]
+        return ys, ref_x, zs
 
     def tick(self, dt):
         # Scale lerp
@@ -795,9 +960,13 @@ class PyActorText3D:
                              is available)
 
         Override in a subclass or monkey-patch after spawn.
+
+        Caret placement is NOT done here: begin_play registers this actor
+        with the global typing system, whose mouse poll (_poll_mouse_click)
+        places the caret and handles selection.  Moving the caret here too
+        (by glyph index, which can't see spaces) raced it.
         """
-        if char_index is not None and char_index >= 0:
-            PyActorText3D.show_cursor_at(self.uobject, char_index + 1)
+        pass
 
     # ============================================================
     # Typing system (class-level) — absorbed from test_text3d_click
@@ -888,6 +1057,8 @@ class PyActorText3D:
             user32.SetClipboardData.restype = ctypes.c_void_p
             user32.IsClipboardFormatAvailable.argtypes = [ctypes.c_uint]
             user32.IsClipboardFormatAvailable.restype = ctypes.c_int
+            user32.GetDoubleClickTime.argtypes = []
+            user32.GetDoubleClickTime.restype = ctypes.c_uint
             kernel32.GlobalAlloc.argtypes = [ctypes.c_uint, ctypes.c_size_t]
             kernel32.GlobalAlloc.restype = ctypes.c_void_p
             kernel32.GlobalLock.argtypes = [ctypes.c_void_p]
@@ -970,7 +1141,7 @@ class PyActorText3D:
     # TEMP DEBUG: log how Text3D lays out the glyph arrays vs the source text,
     # so we can confirm whether spaces/newlines occupy kerning/mesh slots.
     # Remove once the index mapping is verified.
-    _DEBUG_GLYPHS = True
+    _DEBUG_GLYPHS = False
 
     @classmethod
     def _log_glyph_arrays(cls, where, text, kernings, meshes):
@@ -991,9 +1162,10 @@ class PyActorText3D:
 
     @staticmethod
     def _string_idx_to_glyph(text, sidx):
-        """Count visible (non-space, non-newline) chars in text[:sidx]."""
+        """Count visible chars in text[:sidx] (Text3D makes no glyph for
+        space, tab or newline)."""
         sidx = max(0, min(sidx, len(text)))
-        return sum(1 for c in text[:sidx] if c not in ' \n')
+        return sum(1 for c in text[:sidx] if c not in ' \t\n')
 
     @staticmethod
     def _glyph_to_string_idx(text, tg):
@@ -1002,7 +1174,7 @@ class PyActorText3D:
         for i, c in enumerate(text):
             if count == tg:
                 return i
-            if c not in ' \n':
+            if c not in ' \t\n':
                 count += 1
         return len(text)
 
@@ -1010,43 +1182,32 @@ class PyActorText3D:
 
     @classmethod
     def _spawn_highlight_box(cls):
-        """Spawn one translucent cube used as a selection-highlight bar.
-        Caret blink is owned by the PyActorCursor singleton — these boxes
-        are only for selection ranges (no blink, multiple coexist)."""
+        """Spawn one selection-highlight bar, built exactly like the caret
+        (BP_PyActorEmpty + 'Cube' mesh + the caret's translucent material,
+        see pyactor_cursor.PyActorHighlight) so it renders the same way.
+        Hidden until _render_highlight_segment places it."""
         try:
-            from unreal_engine.classes import StaticMeshActor, StaticMesh, Material
-            from unreal_engine.enums import EComponentMobility
-
-            world = get_world()
-            actor = world.actor_spawn(StaticMeshActor)
-            smc = actor.StaticMeshComponent
-            cube = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube')
-            smc.SetStaticMesh(cube)
-            smc.SetMobility(EComponentMobility.Movable)
-
-            mid = None
-            for mat_path in ('/Game/Materials/M_Color_Translucent.M_Color_Translucent',
-                             '/Game/Materials/M_TextureUnlit.M_TextureUnlit',
-                             '/Game/Materials/M_Icon.M_Icon'):
-                try:
-                    mat = ue.load_object(Material, mat_path)
-                    mid = smc.create_material_instance_dynamic(mat)
-                    break
-                except Exception:
-                    continue
-            if mid is not None:
-                smc.set_material(0, mid)
-
-            actor.set_actor_scale(FVector(0.01, 0.025, 0.5))
-            try:
-                actor.SetActorEnableCollision(False)
-            except Exception:
-                pass
-            actor.SetActorHiddenInGame(True)
-            return actor
+            from ue_spawn import spawn_pyactor
+            actor = spawn_pyactor(
+                'pyactor_cursor', 'PyActorHighlight',
+                components=[dict(class_name='StaticMeshComponent',
+                                 name='Cube', root=True,
+                                 mesh='/Engine/BasicShapes/Cube.Cube')],
+                name='TextSelHighlight')
         except Exception as e:
             ue.log_warning(f'PyActorText3D: highlight spawn failed: {e}')
             return None
+        if actor is None:
+            return None
+        try:
+            actor.SetActorEnableCollision(False)
+        except Exception:
+            pass
+        try:
+            actor.SetActorHiddenInGame(True)
+        except Exception:
+            pass
+        return actor
 
     @classmethod
     def _ensure_highlight(cls, i):
@@ -1079,16 +1240,21 @@ class PyActorText3D:
         cls._hide_highlights()
 
     @classmethod
-    def _render_highlight_segment(cls, pool_idx, actor, text, seg_start, seg_end):
-        """Render one highlight box for string range [seg_start, seg_end).
-        Assumes the segment is on a single line."""
+    def _render_highlight_segment(cls, pool_idx, actor, text, seg_start, seg_end,
+                                  pad=0.0):
+        """Render one highlight box for string range [seg_start, seg_end) on
+        a single line, using the same placement as the caret.  ``pad`` widens
+        the right end (selection running through the line's newline, so a
+        selected blank line still shows)."""
         box = cls._ensure_highlight(pool_idx)
         if box is None:
             return
-        sg = cls._string_idx_to_glyph(text, seg_start)
-        eg = cls._string_idx_to_glyph(text, seg_end)
-        left = cls.compute_placement(actor, sg)
-        right = cls.compute_placement(actor, eg)
+        left = cls.compute_placement(
+            actor, cls._string_idx_to_glyph(text, seg_start),
+            string_idx=seg_start, text=text)
+        right = cls.compute_placement(
+            actor, cls._string_idx_to_glyph(text, seg_end),
+            string_idx=seg_end, text=text)
         if left is None or right is None:
             try:
                 box.SetActorHiddenInGame(True)
@@ -1097,20 +1263,14 @@ class PyActorText3D:
             return
         lwp, lscale, lrot = left
         rwp, _, _ = right
-        dy = rwp.y - lwp.y
-        dx = rwp.x - lwp.x
-        span_uu = (dx * dx + dy * dy) ** 0.5
+        span_uu = (rwp.y - lwp.y) + pad
         if span_uu < 1.0:
             try:
                 box.SetActorHiddenInGame(True)
             except Exception:
                 pass
             return
-        mid_wp = FVector(
-            (lwp.x + rwp.x) * 0.5,
-            (lwp.y + rwp.y) * 0.5,
-            (lwp.z + rwp.z) * 0.5,
-        )
+        mid_wp = FVector(lwp.x, lwp.y + span_uu * 0.5, lwp.z)
         try:
             box.set_actor_scale(FVector(0.01, span_uu / 100.0, lscale.z))
         except Exception:
@@ -1119,9 +1279,11 @@ class PyActorText3D:
         box.set_actor_rotation(lrot)
         box.SetActorHiddenInGame(False)
 
+    HIGHLIGHT_NEWLINE_PAD = 20.0
+
     @classmethod
     def _update_highlight(cls):
-        """Rebuild highlight boxes from current selection."""
+        """Rebuild highlight boxes from current selection (one per line)."""
         cls._hide_highlights()
         actor = cls._get_focused()
         if actor is None or not cls._has_sel():
@@ -1137,19 +1299,109 @@ class PyActorText3D:
         except Exception:
             return
         start, end = cls._sel_range()
+        end = min(end, len(text))
         pool_idx = 0
         s = start
         while s < end:
             nl = text.find('\n', s, end)
             seg_end = end if nl == -1 else nl
-            if seg_end > s:
-                cls._render_highlight_segment(pool_idx, actor, text, s, seg_end)
+            pad = cls.HIGHLIGHT_NEWLINE_PAD if nl != -1 else 0.0
+            if seg_end > s or pad:
+                cls._render_highlight_segment(pool_idx, actor, text, s, seg_end, pad)
                 pool_idx += 1
             s = seg_end + 1 if nl != -1 else end
 
+    # ---- Mouse → string index ----
+
     @classmethod
-    def _position_cursor(cls, hit_actor, hit):
-        """Derive target_glyph from a click hit, move cursor, set focus."""
+    def _row_caret_zs(cls, actor, text):
+        """World Z where the caret renders on each text line (so a click maps
+        to the line it visually landed on)."""
+        zs = []
+        s = 0
+        while True:
+            p = cls.compute_placement(
+                actor, cls._string_idx_to_glyph(text, s), string_idx=s, text=text)
+            zs.append(p[0].z if p is not None else None)
+            nl = text.find('\n', s)
+            if nl < 0:
+                return zs
+            s = nl + 1
+
+    @classmethod
+    def _idx_from_hit(cls, actor, world_pt, row_zs=None):
+        """String index nearest a world-space click: the line whose caret is
+        closest in Z, then the closest caret slot on that line (spaces
+        included).  Returns (idx, text, row_zs) or None."""
+        try:
+            t3d = actor.get_actor_component(cls.TEXT_COMPONENT_NAME)
+            text = str(t3d.Text or '')
+            kernings = t3d.CharacterKernings
+            meshes = t3d.CharacterMeshes
+        except Exception:
+            return None
+        ys, _, _ = cls._caret_ys(text, kernings, meshes)
+        if ys is None:
+            return None
+        if row_zs is None:
+            row_zs = cls._row_caret_zs(actor, text)
+        rows = []
+        s = 0
+        while True:
+            nl = text.find('\n', s)
+            rows.append((s, len(text) if nl < 0 else nl))
+            if nl < 0:
+                break
+            s = nl + 1
+        cand = [r for r in range(len(rows))
+                if r < len(row_zs) and row_zs[r] is not None]
+        row = (min(cand, key=lambda r: abs(world_pt.z - row_zs[r]))
+               if cand else 0)
+        local = cls._world_to_local_cls(actor, world_pt)
+        ly = (local.y if local is not None
+              else world_pt.y - actor.get_actor_location().y)
+        rs, re_ = rows[row]
+        idx = min(range(rs, re_ + 1), key=lambda i: abs(ys[i] - ly))
+        return idx, text, row_zs
+
+    @classmethod
+    def _word_range(cls, text, idx):
+        """(start, end) of the word / whitespace run / symbol at ``idx`` —
+        what a double-click selects."""
+        n = len(text)
+        i = idx if idx < n and text[idx] != '\n' else idx - 1
+        if i < 0 or text[i] == '\n':
+            return idx, idx
+        c = text[i]
+        if cls._is_word_char(c):
+            same = cls._is_word_char
+        elif c in ' \t':
+            same = lambda ch: ch in ' \t'
+        else:
+            return i, i + 1
+        s = i
+        while s > 0 and same(text[s - 1]):
+            s -= 1
+        e = i + 1
+        while e < n and same(text[e]):
+            e += 1
+        return s, e
+
+    @classmethod
+    def _apply_caret(cls, actor, text, idx, anchor):
+        """Set caret + anchor and redraw the cursor and highlight."""
+        cls._string_idx = idx
+        cls._anchor = anchor
+        cls.show_cursor_at(actor, cls._string_idx_to_glyph(text, idx),
+                           string_idx=idx, text=text)
+        cls._update_highlight()
+
+    @classmethod
+    def _position_cursor(cls, hit_actor, hit, extend=False, click_count=1):
+        """Place the caret from a click hit and focus ``hit_actor``.
+
+        extend      — Shift+click: keep the anchor, select up to the click.
+        click_count — 2 selects the word under the click, 3 the whole line."""
         if hit_actor is None:
             return
 
@@ -1160,15 +1412,13 @@ class PyActorText3D:
             pass
 
         text = ''
+        kernings = None
+        meshes = None
         if t3d is not None:
             try:
                 text = str(t3d.Text or '')
             except Exception:
                 pass
-
-        kernings = None
-        meshes = None
-        if t3d is not None:
             try:
                 kernings = t3d.CharacterKernings
             except Exception:
@@ -1181,9 +1431,11 @@ class PyActorText3D:
         if cls._DEBUG_GLYPHS:
             cls._log_glyph_arrays('click', text, kernings, meshes)
 
+        res = cls._idx_from_hit(hit_actor, hit.impact_point)
+
         # No kernings — drop the caret directly at the click point via
         # the singleton cursor (skipping placement math entirely).
-        if not kernings or len(kernings) == 0:
+        if res is None:
             cursor_proxy = cls._get_or_spawn_cursor(hit_actor)
             if cursor_proxy is not None:
                 try:
@@ -1197,64 +1449,50 @@ class PyActorText3D:
             cls._string_idx = len(text)
             cls._anchor = len(text)
             cls._hide_highlights()
+            cls._drag_rows = None
             return
 
-        local_pt = cls._world_to_local_cls(hit_actor, hit.impact_point)
-        clicked_glyph = 0
-        side = 'right'
+        idx, text, row_zs = res
+        cls._drag_rows = row_zs
+        same_actor = cls._get_focused() is hit_actor
 
-        if local_pt is not None:
-            glyph_edges = []
-            for i in range(len(kernings)):
-                if kernings[i] is not None:
-                    try:
-                        rel = kernings[i].get_relative_location()
-                        glyph_edges.append((rel.y, i))
-                    except Exception:
-                        pass
-            glyph_edges.sort(key=lambda e: e[0])
-            if glyph_edges:
-                clicked_glyph = glyph_edges[0][1]
-                for edge_y, gi in glyph_edges:
-                    if local_pt.y >= edge_y:
-                        clicked_glyph = gi
-                    else:
-                        break
-
-            glyph_w_local = 50.0
-            if (meshes is not None
-                    and 0 <= clicked_glyph < len(meshes)
-                    and meshes[clicked_glyph] is not None):
-                try:
-                    _, e = meshes[clicked_glyph].GetComponentBounds()
-                    glyph_w_local = e.y * 2.0
-                except Exception:
-                    pass
-
-            if (0 <= clicked_glyph < len(kernings)
-                    and kernings[clicked_glyph] is not None):
-                try:
-                    r = kernings[clicked_glyph].get_relative_location()
-                    mid_y = r.y + glyph_w_local / 2.0
-                    side = 'left' if local_pt.y < mid_y else 'right'
-                except Exception:
-                    pass
-
-        target_glyph = clicked_glyph if side == 'left' else clicked_glyph + 1
-        new_idx = cls._glyph_to_string_idx(text, target_glyph)
-
-        if not cls.show_cursor_at(hit_actor, target_glyph,
-                                  string_idx=new_idx, text=text):
-            return
+        if click_count >= 3:
+            anchor = cls._line_edge(text, idx, -1)
+            idx = cls._line_edge(text, idx, +1)
+        elif click_count == 2:
+            anchor, idx = cls._word_range(text, idx)
+        elif extend and same_actor:
+            anchor = cls._anchor
+        else:
+            anchor = idx
 
         cls._set_focused_actor(hit_actor)
-        cls._string_idx = new_idx
-        cls._anchor = new_idx
-        cls._hide_highlights()
         # If the previous focus was an auto-sizing table cell, that table
-        # just refit and may have shifted hit_actor.  Re-show the cursor.
-        cls.show_cursor_at(hit_actor, target_glyph,
-                           string_idx=new_idx, text=text)
+        # just refit and may have shifted hit_actor — _apply_caret places
+        # the caret against the current geometry.
+        cls._apply_caret(hit_actor, text, idx, anchor)
+
+    @classmethod
+    def _drag_to(cls, actor, hit):
+        """LMB held after a click on ``actor``: extend the selection to the
+        point under the mouse, keeping the anchor from the initial click."""
+        if cls._get_focused() is not actor:
+            return
+        res = cls._idx_from_hit(actor, hit.impact_point, cls._drag_rows)
+        if res is None:
+            return
+        idx, text, _ = res
+        anchor = cls._anchor
+        if cls._drag_word is not None:
+            # Double-click drag: grow by whole words around the first word.
+            ws, we = cls._drag_word
+            s, e = cls._word_range(text, idx)
+            if idx < ws:
+                idx, anchor = s, we
+            else:
+                idx, anchor = max(e, we), ws
+        if (idx, anchor) != (cls._string_idx, cls._anchor):
+            cls._apply_caret(actor, text, idx, anchor)
 
     # ---- Text mutation ----
 
@@ -1878,33 +2116,16 @@ class PyActorText3D:
     # ---- Mouse rising-edge → focus + cursor placement ----
 
     @classmethod
-    def _poll_mouse_click(cls):
-        """LMB rising-edge: hit-test against _watched and _position_cursor on
-        the matched actor.  Off-click unfocuses."""
-        if not cls._WIN32_TYPING_OK:
-            return
-        # VK_LBUTTON = 0x01 — system-wide mouse state, doesn't need foreground.
-        down = bool(cls._user32.GetAsyncKeyState(0x01) & 0x8000)
-        prev = cls._prev_lbutton_down
-        cls._prev_lbutton_down = down
-        if not (down and not prev):
-            return
-
+    def _trace_under_cursor(cls):
+        """Hit result under the mouse (Visibility, then WorldDynamic) or None."""
         # Need a UObject for get_hit_result_under_cursor; use the global
         # actor's uobject (ticking already guarantees it).
-        trace_obj = None
-        try:
-            if cls._global_actor is not None:
-                trace_obj = cls._global_actor
-        except Exception:
-            pass
+        trace_obj = cls._global_actor
         pc = None
         try:
             pc = ue.get_player_controller(0)
         except Exception:
             pass
-
-        hit = None
         for channel in (ECollisionChannel.ECC_Visibility,
                         ECollisionChannel.ECC_WorldDynamic):
             for src in (trace_obj, pc):
@@ -1913,13 +2134,165 @@ class PyActorText3D:
                 try:
                     h = src.get_hit_result_under_cursor(channel)
                     if h is not None:
-                        hit = h
-                        break
+                        return h
                 except Exception:
                     continue
-            if hit is not None:
-                break
+        return None
 
+    @classmethod
+    def _double_click_secs(cls):
+        try:
+            return max(0.1, cls._user32.GetDoubleClickTime() / 1000.0)
+        except Exception:
+            return 0.5
+
+    class _RayHit:
+        """Minimal stand-in for a trace hit (actor + impact_point + distance)."""
+        def __init__(self, actor, point, distance):
+            self.actor = actor
+            self.impact_point = point
+            self.distance = distance
+
+    @classmethod
+    def _mouse_ray(cls):
+        """(origin, direction) of the mouse ray in world space, or None."""
+        try:
+            pc = ue.get_player_controller(0)
+            ok, o, d = pc.DeprojectMousePositionToWorld()
+            if ok:
+                return o, d
+        except Exception:
+            pass
+        return None
+
+    @classmethod
+    def _ray_text_plane(cls, actor, ray):
+        """Intersect the mouse ray with ``actor``'s text plane.
+        Returns (world_point, distance) or None."""
+        o, d = ray
+        try:
+            t3d = actor.get_actor_component(cls.TEXT_COMPONENT_NAME)
+            k0 = t3d.CharacterKernings[0]
+            try:
+                p = k0.get_world_location()
+            except Exception:
+                loc = actor.get_actor_location()
+                r = k0.get_relative_location()
+                p = FVector(loc.x + r.x, loc.y + r.y, loc.z + r.z)
+            n = actor.get_actor_forward()
+        except Exception:
+            return None
+        denom = d.x * n.x + d.y * n.y + d.z * n.z
+        if abs(denom) < 1e-6:
+            return None
+        t = ((p.x - o.x) * n.x + (p.y - o.y) * n.y + (p.z - o.z) * n.z) / denom
+        if t <= 0:
+            return None
+        return FVector(o.x + d.x * t, o.y + d.y * t, o.z + d.z * t), t
+
+    @classmethod
+    def _text_rect(cls, actor):
+        """World (y_min, y_max, z_min, z_max) covering ``actor``'s text,
+        including empty trailing lines and trailing spaces."""
+        # Built from caret placements (line starts and ends) — glyph mesh
+        # bounds aren't readable from Python.
+        try:
+            t3d = actor.get_actor_component(cls.TEXT_COMPONENT_NAME)
+            text = str(t3d.Text or '')
+        except Exception:
+            return None
+        y0 = y1 = z0 = z1 = None
+        s = 0
+        while True:
+            nl = text.find('\n', s)
+            end = len(text) if nl < 0 else nl
+            for idx in (s, end):
+                p = cls.compute_placement(
+                    actor, cls._string_idx_to_glyph(text, idx),
+                    string_idx=idx, text=text)
+                if p is None:
+                    continue
+                wp, sc, _ = p
+                half = sc.z * 50.0
+                y0 = wp.y if y0 is None else min(y0, wp.y)
+                y1 = wp.y if y1 is None else max(y1, wp.y)
+                z0 = wp.z - half if z0 is None else min(z0, wp.z - half)
+                z1 = wp.z + half if z1 is None else max(z1, wp.z + half)
+            if nl < 0:
+                break
+            s = nl + 1
+        if y0 is None:
+            return None
+        pad = cls.CHAR_WIDTH * 0.5
+        return y0 - pad, y1 + pad, z0, z1
+
+    @classmethod
+    def _ray_pick_text(cls, max_distance=None):
+        """Watched actor whose text area the mouse ray crosses (nearest
+        first), as a _RayHit — for clicks the collision box misses (e.g.
+        lines below the first).  Ignores text farther than ``max_distance``
+        (something solid in front of it).  Returns None if none."""
+        ray = cls._mouse_ray()
+        if ray is None:
+            return None
+        best = None
+        for w in cls._watched:
+            if not cls._actor_alive(w):
+                continue
+            res = cls._ray_text_plane(w, ray)
+            if res is None:
+                continue
+            pt, dist = res
+            if max_distance is not None and dist > max_distance:
+                continue
+            rect = cls._text_rect(w)
+            if rect is None:
+                continue
+            ya, yb, za, zb = rect
+            if ya <= pt.y <= yb and za <= pt.z <= zb:
+                if best is None or dist < best.distance:
+                    best = cls._RayHit(w, pt, dist)
+        return best
+
+    @classmethod
+    def _poll_mouse_click(cls):
+        """LMB polling for the typing system:
+          - rising edge on a watched actor: place caret + focus (Shift+click
+            extends the selection; double-click selects a word, triple-click
+            a line).  Off-click unfocuses.
+          - held after a click on a watched actor: drag-select.
+          - release: end the drag."""
+        if not cls._WIN32_TYPING_OK:
+            return
+        # VK_LBUTTON = 0x01 — system-wide mouse state, doesn't need foreground.
+        down = bool(cls._user32.GetAsyncKeyState(0x01) & 0x8000)
+        prev = cls._prev_lbutton_down
+        cls._prev_lbutton_down = down
+
+        if not down:
+            cls._drag_actor = None
+            cls._drag_rows = None
+            cls._drag_word = None
+            return
+
+        if prev:
+            # Held: drag-select while the mouse stays over the clicked text.
+            actor = cls._drag_actor
+            if actor is None or not cls._actor_alive(actor):
+                cls._drag_actor = None
+                return
+            hit = cls._trace_under_cursor()
+            if hit is None or not (hit.actor == actor):
+                # Off the collision box (other lines, or past the text):
+                # follow the mouse ray on the text's own plane instead.
+                ray = cls._mouse_ray()
+                res = cls._ray_text_plane(actor, ray) if ray else None
+                hit = cls._RayHit(actor, res[0], res[1]) if res else None
+            if hit is not None:
+                cls._drag_to(actor, hit)
+            return
+
+        hit = cls._trace_under_cursor()
         hit_actor = hit.actor if hit is not None else None
         matched = None
         if hit_actor is not None:
@@ -1941,10 +2314,39 @@ class PyActorText3D:
                 pass
 
         if matched is None:
+            # The trace missed the text's collision box (it doesn't cover
+            # every line) — try the mouse ray against each text's area,
+            # unless something solid sits in front of it.
+            dist = None
+            try:
+                if hit is not None and hit.actor is not None:
+                    dist = hit.distance
+            except Exception:
+                dist = None
+            rh = cls._ray_pick_text(max_distance=dist)
+            if rh is not None:
+                hit, matched = rh, rh.actor
+        if matched is None:
+            cls._click_count = 0
             cls._unfocus()
             return
 
-        cls._position_cursor(matched, hit)
+        # Multi-click: same actor, within the system double-click time.
+        import time
+        now = time.perf_counter()
+        if (matched is cls._last_click_actor
+                and now - cls._last_click_time <= cls._double_click_secs()):
+            cls._click_count = cls._click_count % 3 + 1
+        else:
+            cls._click_count = 1
+        cls._last_click_time = now
+        cls._last_click_actor = matched
+
+        shift = cls._shift_held() and cls._click_count == 1
+        cls._position_cursor(matched, hit, extend=shift,
+                             click_count=cls._click_count)
+        cls._drag_actor = matched
+        cls._drag_word = (cls._sel_range() if cls._click_count == 2 else None)
 
     @classmethod
     def _global_tick(cls, dt):

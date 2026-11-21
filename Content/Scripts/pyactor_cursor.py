@@ -27,6 +27,7 @@ class PyActorCursor:
     """
 
     BLINK_RATE = 1.0
+    BLINK = True
     CURSOR_MAT_PATH = '/Game/Materials/M_Color_Translucent.M_Color_Translucent'
     MESH_COMPONENT = 'Cube'
 
@@ -98,7 +99,7 @@ class PyActorCursor:
                 except Exception as e:
                     ue.log_warning(f'PyActorCursor: material setup failed: {e}')
 
-        if not self._active:
+        if not self._active or not self.BLINK:
             return
         self._timer += dt
         half = self.BLINK_RATE * 0.5
@@ -109,3 +110,11 @@ class PyActorCursor:
                 self.uobject.SetActorHiddenInGame(not should_show)
             except Exception:
                 pass
+
+
+class PyActorHighlight(PyActorCursor):
+    """Selection-highlight bar: same mesh + translucent material as the
+    caret, but no blinking — PyActorText3D's highlight pool shows/hides and
+    positions these directly (SetActorHiddenInGame / set_actor_*)."""
+
+    BLINK = False

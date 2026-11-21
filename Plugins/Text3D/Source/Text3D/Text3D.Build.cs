@@ -25,5 +25,11 @@ public class Text3D : ModuleRules
 			"SlateCore",
 			"StaticMeshDescription",
 		});
+
+		// The engine's FreeType2 2.10 lib needs libpng + zlib for bitmap fonts, but FreeType2.Build.cs
+		// only adds them when the engine is built from source/monolithic. With an installed (launcher)
+		// engine, a project-side copy of Text3D has to link them itself or it fails with png_*/inflate
+		// unresolved externals.
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "zlib", "UElibPNG");
 	}
 }

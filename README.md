@@ -1,5 +1,5 @@
 # Starcel <sub><img src="Images/branding/icon-padded.png" alt="logo"></sub>
-Hi! I'm Nick, the developer Starcel
+Hi! I'm Nick, the developer of Starcel
 
 
 ## What is it? 

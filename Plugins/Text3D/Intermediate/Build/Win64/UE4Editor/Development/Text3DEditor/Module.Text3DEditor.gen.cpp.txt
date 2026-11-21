@@ -1,9 +1,9 @@
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3DEditor\Definitions.Text3DEditor.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3DEditor/ActorFactoryText3D.gen.cpp
-C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
-C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3DEditor/Public/ActorFactoryText3D.h
-C:\UE_4.27Chaos_Source\Engine\Source\Editor\UnrealEd\Classes\ActorFactories/ActorFactory.h
-C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UnrealEd\ActorFactory.generated.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Editor\UnrealEd\Classes\ActorFactories/ActorFactory.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\UnrealEd\ActorFactory.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3DEditor\ActorFactoryText3D.generated.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3DEditor/Text3DEditor.init.gen.cpp

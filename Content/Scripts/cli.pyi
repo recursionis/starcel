@@ -1,4 +1,4 @@
-# generated at 2026-11-20T03:12:55.031484+00:00
+# generated at 2026-11-21T00:20:16.095521+00:00
 from __future__ import annotations
 from typing import Any
 from C:\Users\Nick\Documents\Unreal Projects\Starcel9\Content\Scripts\cli import CommandResult
