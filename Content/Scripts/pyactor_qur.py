@@ -16,6 +16,11 @@ except Exception:
     apply_text3d_material = None
 
 try:
+    from unreal_engine_tools import load_blueprint_class
+except Exception:
+    load_blueprint_class = None
+
+try:
     import worldhello
 except Exception:
     worldhello = None
@@ -105,15 +110,14 @@ class PyActorQur:
 
         # Spawn BP_Cell (Text3DComponent)
         try:
-            bp = ue.load_object(Blueprint,
-                                '/Game/Blueprints/Assets/BP_Cell.BP_Cell')
+            bp = load_blueprint_class('/Game/Blueprints/Assets/BP_Cell.BP_Cell')
             world = self.uobject.get_world()
             loc = self.uobject.get_actor_location()
             print("QUR LOC", loc)
             spawn_loc = FVector(loc.x + QUOTE_OFFSET.x,
                                 loc.y + QUOTE_OFFSET.y,
                                 loc.z + QUOTE_OFFSET.z)
-            actor = world.actor_spawn(bp.GeneratedClass, spawn_loc)
+            actor = world.actor_spawn(bp, spawn_loc)
 
             t3d = actor.get_actor_component('Text3DComponent')
             if t3d:

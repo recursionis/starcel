@@ -18,8 +18,8 @@ class UFont;
 #endif
 #define TEXT3D_Text3DComponent_generated_h
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS \
  \
 	DECLARE_FUNCTION(execSetFreeze); \
 	DECLARE_FUNCTION(execSetScaleProportionally); \
@@ -45,7 +45,7 @@ class UFont;
 	DECLARE_FUNCTION(execSetText);
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS_NO_PURE_DECLS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS_NO_PURE_DECLS \
  \
 	DECLARE_FUNCTION(execSetFreeze); \
 	DECLARE_FUNCTION(execSetScaleProportionally); \
@@ -71,7 +71,7 @@ class UFont;
 	DECLARE_FUNCTION(execSetText);
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS_NO_PURE_DECLS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS_NO_PURE_DECLS \
 private: \
 	static void StaticRegisterNativesUText3DComponent(); \
 	friend struct Z_Construct_UClass_UText3DComponent_Statics; \
@@ -80,7 +80,7 @@ public: \
 	DECLARE_SERIALIZER(UText3DComponent)
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS \
 private: \
 	static void StaticRegisterNativesUText3DComponent(); \
 	friend struct Z_Construct_UClass_UText3DComponent_Statics; \
@@ -89,7 +89,7 @@ public: \
 	DECLARE_SERIALIZER(UText3DComponent)
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_STANDARD_CONSTRUCTORS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_STANDARD_CONSTRUCTORS \
 	/** Standard constructor, called after all reflected properties have been initialized */ \
 	NO_API UText3DComponent(const FObjectInitializer& ObjectInitializer); \
 	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(UText3DComponent) \
@@ -102,7 +102,7 @@ private: \
 public:
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_ENHANCED_CONSTRUCTORS \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_ENHANCED_CONSTRUCTORS \
 private: \
 	/** Private move- and copy-constructors, should never be used */ \
 	NO_API UText3DComponent(UText3DComponent&&); \
@@ -113,33 +113,33 @@ public: \
 	DEFINE_DEFAULT_CONSTRUCTOR_CALL(UText3DComponent)
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
 	FORCEINLINE static uint32 __PPO__TextRoot() { return STRUCT_OFFSET(UText3DComponent, TextRoot); } \
 	FORCEINLINE static uint32 __PPO__CharacterKernings() { return STRUCT_OFFSET(UText3DComponent, CharacterKernings); } \
 	FORCEINLINE static uint32 __PPO__CharacterMeshes() { return STRUCT_OFFSET(UText3DComponent, CharacterMeshes); }
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_31_PROLOG
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_GENERATED_BODY_LEGACY \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_31_PROLOG
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_GENERATED_BODY_LEGACY \
 PRAGMA_DISABLE_DEPRECATION_WARNINGS \
 public: \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_STANDARD_CONSTRUCTORS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_STANDARD_CONSTRUCTORS \
 public: \
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 
-#define Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_GENERATED_BODY \
+#define Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_GENERATED_BODY \
 PRAGMA_DISABLE_DEPRECATION_WARNINGS \
 public: \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS_NO_PURE_DECLS \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS_NO_PURE_DECLS \
-	Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h_34_ENHANCED_CONSTRUCTORS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_PRIVATE_PROPERTY_OFFSET \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_SPARSE_DATA \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_RPC_WRAPPERS_NO_PURE_DECLS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_INCLASS_NO_PURE_DECLS \
+	Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h_34_ENHANCED_CONSTRUCTORS \
 private: \
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
@@ -147,7 +147,7 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 template<> TEXT3D_API UClass* StaticClass<class UText3DComponent>();
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_Text3DComponent_h
+#define CURRENT_FILE_ID Starcel9_Plugins_Text3D_Source_Text3D_Public_Text3DComponent_h
 
 
 #define FOREACH_ENUM_ETEXT3DHORIZONTALTEXTALIGNMENT(op) \

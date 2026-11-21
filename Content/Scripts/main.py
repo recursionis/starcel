@@ -278,8 +278,8 @@ class Main:
             def on_player_joined(player_controller):
                 ue.log_warning(f"[SERVER PY] Player joined: {player_controller}") # START HERE
                 # Spawn drone pawn and possess it
-                bp_drone = ue.load_object(Blueprint, '/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
-                player = world.actor_spawn(bp_drone.GeneratedClass)
+                drone_class = load_blueprint_class('/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
+                player = world.actor_spawn(drone_class)
                 transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
                 player.set_actor_transform(transform)
                 # player.get_actor_component('Text3DComponent').Text = "HI"
@@ -397,8 +397,8 @@ class Main:
             # GameMode auto-possessed. Single possession only — the duplicate
             # post_startup() possession below is disabled (master has none).
             print("Begin Drone Possession")
-            bp_drone = ue.load_object(Blueprint, '/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
-            player = world.actor_spawn(bp_drone.GeneratedClass)
+            drone_class = load_blueprint_class('/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter')
+            player = world.actor_spawn(drone_class)
             transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
             player.set_actor_transform(transform)
             self.uobject.get_player_controller().Possess(player)
@@ -476,8 +476,8 @@ class Main:
 
     def test_text(self):
         ue.log("testing text:")
-        bp_cell = ue.load_object(Blueprint, '/Game/Blueprints/Assets/BP_Cell.BP_Cell')
-        cell_actor = world.actor_spawn(bp_cell.GeneratedClass)
+        cell_class = load_blueprint_class('/Game/Blueprints/Assets/BP_Cell.BP_Cell')
+        cell_actor = world.actor_spawn(cell_class)
         transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
         cell_actor.set_actor_transform(transform)
         cell_actor.get_actor_component('Text3DComponent').Text = "HI"

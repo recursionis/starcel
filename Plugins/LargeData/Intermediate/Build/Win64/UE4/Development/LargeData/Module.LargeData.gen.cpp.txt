@@ -1,0 +1,17 @@
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4\Development\LargeData\Definitions.LargeData.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/LargeData/Intermediate/Build/Win64/UE4/Inc/LargeData/LargeByteDataObject.gen.cpp
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData/Public/LargeByteDataObject.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData\Public\LargeDataObject.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\Net/UnrealNetwork.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4\Inc\LargeData\LargeDataObject.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4\Inc\LargeData\LargeByteDataObject.generated.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/LargeData/Intermediate/Build/Win64/UE4/Inc/LargeData/LargeData.init.gen.cpp
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/LargeData/Intermediate/Build/Win64/UE4/Inc/LargeData/LargeDataObject.gen.cpp
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/LargeData/Intermediate/Build/Win64/UE4/Inc/LargeData/LargeStringAsync.gen.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData/Public/LargeStringAsync.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4\Inc\LargeData\LargeStringAsync.generated.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/LargeData/Intermediate/Build/Win64/UE4/Inc/LargeData/LargeStringRPCActor.gen.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Source\LargeData/Public/LargeStringRPCActor.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LargeData\Intermediate\Build\Win64\UE4\Inc\LargeData\LargeStringRPCActor.generated.h

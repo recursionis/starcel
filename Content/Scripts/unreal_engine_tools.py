@@ -306,6 +306,33 @@ def progress_callback(current, total):
 def get_python_root():
     return Path(sys.prefix)
 
+
+def load_blueprint_class(bp_path):
+    """Load a Blueprint's generated class in both editor and packaged builds.
+
+    UBlueprint assets are editor-only and are stripped when cooking, so
+    ue.load_object(Blueprint, path) fails in a packaged game. Only the
+    BlueprintGeneratedClass ('<Name>_C') survives, so load that directly
+    and fall back to the editor-only Blueprint asset if needed.
+
+    Accepts '/Game/Dir/BP_Name', '/Game/Dir/BP_Name.BP_Name' or
+    '/Game/Dir/BP_Name.BP_Name_C'.
+    """
+    package, _, obj = bp_path.partition('.')
+    if not obj:
+        obj = package.rsplit('/', 1)[-1]
+    class_name = obj if obj.endswith('_C') else obj + '_C'
+    class_path = f'{package}.{class_name}'
+    try:
+        cls = ue.load_class(class_path)
+        if cls:
+            return cls
+    except Exception:
+        pass
+    # Editor fallback (UBlueprint only exists with editor data).
+    bp = ue.load_object(Blueprint, f'{package}.{class_name[:-2]}')
+    return bp.GeneratedClass
+
 global tickers
 tickers = []
 

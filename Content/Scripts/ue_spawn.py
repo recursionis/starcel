@@ -33,7 +33,7 @@ from unreal_engine.classes import (
     StaticMeshActor, StaticMesh, Material, Blueprint, SkeletalMesh,
 )
 from unreal_engine.enums import EComponentMobility, EPixelFormat
-from unreal_engine_tools import pil_image_to_texture, get_world, find_component
+from unreal_engine_tools import pil_image_to_texture, get_world, find_component, load_blueprint_class
 from icon_to_image import extract_icon, get_folder_icons
 
 # Helpers
@@ -86,11 +86,11 @@ def spawn_pyactor(python_module, python_class,
     loc = location if location is not None else FVector(0, 0, 0)
     rot = rotation if rotation is not None else FRotator(0, 0, 0)
 
-    bp_pyactor = ue.load_object(Blueprint, bp_path)
+    bp_pyactor = load_blueprint_class(bp_path)
     # kwargs route UEP through SpawnActorDeferred -> set props -> FinishSpawning,
     # so PythonModule/PythonClass are bound before BeginPlay fires.
     actor = world.actor_spawn(
-        bp_pyactor.GeneratedClass, loc, rot,
+        bp_pyactor, loc, rot,
         PythonModule=python_module,
         PythonClass=python_class,
     )
@@ -1393,8 +1393,8 @@ def spawn_blueprint(bp_path, location=None, rotation=None, scale=None):
     Example: spawn_blueprint('/Game/Blueprints/BP_MyActor', FVector(0,0,100))
     """
     world = _get_world()
-    bp = ue.load_object(Blueprint, bp_path)
-    actor = world.actor_spawn(bp.GeneratedClass)
+    bp = load_blueprint_class(bp_path)
+    actor = world.actor_spawn(bp)
     _set_transform(actor, location, rotation, scale)
     return actor
 
@@ -1449,8 +1449,8 @@ def spawn_earth(location=None, rotation=None, scale=None,
             return None
 
     try:
-        bp = ue.load_object(Blueprint, bp_path)
-        actor = world.actor_spawn(bp.GeneratedClass)
+        bp = load_blueprint_class(bp_path)
+        actor = world.actor_spawn(bp)
     except Exception as e:
         ue.log_warning(f'spawn_earth: could not load BP_CesiumEarth at "{bp_path}": {e}')
         return None
@@ -2155,8 +2155,8 @@ def spawn_icon(pil_image, location=None, rotation=None, scale=None,
 
     # Spawn BP_Icon (hover/click/physics configured in Blueprint)
     try:
-        bp = ue.load_object(Blueprint, bp_path)
-        actor = world.actor_spawn(bp.GeneratedClass)
+        bp = load_blueprint_class(bp_path)
+        actor = world.actor_spawn(bp)
         actor.set_actor_transform(FTransform(location, rotation, scale))
         target_comp = find_component(actor, component_name)
     except Exception as e:

@@ -1,0 +1,66 @@
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Development\SaveExtensionTest\Definitions.SaveExtensionTest.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Test/Private/Files.spec.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Private\Automatron.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\EngineUtils.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/GameModeBase.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/ServerStatReplicator.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\Engine\ServerStatReplicator.generated.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\Engine\GameModeBase.generated.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\EngineSettings\Classes\GameMapsSettings.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\EngineSettings\GameMapsSettings.generated.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\Tests/AutomationCommon.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Private\Helpers/TestActor.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtensionTest\TestActor.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SaveManager.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Delegates.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SlotInfo.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/SaveGame.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\Engine\SaveGame.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SlotInfo.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\LatentActions/DeleteSlotsAction.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\LatentActions.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\LatentActions/LoadGameAction.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\LatentActions/SaveGameAction.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\LevelStreamingNotifier.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/LevelStreaming.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\Engine\LevelStreaming.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\LevelStreamingNotifier.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Multithreading/ScopedTaskManager.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Misc/TypeTraits.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Multithreading/Delegates.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SaveExtensionInterface.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\LevelFilter.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SavePreset.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/NoExportTypes.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/PropertyAccessUtil.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Math/UnitConversion.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Math/UnitConversion.inl
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Internationalization/PolyglotTextData.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry/ARFilter.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Misc/ClassFilter.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\ClassFilter.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SavePreset.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\LevelFilter.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SaveExtensionInterface.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/SlotDataTask.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\ISaveExtension.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SlotData.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/LevelScriptActor.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4\Inc\Engine\LevelScriptActor.generated.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\Serialization/ObjectAndNameAsStringProxyArchive.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Serialization/NameAsStringProxyArchive.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/Records.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\Records.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/LevelRecords.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\LevelRecords.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SlotData.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SlotDataTask.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtension\SaveManager.generated.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\FileAdapter.h
+C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\PlatformFeatures.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Test/Private/GameInstance.spec.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Private\Helpers/TestGameInstance.h
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4\Inc\SaveExtensionTest\TestGameInstance.generated.h
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Test/Private/Save.spec.cpp
+C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Test/Private/SaveExtensionTest.cpp
+C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Test\Public\SaveExtensionTest.h

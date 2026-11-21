@@ -14,7 +14,7 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #define TEXT3D_BevelType_generated_h
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID Engine_Plugins_Experimental_Text3D_Source_Text3D_Public_BevelType_h
+#define CURRENT_FILE_ID Starcel9_Plugins_Text3D_Source_Text3D_Public_BevelType_h
 
 
 #define FOREACH_ENUM_ETEXT3DBEVELTYPE(op) \

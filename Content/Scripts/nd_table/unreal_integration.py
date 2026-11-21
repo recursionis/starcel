@@ -20,7 +20,7 @@ from unreal_engine.classes import (
     KismetMathLibrary, KismetSystemLibrary
 )
 from unreal_engine.structs import InstancedStaticMeshInstanceData
-from unreal_engine_tools import get_world
+from unreal_engine_tools import get_world, load_blueprint_class
 
 
 class UnrealAxisPresets:
@@ -319,7 +319,7 @@ class UnrealTableRenderer:
             component_name = 'Text3DComponent'
         
         try:
-            cell_bp = ue.load_object(Blueprint, blueprint_path)
+            cell_bp = load_blueprint_class(blueprint_path)
         except Exception as e:
             if self.aggressive_debug:
                 ue.log_warning(f"Could not load blueprint: {e}")
@@ -339,7 +339,7 @@ class UnrealTableRenderer:
             if value is None:
                 continue
             
-            cell_actor = self.world.actor_spawn(cell_bp.GeneratedClass)
+            cell_actor = self.world.actor_spawn(cell_bp)
             cell_actor.set_actor_location(temp_pos)
             
             try:
@@ -868,8 +868,8 @@ class UnrealTableRenderer:
         component_name = 'Text3DComponent' if self.text_mode == '3d' else 'NewTextRenderComponent'
         
         try:
-            cell_bp = ue.load_object(Blueprint, blueprint_path)
-            label_actor = self.world.actor_spawn(cell_bp.GeneratedClass)
+            cell_bp = load_blueprint_class(blueprint_path)
+            label_actor = self.world.actor_spawn(cell_bp)
             label_actor.set_actor_location(position)
             
             text_component = label_actor.get_actor_component(component_name)

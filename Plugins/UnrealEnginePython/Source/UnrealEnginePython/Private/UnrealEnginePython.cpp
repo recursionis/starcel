@@ -302,6 +302,14 @@ void FUnrealEnginePythonModule::StartupModule()
 
 	BrutalFinalize = false;
 
+	// PYTHONHOME/PYTHONPATH are process-wide. We set them below so our Python 3.9
+	// can initialize, but if they stay set, Epic's PythonScriptPlugin (bundled
+	// Python 3.7) picks them up when it initializes later (e.g. during cooking)
+	// and loads the 3.9 stdlib, crashing with "cannot import name 'open_code'".
+	// Save the originals so we can restore them right after Py_Initialize.
+	const FString OrigPythonHomeEnv = FPlatformMisc::GetEnvironmentVariable(TEXT("PYTHONHOME"));
+	const FString OrigPythonPathEnv = FPlatformMisc::GetEnvironmentVariable(TEXT("PYTHONPATH"));
+
 	FString PythonHome;
 	if (GConfig->GetString(UTF8_TO_TCHAR("Python"), UTF8_TO_TCHAR("Home"), PythonHome, GEngineIni))
 	{
@@ -554,6 +562,11 @@ void FUnrealEnginePythonModule::StartupModule()
 	setlocale(LC_ALL, "C");
 
 	Py_Initialize();
+
+	// Our interpreter has read its environment; restore it so it doesn't leak
+	// into PythonScriptPlugin's interpreter (an empty value counts as unset).
+	FPlatformMisc::SetEnvironmentVar(TEXT("PYTHONHOME"), *OrigPythonHomeEnv);
+	FPlatformMisc::SetEnvironmentVar(TEXT("PYTHONPATH"), *OrigPythonPathEnv);
 
 #if PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 7
 	// Restore the locale that Python 3.7+ changed on us

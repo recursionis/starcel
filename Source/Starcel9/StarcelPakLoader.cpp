@@ -259,9 +259,12 @@ namespace StarcelPak
 		ModFile->PakIF = Pak;
 		ModFile->bOwnsPak = bOwnsPak;
 
-		FString Root = FPaths::EngineDir() / TEXT("..");
-		FPaths::CollapseRelativeDirectories(Root);
-		FPaths::NormalizeDirectoryName(Root);
+		// Parent of Engine/, e.g. "../../../". (CollapseRelativeDirectories can't be used: it rejects
+		// paths starting with "..", and an uncollapsed mount point never matches the pak's
+		// normalized directory lookups.)
+		FString EngineDir = FPaths::EngineDir();
+		FPaths::NormalizeDirectoryName(EngineDir); // strips trailing '/'
+		const FString Root = FPaths::GetPath(EngineDir);
 		ModFile->HiddenRoot = Root + TEXT("/_StarcelMods/");
 		ModFile->HiddenRootFull = FullDir(ModFile->HiddenRoot);
 
@@ -347,9 +350,19 @@ bool UStarcelPakLoader::MountMapPak(const FString& PakFilePath, TArray<FString>&
 		return true;
 	});
 
-	FString ModProjectDir;
-	for (const FString& Dir : ProjectDirs)
+	// Fallback: "<Project>-WindowsNoEditor.pak" -> "<Project>".
+	FString NameFromPak = PakId;
+	int32 DashIdx;
+	if (NameFromPak.FindLastChar(TEXT('-'), DashIdx))
 	{
+		NameFromPak = NameFromPak.Left(DashIdx);
+	}
+	ProjectDirs.Add(MountPoint + NameFromPak);
+
+	FString ModProjectDir;
+	for (FString Dir : ProjectDirs)
+	{
+		FPaths::NormalizeDirectoryName(Dir);
 		const FString Name = FPaths::GetCleanFilename(Dir);
 		if (!Name.Equals(TEXT("Engine"), ESearchCase::IgnoreCase) && ModFile->PakIF->DirectoryExists(*(Dir / TEXT("Content"))))
 		{
@@ -360,9 +373,12 @@ bool UStarcelPakLoader::MountMapPak(const FString& PakFilePath, TArray<FString>&
 
 	if (ModProjectDir.IsEmpty())
 	{
-		UE_LOG(LogStarcelPak, Error, TEXT("No <Project>/Content folder found in %s"), *PakPath);
+		UE_LOG(LogStarcelPak, Error, TEXT("No <Project>/Content folder found in %s (looked at:%s)"), *PakPath,
+			*FString::JoinBy(ProjectDirs, TEXT(""), [](const FString& D) { return TEXT(" ") + D; }));
+		ModFile->Pak->Unmount(*PakPath); // so a retry starts clean
 		return false;
 	}
+	UE_LOG(LogStarcelPak, Log, TEXT("Pak content folder: %s"), *ModProjectDir);
 
 	const FString ModContentDir = ModProjectDir + TEXT("Content/");
 	const FString ModProjectName = FPaths::GetCleanFilename(ModProjectDir.LeftChop(1));

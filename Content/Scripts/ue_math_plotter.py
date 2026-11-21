@@ -679,14 +679,14 @@ class UnrealActorFactory:
         cleanest path when BP_CurvablePlane is authored as a bezier patch.
         """
         try:
-            from unreal_engine.classes import Blueprint
+            from unreal_engine_tools import load_blueprint_class
         except Exception as e:
             if self.debug: print(f"{_P}curvable_plane: Blueprint class missing: {e}")
             return self._proc_mesh_triangles(mesh, color)
 
         bp_path = '/Game/Blueprints/Assets/BP_CurvablePlane.BP_CurvablePlane'
         try:
-            bp = ue.load_object(Blueprint, bp_path)
+            bp = load_blueprint_class(bp_path)
         except Exception as e:
             ue.log_warning(
                 f'{_P}curvable_plane: could not load "{bp_path}": {e}. '
@@ -700,7 +700,7 @@ class UnrealActorFactory:
 
         # Spawn the actor at the plotter origin
         try:
-            actor = self.world.actor_spawn(bp.GeneratedClass)
+            actor = self.world.actor_spawn(bp)
             actor.set_actor_location(self.origin)
         except Exception as e:
             ue.log_warning(
@@ -824,11 +824,10 @@ class UnrealActorFactory:
 
         # Try BP_Cell (Text3D Blueprint)
         try:
-            from unreal_engine.classes import Blueprint
-            bp = ue.load_object(Blueprint,
-                                '/Game/Blueprints/Assets/BP_Cell.BP_Cell')
+            from unreal_engine_tools import load_blueprint_class
+            bp = load_blueprint_class('/Game/Blueprints/Assets/BP_Cell.BP_Cell')
             if bp:
-                actor = self.world.actor_spawn(bp.GeneratedClass, p)
+                actor = self.world.actor_spawn(bp, p)
                 t3d = actor.get_actor_component('Text3DComponent')
                 if t3d:
                     t3d.Text = text
