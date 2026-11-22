@@ -1,63 +1,32 @@
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Definitions.Text3D.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Arrangement.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Arrangement.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve/DynamicGraph2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\BoxTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MathUtil.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cmath
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cfloat
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve/DynamicGraph2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\BoxTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MathUtil.h
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\sstream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\istream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\ostream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\ios
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocnum
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cstdio
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\iterator
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\iosfwd
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cwchar
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\streambuf
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xiosbase
-C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\share.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\system_error
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\__msvc_system_error_abi.hpp
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cerrno
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\stdexcept
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xstring
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xmemory
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\limits
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\isa_availability.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xcall_once.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xerrc.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocale
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\memory
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xfacet
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocinfo
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocinfo.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cctype
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\clocale
-C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\locale.h
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\string
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\TransformTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Quaternion.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MatrixTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\IndexTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve\DynamicGraph.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\GeometryTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/DynamicVector.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/IndexUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/IteratorUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/RefCountVector.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/SmallListSet.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\SegmentTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Spatial/PointHashGrid2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/GridIndexing2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrSegment2Segment2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/Intersector1.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntersectionUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrLine2Line2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\LineTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\TransformTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Quaternion.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MatrixTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\IndexTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve\DynamicGraph.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\GeometryTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/DynamicVector.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/IndexUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/IteratorUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/RefCountVector.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/SmallListSet.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\SegmentTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Spatial/PointHashGrid2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/GridIndexing2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrSegment2Segment2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/Intersector1.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntersectionUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrLine2Line2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\LineTypes.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Contour.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Contour.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Util.h
@@ -65,43 +34,43 @@ C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Pr
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/ContourList.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\ContourList.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Text3DPrivate.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\ft2build.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftheader.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/freetype.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftconfig.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftoption.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftstdlib.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fttypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftsystem.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftimage.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrors.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftmoderr.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrdef.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftadvanc.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\ft2build.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftheader.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/freetype.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftconfig.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftoption.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftstdlib.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fttypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftsystem.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftimage.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrors.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftmoderr.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrdef.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftadvanc.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Data.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public\Glyph.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public\Mesh.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\MeshDescription\Public\MeshDescription.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\MeshDescription\Public\MeshElementArray.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\MeshDescription\Public\MeshAttributeArray.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\MeshDescription\Public\MeshElementRemappings.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Algo/Accumulate.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\UObject/EditorObjectVersion.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\MeshDescription\MeshDescription.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\StaticMeshDescription\Public\StaticMeshAttributes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\MeshDescription\Public\MeshAttributes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\MeshDescription\Public\MeshDescription.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\MeshDescription\Public\MeshElementArray.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\MeshDescription\Public\MeshAttributeArray.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\MeshDescription\Public\MeshElementRemappings.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Algo/Accumulate.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\UObject/EditorObjectVersion.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\MeshDescription\MeshDescription.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\StaticMeshDescription\Public\StaticMeshAttributes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\MeshDescription\Public\MeshAttributes.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Data.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Glyph.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/GlyphLoader.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\GlyphLoader.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\ContourNode.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Polygon2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Polygon2.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Mesh.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/MeshCreator.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\MeshCreator.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public\BevelType.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometryAlgorithms\Public\ConstrainedDelaunay2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve/GeneralPolygon2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometryAlgorithms\Public\ConstrainedDelaunay2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Curve/GeneralPolygon2.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Part.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Text3DActor.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public\Text3DActor.h
@@ -115,52 +84,52 @@ C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Pr
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\TextShaper.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Text3DEngineSubsystem.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D\Text3DEngineSubsystem.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Components/BoxComponent.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Components/ShapeComponent.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\ShapeComponent.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\BoxComponent.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/Font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/FontImportOptions.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\FontImportOptions.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\SlateCore\Public\Fonts/FontProviderInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\SlateCore\FontProviderInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\Font.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Components/BoxComponent.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Components/ShapeComponent.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\ShapeComponent.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\BoxComponent.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Engine/Font.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Engine/FontImportOptions.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\FontImportOptions.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\SlateCore\Public\Fonts/FontProviderInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\SlateCore\FontProviderInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\Font.generated.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Text3DEngineSubsystem.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/Text3DPrivate.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Source/Text3D/Private/TextShaper.cpp
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-blob.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-buffer.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-face.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-blob.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-deprecated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-face.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-map.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-shape.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-buffer.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-shape-plan.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-version.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-ft.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-blob.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-buffer.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-face.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-blob.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-deprecated.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-face.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-map.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-set.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-shape.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-buffer.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-shape-plan.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-font.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-unicode.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-version.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-common.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\src\hb-ft.h

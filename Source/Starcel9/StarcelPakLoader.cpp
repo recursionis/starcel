@@ -12,6 +12,9 @@
 #include "Misc/CoreDelegates.h"
 #include "Misc/CommandLine.h"
 #include "Misc/DelayedAutoRegister.h"
+#include "Misc/ConfigCacheIni.h"
+#include "Misc/PackageName.h"
+#include "HAL/FileManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogStarcelPak, Log, All);
 
@@ -437,41 +440,113 @@ bool UStarcelPakLoader::MountPakAndOpenMap(UObject* WorldContextObject, const FS
 	return true;
 }
 
-// Command line: Starcel9.exe [MapName] -ModPak="C:/path/to/File.pak"
-// Mounts the pak before the startup map loads. If the first argument is a short map name
-// that exists in the pak (e.g. "SunTemple"), it is rewritten to its full path ("/Game/Maps/SunTemple").
+// Startup mods, mounted before the startup map loads. Two sources, both optional:
+//
+//   DefaultGame.ini (or Saved/Config/<Platform>/Game.ini in a packaged build):
+//     [/Script/Starcel9.StarcelPakLoader]
+//     +ModPakDirs=Mods                     ; every *.pak in these folders
+//     +ModPaks=Mods/MyMap-WindowsNoEditor.pak
+//     StartupMap=SunTemple                 ; used when no map is given on the command line
+//     Relative paths are relative to the project folder (Starcel9/).
+//
+//   Command line: Starcel9.exe [MapName] -ModPak="C:/path/to/File.pak"
+//
+// A command-line map wins over StartupMap; with neither, GameDefaultMap (DefaultEngine.ini) is used.
+// A short map name that exists in a mounted pak (e.g. "SunTemple") is rewritten to its full
+// path ("/Game/Maps/SunTemple").
 namespace StarcelPak
 {
-	static void MountFromCommandLine()
+	static const TCHAR* ConfigSection = TEXT("/Script/Starcel9.StarcelPakLoader");
+
+	static FString ResolveConfigPath(const FString& InPath)
+	{
+		FString Path = InPath.TrimStartAndEnd().TrimQuotes();
+		if (!Path.IsEmpty() && FPaths::IsRelative(Path))
+		{
+			Path = FPaths::Combine(FPaths::ProjectDir(), Path);
+		}
+		return Path;
+	}
+
+	static void MountStartupPaks()
 	{
 		if (GIsEditor)
 		{
 			return;
 		}
 
-		FString PakPath;
-		if (!FParse::Value(FCommandLine::Get(), TEXT("ModPak="), PakPath, false))
+		TArray<FString> AllMaps;
+		auto MountOne = [&AllMaps](const FString& PakPath)
 		{
-			return;
-		}
-		PakPath = PakPath.TrimQuotes();
+			TArray<FString> Maps;
+			if (UStarcelPakLoader::MountMapPak(PakPath, Maps))
+			{
+				AllMaps.Append(Maps);
+			}
+		};
 
-		TArray<FString> Maps;
-		if (!UStarcelPakLoader::MountMapPak(PakPath, Maps))
+		// 1. Every .pak in the configured mod folders (sorted, so load order is predictable).
+		TArray<FString> PakDirs;
+		GConfig->GetArray(ConfigSection, TEXT("ModPakDirs"), PakDirs, GGameIni);
+		for (const FString& DirEntry : PakDirs)
 		{
-			return;
+			const FString Dir = ResolveConfigPath(DirEntry);
+			if (Dir.IsEmpty() || !FPaths::DirectoryExists(Dir))
+			{
+				continue;
+			}
+			TArray<FString> Found;
+			IFileManager::Get().FindFiles(Found, *(Dir / TEXT("*.pak")), true, false);
+			Found.Sort();
+			for (const FString& File : Found)
+			{
+				MountOne(Dir / File);
+			}
 		}
 
-		// First token is the startup map, unless it's a switch.
+		// 2. Individually listed paks.
+		TArray<FString> Paks;
+		GConfig->GetArray(ConfigSection, TEXT("ModPaks"), Paks, GGameIni);
+		for (const FString& PakEntry : Paks)
+		{
+			const FString PakPath = ResolveConfigPath(PakEntry);
+			if (!PakPath.IsEmpty())
+			{
+				MountOne(PakPath);
+			}
+		}
+
+		// 3. -ModPak= on the command line.
+		FString CmdPak;
+		if (FParse::Value(FCommandLine::Get(), TEXT("ModPak="), CmdPak, false))
+		{
+			MountOne(CmdPak.TrimQuotes());
+		}
+
+		// Startup map: the first command-line token unless it's a switch, else StartupMap from the ini.
 		const TCHAR* Cmd = FCommandLine::Get();
 		const TCHAR* Rest = Cmd;
 		FString FirstToken;
-		if (!FParse::Token(Rest, FirstToken, false) || FirstToken.IsEmpty() || FirstToken[0] == TEXT('-'))
+		const bool bMapOnCommandLine = FParse::Token(Rest, FirstToken, false) && !FirstToken.IsEmpty() && FirstToken[0] != TEXT('-');
+
+		FString MapPart;
+		if (bMapOnCommandLine)
 		{
-			return;
+			MapPart = FirstToken;
+		}
+		else
+		{
+			if (!GConfig->GetString(ConfigSection, TEXT("StartupMap"), MapPart, GGameIni))
+			{
+				return;
+			}
+			MapPart.TrimStartAndEndInline();
+			if (MapPart.IsEmpty())
+			{
+				return;
+			}
 		}
 
-		FString MapPart = FirstToken;
 		FString Options;
 		int32 OptIdx;
 		if (MapPart.FindChar(TEXT('?'), OptIdx))
@@ -479,29 +554,56 @@ namespace StarcelPak
 			Options = MapPart.Mid(OptIdx);
 			MapPart = MapPart.Left(OptIdx);
 		}
+
+		FString Resolved;
 		if (MapPart.StartsWith(TEXT("/")))
 		{
-			return; // already a long package name
+			Resolved = MapPart; // already a long package name
 		}
-
-		for (const FString& M : Maps)
+		else
 		{
-			if (FPackageName::GetShortName(M).Equals(MapPart, ESearchCase::IgnoreCase))
+			for (const FString& M : AllMaps)
 			{
-				const FString NewCmd = M + Options + Rest;
-				UE_LOG(LogStarcelPak, Log, TEXT("Startup map '%s' -> '%s'"), *MapPart, *M);
-				FCommandLine::Set(*NewCmd);
-				return;
+				if (FPackageName::GetShortName(M).Equals(MapPart, ESearchCase::IgnoreCase))
+				{
+					Resolved = M;
+					break;
+				}
 			}
 		}
-		UE_LOG(LogStarcelPak, Warning, TEXT("Startup map '%s' is not in the mod pak; leaving it unchanged."), *MapPart);
+
+		if (bMapOnCommandLine)
+		{
+			if (Resolved.IsEmpty())
+			{
+				if (AllMaps.Num() > 0)
+				{
+					UE_LOG(LogStarcelPak, Warning, TEXT("Startup map '%s' is not in any mod pak; leaving it unchanged."), *MapPart);
+				}
+				return;
+			}
+			if (Resolved == MapPart)
+			{
+				return; // nothing to rewrite
+			}
+			UE_LOG(LogStarcelPak, Log, TEXT("Startup map '%s' -> '%s'"), *MapPart, *Resolved);
+			FCommandLine::Set(*(Resolved + Options + Rest));
+		}
+		else
+		{
+			// No map on the command line: put StartupMap in front so the engine opens it
+			// instead of GameDefaultMap. Unresolved short names are passed through as-is.
+			const FString Map = Resolved.IsEmpty() ? MapPart : Resolved;
+			UE_LOG(LogStarcelPak, Log, TEXT("Startup map from config: '%s'"), *Map);
+			FCommandLine::Set(*(Map + Options + TEXT(" ") + Cmd));
+		}
 	}
 }
 
 // Runs after GEngine->Init() and before GEngine->Start() loads the startup map.
 static FDelayedAutoRegisterHelper GStarcelModPakStartup(EDelayedRegisterRunPhase::ObjectSystemReady, []
 {
-	FCoreDelegates::OnPostEngineInit.AddStatic(&StarcelPak::MountFromCommandLine);
+	FCoreDelegates::OnPostEngineInit.AddStatic(&StarcelPak::MountStartupPaks);
 });
 
 // Console: Starcel.LoadPakMap "C:/path/to/File.pak" [MapName]

@@ -1,6 +1,7 @@
 #include "UEPyModule.h"
 
 #include "UEPyEngine.h"
+#include "Components/ActorComponent.h"
 #include "UEPyTimer.h"
 #include "UEPyTicker.h"
 #include "UEPyVisualLogger.h"
@@ -1357,6 +1358,67 @@ static PyObject* ue_PyUObject_getattro(ue_PyUObject* self, PyObject* attr_name)
 	return ret;
 }
 
+#if !WITH_EDITOR && ENGINE_MINOR_VERSION >= 25
+// In editor builds, setattr is followed by PostEditChangeProperty, which is what makes
+// components react (Text3D rebuilds its glyphs, primitives refresh bOwnerNoSee, ...).
+// That hook does not exist in cooked builds, so a bare property write is silently ignored
+// by the component. To keep packaged behaviour identical to the editor, route the write
+// through the matching BlueprintCallable setter ("Set<Name>", or "Set<Name minus b>" for
+// bools) when one exists with a single parameter of the same property type.
+static bool ue_py_try_property_setter(UObject* u_object, FProperty* f_property, PyObject* value)
+{
+	if (u_object->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+	{
+		return false;
+	}
+
+	const FString PropName = f_property->GetName();
+	TArray<FString, TInlineAllocator<2>> Candidates;
+	Candidates.Add(TEXT("Set") + PropName);
+	if (f_property->IsA<FBoolProperty>() && PropName.Len() > 1 && PropName[0] == TEXT('b') && FChar::IsUpper(PropName[1]))
+	{
+		Candidates.Add(TEXT("Set") + PropName.RightChop(1));
+	}
+
+	for (const FString& Candidate : Candidates)
+	{
+		UFunction* Setter = u_object->FindFunction(FName(*Candidate));
+		if (!Setter)
+		{
+			continue;
+		}
+
+		FProperty* Param = nullptr;
+		int32 NumParams = 0;
+		for (TFieldIterator<FProperty> It(Setter); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+		{
+			if (It->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				continue;
+			}
+			Param = *It;
+			NumParams++;
+		}
+		if (NumParams != 1 || !Param || Param->GetClass() != f_property->GetClass())
+		{
+			continue;
+		}
+
+		PyObject* Args = PyTuple_Pack(1, value);
+		PyObject* Ret = py_ue_ufunction_call(Setter, u_object, Args, 0, nullptr);
+		Py_DECREF(Args);
+		if (!Ret)
+		{
+			PyErr_Clear();
+			return false;
+		}
+		Py_DECREF(Ret);
+		return true;
+	}
+	return false;
+}
+#endif
+
 static int ue_PyUObject_setattro(ue_PyUObject* self, PyObject* attr_name, PyObject* value)
 {
 	ue_py_check_int(self);
@@ -1398,6 +1460,11 @@ static int ue_PyUObject_setattro(ue_PyUObject* self, PyObject* attr_name, PyObje
 #endif
 #if WITH_EDITOR
 			self->ue_object->PreEditChange(f_property);
+#else
+			if (ue_py_try_property_setter(self->ue_object, f_property, value))
+			{
+				return 0;
+			}
 #endif
 			if (ue_py_convert_pyobject(value, f_property, (uint8*)self->ue_object, 0))
 			{
@@ -1422,6 +1489,15 @@ static int ue_PyUObject_setattro(ue_PyUObject* self, PyObject* attr_name, PyObje
 							PyErr_SetString(PyExc_ValueError, "invalid value for FProperty");
 							return -1;
 						}
+					}
+				}
+#else
+				// No setter available: at least make render-affecting flags take effect.
+				if (UActorComponent* Component = Cast<UActorComponent>(self->ue_object))
+				{
+					if (Component->IsRegistered())
+					{
+						Component->MarkRenderStateDirty();
 					}
 				}
 #endif

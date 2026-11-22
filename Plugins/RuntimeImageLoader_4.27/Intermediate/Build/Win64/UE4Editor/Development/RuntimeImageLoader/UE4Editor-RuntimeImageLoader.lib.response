@@ -6,7 +6,7 @@
 /NAME:"UE4Editor-RuntimeImageLoader.dll"
 /IGNORE:4221
 /NODEFAULTLIB
-"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Intermediate\Build\Win64\Starcel9Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.obj"
+"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\CubemapUtils.cpp.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\PNGHelpers.cpp.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\QOIHelpers.cpp.obj"
@@ -30,5 +30,5 @@
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\RuntimeImageLoader.init.gen.cpp.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\RuntimeImageReader.gen.cpp.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\RuntimeTextureFactory.gen.cpp.obj"
-"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\Default.rc2.res"
+"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Default.rc2.res"
 /OUT:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\UE4Editor-RuntimeImageLoader.lib"

@@ -410,7 +410,7 @@ class Main:
             # self.test_cylinder()
             # self.test_text()
 
-            results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_text3d_click', 'test_text3d_executor'])
+            results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_text3d_click', 'test_text3d_executor', 'test_3d_table_5x5x5'])
             print(results)
 
         # post_startup() re-spawned and possessed a second drone (with a stale

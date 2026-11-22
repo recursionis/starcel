@@ -87,7 +87,10 @@ class PyPawnDrone:
     #  Crosshair — tiny image plane attached to Screen cube center        #
     # #
 
-    CROSSHAIR_PATH = r'C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Materials\crosshair.png'
+    # Content/Scripts/assets/crosshair.png — lives under Scripts so it is staged
+    # as a raw file in packaged builds (Content/Materials only ships the .uasset).
+    CROSSHAIR_PATH = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'assets', 'crosshair.png')
     CROSSHAIR_MATS = (
         '/Game/Materials/M_TexturePicture',
         '/Game/Materials/M_TextureUnlit',
@@ -246,9 +249,11 @@ class PyPawnDrone:
 
     def _set_mesh_owner_no_see(self, enabled):
         try:
-            self._get_component('SkeletalMesh').bOwnerNoSee = enabled
-            self._get_component('SkeletalMeshOutline').bOwnerNoSee = enabled
-            # mesh.MarkRenderStateDirty()
+            # Use the UFUNCTION setter: a raw `.bOwnerNoSee = x` only refreshes the
+            # render state in editor builds (via PostEditChangeProperty), so in a
+            # packaged build the mesh would stay hidden.
+            self._get_component('SkeletalMesh').SetOwnerNoSee(enabled)
+            self._get_component('SkeletalMeshOutline').SetOwnerNoSee(enabled)
             self._dbg(f"PyPawnDrone: Mesh bOwnerNoSee -> {enabled}")
         except Exception as e:
             ue.log_warning(f"PyPawnDrone: could not set bOwnerNoSee: {e}")

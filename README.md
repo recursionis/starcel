@@ -44,6 +44,41 @@ You may need to move Python3.dll and python39.dll into C:\Program Files\Epic Gam
 
 Replace C:\UE_4.27Chaos_Source\Engine\Binaries\ThirdParty\Python3 with a copy of your Python3.9 instance. 
 
+## Startup map and mod paks
+You can set which map opens first and which mod `.pak` files load in the ini files. You don't need any command-line arguments.
+
+**Startup map:** `Config/DefaultEngine.ini`
+```ini
+[/Script/EngineSettings.GameMapsSettings]
+GameDefaultMap=/Game/Maps/StaringAtSkyMap.StaringAtSkyMap
+EditorStartupMap=/Game/Maps/StaringAtSkyMap.StaringAtSkyMap
+```
+You can also change these in the editor under Project Settings → Maps & Modes.
+
+**Mod paks:** `Config/DefaultGame.ini`
+```ini
+[/Script/Starcel9.StarcelPakLoader]
+; mount every .pak in this folder
++ModPakDirs=Mods
+; or list paks one by one
++ModPaks=Mods/StarcelMapTest1-WindowsNoEditor.pak
+; optional, overrides GameDefaultMap
+StartupMap=SunTemple
+```
+Keep comments on their own lines. UE doesn't strip a `;` comment that comes after a value.
+- Relative paths are relative to the project folder. In a packaged build, that's `WindowsNoEditor/Starcel9/`, so the default mods folder is `WindowsNoEditor/Starcel9/Mods/`.
+- A pak can be a full packaged build of another UE 4.27 project, such as `MyMap-WindowsNoEditor.pak`. Its `/Game/...` assets become loadable without overriding Starcel's own files.
+- `StartupMap` takes a short name (`SunTemple`) that is looked up in the mounted paks, or a full path (`/Game/Maps/SunTemple`).
+- To change these settings in a packaged build without repackaging, put the same section in `WindowsNoEditor/Starcel9/Saved/Config/WindowsNoEditor/Game.ini`.
+- Mod paks only load in packaged builds. The editor can't load cooked content.
+
+The command line still works and takes priority: `Starcel9.exe SunTemple -ModPak="C:/path/to/MyMap-WindowsNoEditor.pak"` (see `test-pakmap.bat`). A map named on the command line is used instead of `StartupMap`. Paks from `-ModPak` are mounted in addition to the ones in the ini.
+
+While the game is running, open the console (\`) and run `Starcel.LoadPakMap "C:/path/to/File.pak" [MapName]`. Blueprints can call `Mount Map Pak` / `Mount Pak And Open Map`.
+
+Don't put mod paks in `Content/Paks`. The engine's automatic pak mounting expects paks built from this project, and it would stop the loose (non-pak) game files from loading.
+
+
 ## Questions, Issues, and Support
 Most everything you will need is covered in this readme. 
 

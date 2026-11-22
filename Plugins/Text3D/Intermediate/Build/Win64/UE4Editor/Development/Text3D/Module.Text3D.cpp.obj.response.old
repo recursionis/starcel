@@ -55,6 +55,8 @@
 /I Runtime\Json\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\StaticMeshDescription
 /I Runtime\StaticMeshDescription\Public
+/I ThirdParty\zlib\v1.2.8\include\Win64\VS2015
+/I ThirdParty\libPNG\libPNG-1.5.2
 /I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D"
 /I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source"
 /I "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Public"

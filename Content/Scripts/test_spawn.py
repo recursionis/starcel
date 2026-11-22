@@ -378,6 +378,7 @@ _TEST_Y_SPAN = {
     'test_plot':           2700,   # 4 plots × 600 stride (each plot ~502 UU wide)
     'test_file_explorer':  3500,   # 21 rows × 120 cell_spacing = 2520 actual
     'test_3d_table_resize': 2000,  # 3x3x3 cells (~300) + axis labels can extend past 1000
+    'test_3d_table_5x5x5': 2600,   # 5 × 400 UU cells (~2000) + axis labels
     'test_3d_object':       800,   # single GLB-loaded duck mesh
     'test_glb_object_runtime': 800, # same Duck.glb via glTFRuntime (runtime parse)
     'test_text3d_pyactor': 1000,   # one BP_Cell text actor (~500 wide) + buffer
@@ -997,6 +998,49 @@ def test_3d_table_resize(base_y=0):
     return _result('3d_table_resize', actor, extra=extra, elapsed=time.monotonic() - t0)
 
 
+def test_3d_table_5x5x5(base_y=0):
+    """Spawn a 5x5x5 resizable table with every row/col/slice forced to
+    400 UU so the grid is a true cube (restored from the old
+    test_text3d_click prototype). LMB-drag gridlines to resize.
+    """
+    from ue_spawn import spawn_table_actor
+    CELL_SIZE = 400.0
+    GRID_N = 5
+    actor = None
+    t0 = time.monotonic()
+    try:
+        from nd_table.ndtable import Table
+        t = Table(shape=(GRID_N, GRID_N, GRID_N))
+        for i in range(GRID_N):
+            for j in range(GRID_N):
+                for k in range(GRID_N):
+                    t[(i, j, k)] = f'r{i}c{j}s{k}'
+        t[(0, 0, 0)] = 'Col A'; t[(0, 1, 0)] = 'Col B'; t[(0, 2, 0)] = 'Col C'
+        t[(1, 0, 0)] = 'Hello'; t[(1, 1, 0)] = 'World'; t[(1, 2, 0)] = '123'
+        t[(2, 0, 0)] = 'Click'; t[(2, 1, 0)] = 'Me';    t[(2, 2, 0)] = '!'
+        actor = spawn_table_actor(
+            t,
+            location=FVector(0, base_y, 500),
+            enable_resize=True,
+        )
+    except Exception as e:
+        _log_exception('3d_table_5x5x5', e)
+    extra = f'{GRID_N}x{GRID_N}x{GRID_N} @ {CELL_SIZE:.0f} UU'
+    try:
+        if actor is not None:
+            proxy = actor.get_py_proxy()
+            if proxy is not None and proxy.renderer is not None:
+                for axis in (0, 1, 2):
+                    for idx in range(GRID_N):
+                        proxy.renderer.set_user_size(axis, idx, CELL_SIZE)
+                proxy.renderer.recompute_layout()
+                extra = (f'{len(proxy.renderer.cell_actors)} cells, '
+                         f'{GRID_N}x{GRID_N}x{GRID_N} @ {CELL_SIZE:.0f} UU')
+    except Exception as e:
+        _log_exception('3d_table_5x5x5 sizing', e)
+    return _result('3d_table_5x5x5', actor, extra=extra, elapsed=time.monotonic() - t0)
+
+
 # Dynamic 3D object test — runtime GLB import via the GLTFImporter plugin
 # (enabled in Starcel9.uproject), then StaticMeshActor + SetStaticMesh.
 #
@@ -1479,6 +1523,7 @@ def test_spawn_all(uobject=None, input_manager=None, tests=None):
         ('test_plot',           test_plot),
         ('test_file_explorer',  test_file_explorer),
         ('test_3d_table_resize', test_3d_table_resize),
+        ('test_3d_table_5x5x5', test_3d_table_5x5x5),
         ('test_3d_object',      test_3d_object),
         ('test_glb_object_runtime', test_glb_object_runtime),
         ('test_text3d_executor', test_text3d_executor),

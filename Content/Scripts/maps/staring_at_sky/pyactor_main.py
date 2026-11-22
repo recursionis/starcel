@@ -58,6 +58,10 @@ class Main:
 
         ue.log('staring_at_sky.Main: begin_play')
         try:
+            self._show_cursor()
+        except Exception as e:
+            ue.log_warning(f'staring_at_sky.Main: show cursor failed: {e}')
+        try:
             self._spawn_stars()
         except Exception as e:
             ue.log_warning(f'staring_at_sky.Main: spawn failed: {e}')
@@ -69,6 +73,21 @@ class Main:
 
     def tick(self, delta_time):
         pass
+
+    def _show_cursor(self):
+        """Always-on cursor — same path as main.py's "M" toggle
+        (HotkeyManager.toggle_cursor: show cursor, center it, synthetic
+        LMB click so the viewport takes focus), but forced on at start."""
+        from input_devices import Keyboard, Mouse, HotkeyManager
+
+        self.uobject.enable_input()
+        # Keep references on self — toggle_cursor's click ticker lives on
+        # the HotkeyManager and UEP GCs it otherwise.
+        self.keyboard = Keyboard()
+        self.mouse = Mouse()
+        self.input = HotkeyManager(self.uobject, self.keyboard, self.mouse)
+        if not self.input._cursor_visible:
+            self.input.toggle_cursor()
 
     def _spawn_stars(self):
         # Lazy imports — keep module-level cost low; UE Python loads this

@@ -1,9 +1,9 @@
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\Definitions.RuntimeImageLoader.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private\Helpers\TIFFLoader.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/AllowWindowsPlatformTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/WindowsHWrapper.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/PreWindowsApi.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/MinWindows.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/AllowWindowsPlatformTypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/WindowsHWrapper.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/PreWindowsApi.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/MinWindows.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\Windows.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\sdkddkver.h
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\excpt.h
@@ -100,6 +100,6 @@ C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\wnnc.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared\stralign.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\imm.h
 C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um\ime_cmodes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/PostWindowsApi.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeImage\FreeImage-3.18.0\Dist\FreeImage.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/HideWindowsPlatformTypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/PostWindowsApi.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeImage\FreeImage-3.18.0\Dist\FreeImage.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/HideWindowsPlatformTypes.h

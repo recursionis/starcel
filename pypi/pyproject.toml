@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "starcel"
+dynamic = ["version"]
+description = "Starcel: a Python-controlled 3D spreadsheet on Unreal Engine 4.27. Launcher + installer that downloads the latest build from GitHub into Documents\\Starcel."
+readme = "README.md"
+# The packaged UE4.27 build embeds against Python 3.9.
+requires-python = ">=3.9,<3.10"
+license-files = ["LICENSE"]
+authors = [{ name = "Nicholas Maleki" }]
+keywords = ["starcel", "unreal-engine", "ue4", "spreadsheet", "3d", "visualization", "launcher", "installer"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: Other/Proprietary License",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Games/Entertainment",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    # launcher / installer
+    "requests>=2.31",
+    "tqdm>=4.66",
+    "pywin32>=306; sys_platform == 'win32'",
+    # Starcel's Content/Scripts (mirrors requirements.txt)
+    "numpy",
+    "sympy",
+    "fast-autocomplete[levenshtein]",
+    "numba",
+    "kingdon",
+    "matplotlib",
+    "scikit-image",
+    "scikit-learn",
+    "dill",
+    "pystubgen",
+    "psutil",
+    "opencv-python",
+    "imageio",
+    "pymupdf",
+    "mpmath",
+    "py-cpuinfo",
+    "pynput",
+    "wmi; sys_platform == 'win32'",
+    "GPUtil",
+    "comtypes; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+# Kept so `pip install starcel[alpha]` (used by StarcelInstaller.exe) keeps working.
+alpha = []
+dev = ["pytest", "ruff", "build", "twine", "pyinstaller"]
+
+[project.scripts]
+starcel        = "starcel.cli:main"
+starcel-run    = "starcel.cli:main_run"
+starcel-server = "starcel.cli:main_server"
+starcel-editor = "starcel.cli:main_editor"
+
+[project.gui-scripts]
+# Not "Starcel": Windows filenames are case-insensitive, so Starcel.exe would
+# overwrite the console starcel.exe.
+starcelw       = "starcel.cli:main_run_gui"
+
+[project.urls]
+Homepage = "https://github.com/recursionis/starcel"
+Source = "https://github.com/recursionis/starcel"
+Releases = "https://github.com/recursionis/starcel/releases"
+Donate-Patreon = "https://www.patreon.com/RecursionIs"
+Donate-PayPal = "https://www.paypal.com/paypalme/RecursionIs"
+
+[tool.hatch.version]
+path = "src/starcel/config.py"
+
+[tool.hatch.build]
+exclude = ["**/__pycache__", "**/*.pyc"]
+# build.py generates these and pypi/.gitignore ignores them; without this,
+# hatch would silently leave them out of the wheel/sdist.
+artifacts = ["src/starcel/scripts/**", "README.md", "LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/starcel"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/starcel", "README.md", "LICENSE", "pyproject.toml"]

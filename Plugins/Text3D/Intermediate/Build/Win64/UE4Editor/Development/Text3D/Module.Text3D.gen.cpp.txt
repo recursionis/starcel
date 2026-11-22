@@ -1,7 +1,7 @@
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Development\Text3D\Definitions.Text3D.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3D/BevelType.gen.cpp
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/GeneratedCppIncludes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/MetaData.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D/Public/BevelType.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3D/Text3D.init.gen.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3D/Text3DActor.gen.cpp
@@ -17,67 +17,36 @@ C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Bui
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/Text3D/Intermediate/Build/Win64/UE4Editor/Inc/Text3D/Text3DEngineSubsystem.gen.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D/Private/Text3DEngineSubsystem.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\Text3DPrivate.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\ft2build.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftheader.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/freetype.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftconfig.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftoption.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftstdlib.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fttypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftsystem.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftimage.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrors.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftmoderr.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrdef.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftadvanc.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\ft2build.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftheader.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/freetype.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftconfig.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftoption.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/config/ftstdlib.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fttypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftsystem.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftimage.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrors.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftmoderr.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/fterrdef.h
+C:\UE_4.27Chaos_Source\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\include\freetype/ftadvanc.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Source\Text3D\Private\ContourNode.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Polygon2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MathUtil.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cmath
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cfloat
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Polygon2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MathUtil.h
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\sstream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\istream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\ostream
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\ios
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocnum
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cstdio
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\iterator
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\iosfwd
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cwchar
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\streambuf
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xiosbase
-C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\share.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\system_error
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\__msvc_system_error_abi.hpp
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cerrno
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\stdexcept
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xstring
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xmemory
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\limits
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\isa_availability.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xcall_once.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xerrc.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocale
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\memory
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xfacet
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocinfo
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\xlocinfo.h
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\cctype
-C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\clocale
-C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt\locale.h
 C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE\string
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\BoxTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\TransformTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Quaternion.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MatrixTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\IndexTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\SegmentTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\LineTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrSegment2Segment2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/Intersector1.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntersectionUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrLine2Line2.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/DynamicVector.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\BoxTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\TransformTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Quaternion.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\MatrixTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\VectorUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\IndexTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\SegmentTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\LineTypes.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrSegment2Segment2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/Intersector1.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntersectionUtil.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Intersection/IntrLine2Line2.h
+C:\UE_4.27Chaos_Source\Engine\Plugins\Experimental\GeometryProcessing\Source\GeometricObjects\Public\Util/DynamicVector.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\Text3D\Intermediate\Build\Win64\UE4Editor\Inc\Text3D\Text3DEngineSubsystem.generated.h

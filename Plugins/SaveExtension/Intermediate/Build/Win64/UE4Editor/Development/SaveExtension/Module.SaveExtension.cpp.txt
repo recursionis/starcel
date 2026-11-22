@@ -1,33 +1,33 @@
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Development\SaveExtension\Definitions.SaveExtension.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/FileAdapter.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\FileAdapter.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/SaveGame.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\SaveGame.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\Serialization/ObjectAndNameAsStringProxyArchive.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Serialization/NameAsStringProxyArchive.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\PlatformFeatures.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/SaveGame.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\SaveGame.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\Serialization/ObjectAndNameAsStringProxyArchive.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Serialization/NameAsStringProxyArchive.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\PlatformFeatures.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\ISaveExtension.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SavePreset.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/NoExportTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/PropertyAccessUtil.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Math/UnitConversion.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Math/UnitConversion.inl
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Internationalization/PolyglotTextData.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry/ARFilter.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/NoExportTypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/PropertyAccessUtil.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Math/UnitConversion.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Math/UnitConversion.inl
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Internationalization/PolyglotTextData.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\AssetRegistry/ARFilter.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Misc/ClassFilter.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\ClassFilter.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SavePreset.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Serialization/ArchiveSaveCompressedProxy.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Serialization/ArchiveLoadCompressedProxy.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\SaveGameSystem.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Serialization/ArchiveSaveCompressedProxy.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Serialization/ArchiveLoadCompressedProxy.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\SaveGameSystem.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SlotInfo.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SlotInfo.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SlotData.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/LevelStreaming.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\LatentActions.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\LevelStreaming.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/LevelScriptActor.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\LevelScriptActor.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Engine/LevelStreaming.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\LatentActions.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\LevelStreaming.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Engine/LevelScriptActor.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\LevelScriptActor.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/Records.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\Records.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/LevelRecords.h
@@ -69,8 +69,8 @@ C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\Sa
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Misc/ClassFilter.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Misc/SlotHelpers.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Misc/SlotHelpers.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\HAL/PlatformFile.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Core\Public\Windows/WindowsPlatformFile.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\HAL/PlatformFile.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Core\Public\Windows/WindowsPlatformFile.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Multithreading/DeleteSlotsTask.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Multithreading/DeleteSlotsTask.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Multithreading/LoadFileTask.cpp
@@ -79,24 +79,24 @@ C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Sa
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Multithreading/ScopedTaskManager.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SaveExtension.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Private\SaveExtension.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Developer\Settings\Public\ISettingsModule.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Developer\Settings\Public\ISettingsSection.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Developer\Settings\Public\ISettingsContainer.h
+C:\UE_4.27Chaos_Source\Engine\Source\Developer\Settings\Public\ISettingsModule.h
+C:\UE_4.27Chaos_Source\Engine\Source\Developer\Settings\Public\ISettingsSection.h
+C:\UE_4.27Chaos_Source\Engine\Source\Developer\Settings\Public\ISettingsContainer.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SaveExtensionInterface.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SaveExtensionLibrary.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Private\SaveExtensionLibrary.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SaveExtensionLibrary.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\HighResScreenshot.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\ImageWrapper\Public\IImageWrapper.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\ImageWrapper\Public\IImageWrapperModule.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Kismet/KismetSystemLibrary.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\KismetSystemLibrary.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Kismet/GameplayStatics.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Sound/DialogueTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\DialogueTypes.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Kismet\GameplayStaticsTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameplayStaticsTypes.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameplayStatics.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\HighResScreenshot.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\ImageWrapper\Public\IImageWrapper.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\ImageWrapper\Public\IImageWrapperModule.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Kismet/KismetSystemLibrary.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\KismetSystemLibrary.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Kismet/GameplayStatics.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Sound/DialogueTypes.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\DialogueTypes.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Kismet\GameplayStaticsTypes.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameplayStaticsTypes.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameplayStatics.generated.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SaveManager.cpp
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\SaveSettings.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SaveSettings.generated.h
@@ -105,53 +105,53 @@ C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermedi
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization/SlotDataTask_LevelSaver.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization\SlotDataTask_Saver.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Source\SaveExtension\Public\Serialization\MTTask_SerializeActors.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\AIController.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\NavigationSystem\Public\NavFilters/NavigationQueryFilter.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\NavigationSystem\Public\NavAreas/NavArea.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\AI/Navigation/NavAreaBase.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavAreaBase.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavArea.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavigationQueryFilter.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\AITypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\NavigationSystem\Public\NavigationSystemTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\AI/NavigationSystemConfig.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavigationSystemConfig.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AITypes.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\GameplayTasks\Classes\GameplayTaskOwnerInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\GameplayTasks\Public\GameplayTaskTypes.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\GameplayTasks\GameplayTaskOwnerInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\GameplayTasks\Classes\GameplayTask.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\CoreUObject\Public\UObject/WeakInterfacePtr.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\GameplayTasks\GameplayTask.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\Navigation/PathFollowingComponent.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\NavigationSystem\Public\NavigationData.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\AI/Navigation/NavigationDataInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavigationDataInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavigationData.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\AIResourceInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIResourceInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/NavMovementComponent.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\AI/Navigation/PathFollowingAgentInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\PathFollowingAgentInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/MovementComponent.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\MovementComponent.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavMovementComponent.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\PathFollowingComponent.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\Perception/AIPerceptionListenerInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIPerceptionListenerInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\AIModule\Classes\GenericTeamAgentInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\GenericTeamAgentInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\VisualLogger/VisualLoggerDebugSnapshotInterface.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\VisualLoggerDebugSnapshotInterface.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIController.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\AIController.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\NavigationSystem\Public\NavFilters/NavigationQueryFilter.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\NavigationSystem\Public\NavAreas/NavArea.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\AI/Navigation/NavAreaBase.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavAreaBase.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavArea.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavigationQueryFilter.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\AITypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\NavigationSystem\Public\NavigationSystemTypes.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\AI/NavigationSystemConfig.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavigationSystemConfig.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AITypes.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\GameplayTasks\Classes\GameplayTaskOwnerInterface.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\GameplayTasks\Public\GameplayTaskTypes.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\GameplayTasks\GameplayTaskOwnerInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\GameplayTasks\Classes\GameplayTask.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\CoreUObject\Public\UObject/WeakInterfacePtr.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\GameplayTasks\GameplayTask.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\Navigation/PathFollowingComponent.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\NavigationSystem\Public\NavigationData.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\AI/Navigation/NavigationDataInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavigationDataInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem\NavigationData.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\AIResourceInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIResourceInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/NavMovementComponent.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\AI/Navigation/PathFollowingAgentInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\PathFollowingAgentInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/MovementComponent.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\MovementComponent.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\NavMovementComponent.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\PathFollowingComponent.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\Perception/AIPerceptionListenerInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIPerceptionListenerInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\AIModule\Classes\GenericTeamAgentInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\GenericTeamAgentInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\VisualLogger/VisualLoggerDebugSnapshotInterface.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\VisualLoggerDebugSnapshotInterface.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\AIModule\AIController.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SlotDataTask_Saver.generated.h
 C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\SaveExtension\Intermediate\Build\Win64\UE4Editor\Inc\SaveExtension\SlotDataTask_LevelSaver.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\EngineUtils.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Public\GameDelegates.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/GameModeBase.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\Engine/ServerStatReplicator.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\ServerStatReplicator.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameModeBase.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\EngineUtils.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Public\GameDelegates.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/GameModeBase.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\Engine/ServerStatReplicator.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\ServerStatReplicator.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\GameModeBase.generated.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SavePreset.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/LevelRecords.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/MTTask.cpp
@@ -163,12 +163,12 @@ C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/Sa
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/SlotDataTask_LevelLoader.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/SlotDataTask_LevelSaver.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/SlotDataTask_Loader.cpp
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/Character.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/CharacterMovementReplication.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\CharacterMovementReplication.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Source\Runtime\Engine\Classes\GameFramework/RootMotionSource.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\RootMotionSource.generated.h
-C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\Character.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/Character.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/CharacterMovementReplication.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\CharacterMovementReplication.generated.h
+C:\UE_4.27Chaos_Source\Engine\Source\Runtime\Engine\Classes\GameFramework/RootMotionSource.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\RootMotionSource.generated.h
+C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Inc\Engine\Character.generated.h
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/Serialization/SlotDataTask_Saver.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SlotData.cpp
 C:/Users/Nick/Documents/Unreal Projects/Starcel9/Plugins/SaveExtension/Source/SaveExtension/Private/SlotInfo.cpp

@@ -40,6 +40,8 @@
 "C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\FreeType2\FreeType2-2.10.0\lib\Win64\VS2015\Release\freetype.lib"
 "C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\HarfBuzz\harfbuzz-2.4.0\lib\Win64\VS2015\Release\harfbuzz.lib"
 "C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\ICU\icu4c-64_1\lib\Win64\VS2015\Release\icu.lib"
+"C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\zlib\v1.2.8\lib\Win64-llvm\Release\zlibstatic.lib"
+"C:\Program Files\Epic Games\UE_4.27\Engine\Source\ThirdParty\libPNG\libPNG-1.5.2\lib\Win64-llvm\Release\libpng15_static.lib"
 "C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Intermediate\Build\Win64\UE4Editor\Development\GeometricObjects\UE4Editor-GeometricObjects.lib"
 "C:\Program Files\Epic Games\UE_4.27\Engine\Plugins\Experimental\GeometryProcessing\Intermediate\Build\Win64\UE4Editor\Development\GeometryAlgorithms\UE4Editor-GeometryAlgorithms.lib"
 "C:\Program Files\Epic Games\UE_4.27\Engine\Intermediate\Build\Win64\UE4Editor\Development\MeshDescription\UE4Editor-MeshDescription.lib"

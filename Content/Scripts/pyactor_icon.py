@@ -1,19 +1,17 @@
 import os
 import subprocess
 import unreal_engine as ue
-from unreal_engine import FVector, FRotator, FTransform
-from unreal_engine.enums import ECollisionChannel
-from unreal_engine_tools import find_component
+from unreal_engine import FVector
+import icon_picker
 
 # Python component: hover-shrink + clickable file-open for spawn_icon
 #
 # CRASH NOTE: do NOT call `smc.bind_event('OnClicked', ...)` — two-param
 # sparse delegates crash UEP at UEPyModule.cpp:4502.
 #
-# CLICK STRATEGY: We know OnBeginCursorOver / OnEndCursorOver fire correctly
-# (one-param sparse delegates work).  So we track _hovered state from those
-# callbacks and detect mouse-down during hover in tick().  No cursor trace
-# needed — the hover events tell us the cursor is already over our sphere.
+# HOVER/CLICK: resolved by icon_picker (screen-space with a pixel margin),
+# NOT by UE's OnBeginCursorOver. See icon_picker.py for why the shared state
+# can't live on this class (UEP reloads this module once per icon component).
 
 
 def _open_with_default_app(path):
@@ -34,24 +32,18 @@ def _open_with_default_app(path):
 
 
 class IconSphere:
-    """
-    Hover-shrink + click-to-open for BP_Icon.
+    """Hover-shrink + click-to-open for BP_Icon."""
 
-    Click = cursor is hovering (OnBeginCursorOver fired) + LMB rising edge.
-    """
-    HOVER_DELTA = 0.3
+    # Hovered icons shrink to (1 - HOVER_SHRINK) of their size. Relative,
+    # so it reads the same on a scale-1 file icon and a scale-7 star.
+    HOVER_SHRINK = 0.2
     LERP_SPEED = 8.0
+    # Mesh radius at scale 1 (/Engine/BasicShapes/Sphere is 100 UU across).
+    UNIT_RADIUS = 50.0
 
     def begin_play(self):
         self.uobject.enable_input()
         self.player_controller = self.uobject.get_player_controller()
-        try:
-            self.player_controller.bEnableMouseOverEvents = True
-            self.player_controller.bEnableClickEvents = True
-            self.player_controller.CurrentClickTraceChannel = \
-                ECollisionChannel.ECC_WorldDynamic
-        except Exception as e:
-            ue.log_warning(f'IconSphere: pc setup failed: {e}')
 
         # Captured lazily on first tick: spawn_icon's set_actor_transform
         # runs AFTER world.actor_spawn() returns, so begin_play here would
@@ -59,7 +51,6 @@ class IconSphere:
         self.base_scale = None
         self.target_scale = None
         self._hovered = False
-        self._was_mouse_down = False
 
         # Find the owner actor for source_path lookup
         self.owner_actor = None
@@ -71,40 +62,45 @@ class IconSphere:
             except Exception:
                 continue
 
-        # Bind hover events (one-param sparse delegates — safe)
-        self.smc = None
-        try:
-            self.smc = find_component(self.uobject, "Sphere")
-            if self.smc is not None:
-                self.smc.bind_event('OnBeginCursorOver', self.on_hover_begin)
-                self.smc.bind_event('OnEndCursorOver',   self.on_hover_end)
-        except Exception as e:
-            ue.log_warning(f'IconSphere: hover bind failed: {e}')
+        icon_picker.register(self)
+        ue.log(f'IconSphere: ready  owner={self.name()}  '
+               f'pc={self.player_controller is not None}')
 
-        owner_name = 'None'
+    def end_play(self, reason):
+        icon_picker.unregister(self)
+
+    # Called by icon_picker
+
+    def name(self):
         try:
-            if self.owner_actor:
-                owner_name = self.owner_actor.get_name()
+            return self.owner_actor.get_name()
         except Exception:
-            pass
-        ue.log(f'IconSphere: ready  owner={owner_name}  '
-               f'smc={self.smc is not None}  pc={self.player_controller is not None}')
+            return '?'
 
-    # Hover callbacks
-
-    def on_hover_begin(self, mesh):
-        self._hovered = True
-        if self.base_scale is None:
-            self.base_scale = self.uobject.get_actor_scale()
-        d = self.HOVER_DELTA
+    def pick_radius(self):
+        """World radius from the BASE scale, so the hover-shrink never moves
+        the pick area out from under the cursor."""
         bs = self.base_scale
-        self.target_scale = FVector(bs.x - d, bs.y - d, bs.z - d)
+        return self.UNIT_RADIUS * max(abs(bs.x), abs(bs.y), abs(bs.z))
 
-    def on_hover_end(self, mesh):
-        self._hovered = False
-        self.target_scale = self.base_scale
+    def set_hovered(self, hovered):
+        if hovered == self._hovered or self.base_scale is None:
+            return
+        self._hovered = hovered
+        if hovered:
+            k = 1.0 - self.HOVER_SHRINK
+            bs = self.base_scale
+            self.target_scale = FVector(bs.x * k, bs.y * k, bs.z * k)
+        else:
+            self.target_scale = self.base_scale
 
-    # Source path lookup
+    def on_click(self):
+        path = self._get_source_path()
+        if path:
+            ue.log(f'IconSphere: CLICK → "{path}"')
+            _open_with_default_app(path)
+        else:
+            ue.log('IconSphere: CLICK (no source_path)')
 
     def _get_source_path(self):
         """Read source_path lazily from the owner actor (set after spawn)."""
@@ -113,26 +109,6 @@ class IconSphere:
             if p:
                 return p
         return getattr(self.uobject, 'source_path', None)
-
-    # Mouse button check
-
-    def _is_mouse_down(self):
-        if self.player_controller is None:
-            return False
-        try:
-            from unreal_engine import FKey
-            return self.player_controller.IsInputKeyDown(FKey('LeftMouseButton'))
-        except Exception:
-            pass
-        try:
-            return self.player_controller.IsInputKeyDown('LeftMouseButton')
-        except Exception:
-            pass
-        # Last resort: try on the uobject itself
-        try:
-            return self.uobject.is_input_key_down('LeftMouseButton')
-        except Exception:
-            return False
 
     # Tick
 
@@ -143,6 +119,9 @@ class IconSphere:
             self.target_scale = self.base_scale
             return
 
+        if self.player_controller is not None:
+            icon_picker.maybe_run(self.player_controller, dt)
+
         # hover scale lerp
         cur = self.uobject.get_actor_scale()
         tgt = self.target_scale
@@ -152,14 +131,3 @@ class IconSphere:
             cur.y + (tgt.y - cur.y) * a,
             cur.z + (tgt.z - cur.z) * a,
         ))
-
-        # click = hovered + LMB rising edge
-        mouse_down = self._is_mouse_down()
-        if mouse_down and not self._was_mouse_down and self._hovered:
-            path = self._get_source_path()
-            if path:
-                ue.log(f'IconSphere: CLICK → "{path}"')
-                _open_with_default_app(path)
-            else:
-                ue.log('IconSphere: CLICK (no source_path)')
-        self._was_mouse_down = mouse_down

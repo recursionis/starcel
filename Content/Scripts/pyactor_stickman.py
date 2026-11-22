@@ -119,7 +119,10 @@ class PyActorStickMan:
     attaches it to the Screen component.  Does NOT touch Screen's material.
     """
 
-    crosshair_path = r'C:\Users\nicho\Documents\Unreal Projects\Starcel9\Content\Materials\crosshair.png'
+    # Content/Scripts/assets/crosshair.png — lives under Scripts so it is staged
+    # as a raw file in packaged builds (Content/Materials only ships the .uasset).
+    crosshair_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'assets', 'crosshair.png')
     material_paths = (
         '/Game/Materials/M_TexturePicture',
         '/Game/Materials/M_TextureUnlit',
