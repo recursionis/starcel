@@ -165,7 +165,7 @@ class Keyboard:
             ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace", "Ins", "Home", "PgUp", "Num", "/", "*", "-"],
             ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\", "Del", "End", "PgDn", "NumPadSeven", "NumPadEight", "NumPadNine", "+"],
             ["Caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter", None, None, None, "NumPadFour", "NumPadFive", "NumPadSix", "+"],
-            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", "", "", ".", "/", "RightShift", None, "Up", None, "NumPadOne", "NumPadTwo", "NumPadThree", "Enter"],
+            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RightShift", None, "Up", None, "NumPadOne", "NumPadTwo", "NumPadThree", "Enter"],
             ["LeftCtrl", "Win", "LeftAlt", "Space", "RightAlt", "Menu", "Fn", "RightCtrl", "Left", "Down", "Right", "NumPadZero", "NumPadZero", ".", "Enter"]
         ]
         self.keyboard_wootingtwohe_shift = [
@@ -181,7 +181,7 @@ class Keyboard:
             ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"],
             ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"],
             ["Caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"],
-            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", "", "", ".", "/", "Up", "RightShift"],
+            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "Up", "RightShift"],
             ["LeftCtrl", "Fn", "Win", "LeftAlt", "Space", "RightAlt", "RightCtrl", "Left", "Down", "Right", "Fn"]
         ]
         self.keyboard_razerblade152019_shift = [
@@ -196,7 +196,7 @@ class Keyboard:
             ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace"],
             ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"],
             ["Caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"],
-            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", "", "", ".", "/", "RightShift"],
+            ["LeftShift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "RightShift"],
             ["LeftCtrl", "Win", "LeftAlt", "Space", "RightAlt", "Win", "Menu", "RightCtrl"]
         ]
         self.keyboard_ANSI_shift = [
@@ -1097,6 +1097,20 @@ def generate_input_bindings_doc(scripts_dir=None, output_path=None):
     if output_path is None:
         output_path = os.path.join(scripts_dir, "input_bindings.md")
 
+    bind_rows, check_rows, files_scanned, parse_errors = scan_input_bindings(scripts_dir)
+    _write_input_bindings_md(output_path, bind_rows, check_rows, files_scanned, parse_errors)
+
+
+def scan_input_bindings(scripts_dir):
+    """AST-scan *scripts_dir* for binding calls.
+
+    Returns (bind_rows, check_rows, files_scanned, parse_errors), where each
+    row is a dict with key/method/callback/purpose/location/category.
+    Shared by generate_input_bindings_doc() and generate_keyboard_guide_image().
+    """
+    import ast
+    import os
+
     files_scanned = 0
     parse_errors = []
     bind_rows = []
@@ -1175,6 +1189,13 @@ def generate_input_bindings_doc(scripts_dir=None, output_path=None):
 
     bind_rows.sort(key=lambda r: (r["category"], r["key"].lower(), r["location"]))
     check_rows.sort(key=lambda r: (r["key"].lower(), r["location"]))
+    return bind_rows, check_rows, files_scanned, parse_errors
+
+
+def _write_input_bindings_md(output_path, bind_rows, check_rows, files_scanned, parse_errors):
+    import os
+    import stat
+    from datetime import datetime, timezone
 
     generated_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -1262,4 +1283,556 @@ def generate_input_bindings_doc(scripts_dir=None, output_path=None):
     print(f"Generated {output_path} "
           f"({files_scanned} files scanned, "
           f"{len(bind_rows)} bindings, {len(check_rows)} checks)")
+    return output_path
+
+
+# Keyboard shortcut guide image
+#
+# generate_keyboard_guide_image() draws one of the saved Keyboard layouts
+# (keyboard_razerblade152019, keyboard_ANSI, keyboard_wootingtwohe, ...) with
+# every bound key highlighted, plus a Windows-Shortcut-Guide-style legend of
+# "key tiles -> what it does", grouped by where the binding lives.
+#
+# Sources, in order:
+#   1. scan_input_bindings()       - HotkeyManager / native UE bind_* calls
+#   2. Config/DefaultInput.ini     - real keys behind each bound axis/action
+#   3. _GUIDE_MANUAL_BINDINGS      - shortcuts polled via Win32 (Text3D), which
+#                                    the AST scan can't see. Keep in sync by hand.
+
+_GUIDE_CONTEXTS = {
+    "main.py": "Global",
+    "pypawn_drone.py": "Drone",
+    "gizmo_edit_mode.py": "Gizmo",
+    "pyactor_gizmo.py": "Gizmo",
+    "pyactor_text3d.py": "Text editing",
+    "pyactor_text3d_executor.py": "Code cells",
+}
+
+# (alternative chords, description, context). Chords use "+" between keys.
+_GUIDE_MANUAL_BINDINGS = [
+    (["Ctrl+Enter", "Shift+Enter"], "Run the focused code cell", "Code cells"),
+    (["Ctrl+A"], "Select all", "Text editing"),
+    (["Ctrl+C"], "Copy", "Text editing"),
+    (["Ctrl+X"], "Cut", "Text editing"),
+    (["Ctrl+V"], "Paste text or image", "Text editing"),
+    (["Ctrl+Tab", "Ctrl+Shift+Tab"], "Next / previous text field", "Text editing"),
+    (["Ctrl+Left", "Ctrl+Right"], "Jump by word", "Text editing"),
+    (["Ctrl+Home", "Ctrl+End"], "Start / end of text", "Text editing"),
+    (["Escape"], "Leave the text field", "Text editing"),
+]
+
+_GUIDE_AXIS_LABELS = {
+    "MoveForward": ("Move forward", "Move backward"),
+    "MoveRight": ("Move right", "Move left"),
+    "MoveUp": ("Move up", "Move down"),
+    "TurnRate": ("Turn right", "Turn left"),
+    "LookUpRate": ("Look up", "Look down"),
+    "MouseX": ("Turn left / right", None),
+    "MouseY": ("Look up / down", None),
+}
+
+_GUIDE_KEY_TEXT = {
+    "LeftControl": "Ctrl", "RightControl": "Ctrl", "LeftShift": "Shift", "RightShift": "Shift",
+    "LeftAlt": "Alt", "RightAlt": "Alt", "LeftCommand": "Win", "RightCommand": "Win",
+    "SpaceBar": "Space", "Escape": "Esc", "BackSpace": "Bksp", "Delete": "Del", "Insert": "Ins",
+    "PageUp": "PgUp", "PageDown": "PgDn", "CapsLock": "Caps",
+    "Left": "\u2190", "Right": "\u2192", "Up": "\u2191", "Down": "\u2193",
+    "Zero": "0", "One": "1", "Two": "2", "Three": "3", "Four": "4",
+    "Five": "5", "Six": "6", "Seven": "7", "Eight": "8", "Nine": "9",
+    "Hyphen": "-", "Equals": "=", "Comma": ",", "Period": ".", "Slash": "/", "Backslash": "\\",
+    "Semicolon": ";", "Apostrophe": "'", "LeftBracket": "[", "RightBracket": "]", "Tilde": "`",
+    "LeftMouseButton": "LMB", "RightMouseButton": "RMB", "MiddleMouseButton": "MMB",
+    "ThumbMouseButton": "Mouse 4", "ThumbMouseButton2": "Mouse 5",
+    "MouseScrollUp": "Scroll \u2191", "MouseScrollDown": "Scroll \u2193",
+    "MouseWheelAxis": "Scroll", "MouseX": "Mouse X", "MouseY": "Mouse Y", "Mouse2D": "Mouse",
+}
+
+# Legends on the drawn keyboard (layout legend -> face text).
+_GUIDE_LEGEND_TEXT = {
+    "LeftShift": "Shift", "RightShift": "Shift", "LeftCtrl": "Ctrl", "RightCtrl": "Ctrl",
+    "LeftAlt": "Alt", "RightAlt": "Alt", "Space": "", "Backspace": "Backspace",
+    "Left": "\u2190", "Right": "\u2192", "Up": "\u2191", "Down": "\u2193", "Delete": "Del",
+    **{f"NumPad{w}": str(i) for i, w in enumerate(
+        ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"])},
+}
+
+# Key widths in key units; everything else is 1u.
+_GUIDE_KEY_WIDTHS = {
+    "Backspace": 2.0, "Tab": 1.5, "\\": 1.5, "Caps": 1.75, "Enter": 2.25,
+    "LeftShift": 2.25, "RightShift": 2.75, "Space": 6.25,
+    "LeftCtrl": 1.25, "RightCtrl": 1.25,
+}
+
+# Generic modifier names that mean "either side".
+_GUIDE_EITHER_SIDE = {
+    "ctrl": ("LeftControl", "RightControl"), "control": ("LeftControl", "RightControl"),
+    "shift": ("LeftShift", "RightShift"), "alt": ("LeftAlt", "RightAlt"),
+    "win": ("LeftCommand", "RightCommand"), "cmd": ("LeftCommand", "RightCommand"),
+    "command": ("LeftCommand", "RightCommand"),
+}
+
+_GUIDE_MOD_ORDER = {"ctrl": 0, "shift": 1, "alt": 2, "win": 3}
+
+
+def _guide_canon(kb, token):
+    """Token ('Ctrl', 'LeftAlt', 'w', ',') -> tuple of UE key names it covers."""
+    t = _clean(str(token))
+    if t in _GUIDE_EITHER_SIDE:
+        return _GUIDE_EITHER_SIDE[t]
+    if t in _MOUSE_TOKENS:
+        for k in _GUIDE_KEY_TEXT:
+            if _clean(k) == t:
+                return (k,)
+    ue_key = kb.LEGEND_TO_UE.get(token) or kb.normalize_map.get(t)
+    if ue_key == "Win":
+        ue_key = "LeftCommand"
+    return (ue_key,) if ue_key else ()
+
+
+def _guide_tile_text(kb, token):
+    keys = _guide_canon(kb, token)
+    if not keys:
+        return str(token)
+    return _GUIDE_KEY_TEXT.get(keys[0], keys[0])
+
+
+def _guide_humanize(callback_src):
+    """'self._unless_typing(self.gizmo_mode.toggle)' -> 'Toggle gizmo mode'."""
+    import re
+    s = (callback_src or "").strip()
+    m = re.search(r"\(([\w\.]+)\)\s*$", s)   # unwrap decorators like _unless_typing(fn)
+    if m:
+        s = m.group(1)
+    parts = [p for p in s.split(".") if p not in ("self", "cls")]
+    if not parts:
+        return ""
+    name = parts[-1].strip("_")
+    name = re.sub(r"^on_", "", name)
+    name = re.sub(r"_(pressed|released|press|release|down|up)$", "", name)
+    words = name.replace("_", " ").strip()
+    if words in ("toggle", "show", "hide", "open", "close", "start", "stop", "run") and len(parts) > 1:
+        words = f"{words} {parts[-2].strip('_').replace('_', ' ')}"
+    return words[:1].upper() + words[1:]
+
+
+def _guide_read_input_ini(scripts_dir):
+    """Parse Config/DefaultInput.ini -> (axes, actions).
+
+    axes:    {AxisName: [(key, scale), ...]}
+    actions: {ActionName: ["Ctrl+Shift+K", ...]}
+    """
+    import os
+    import re
+    path = os.path.normpath(os.path.join(scripts_dir, "..", "..", "Config", "DefaultInput.ini"))
+    axes, actions = {}, {}
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return axes, actions
+    for name, scale, key in re.findall(
+            r'^\+AxisMappings=\(AxisName="([^"]+)",Scale=([-\d.]+),Key=(\w+)\)', text, re.M):
+        axes.setdefault(name, []).append((key, float(scale)))
+    for name, sh, ct, al, cm, key in re.findall(
+            r'^\+ActionMappings=\(ActionName="([^"]+)",bShift=(\w+),bCtrl=(\w+),'
+            r'bAlt=(\w+),bCmd=(\w+),Key=(\w+)\)', text, re.M):
+        mods = [m for m, on in (("Ctrl", ct), ("Shift", sh), ("Alt", al), ("Win", cm)) if on == "True"]
+        actions.setdefault(name, []).append("+".join(mods + [key]))
+    return axes, actions
+
+
+def collect_keyboard_guide_entries(scripts_dir, kb=None):
+    """Gather every known shortcut as guide entries.
+
+    Each entry: {"chords": [[token, ...], ...], "desc": str, "context": str}
+    - one chord list per alternative ("Ctrl+Left or Ctrl+Right").
+    """
+    import os
+    kb = kb or Keyboard()
+    bind_rows, _, _, _ = scan_input_bindings(scripts_dir)
+    axes, actions = _guide_read_input_ini(scripts_dir)
+    known_keys = set(kb.ue_keys) | set(kb.LEGEND_TO_UE.values())
+
+    def ctx_of(location):
+        fname = os.path.basename(location.rsplit(":", 1)[0])
+        return _GUIDE_CONTEXTS.get(fname, os.path.splitext(fname)[0])
+
+    entries = []
+    keyed = {}   # (chord, context) -> {"press": desc, "release": desc}
+    for r in bind_rows:
+        key, cat, ctx = r["key"], r["category"], ctx_of(r["location"])
+        if key.startswith("<"):
+            continue   # dynamic key expression - can't be drawn
+        desc = r["purpose"] if r["purpose"] and not r["purpose"].startswith("lambda") \
+            else _guide_humanize(r["callback"])
+        if cat in ("key", "mouse"):
+            slot = keyed.setdefault((key, ctx), {})
+            kind = "release" if "release" in r["method"] else "press"
+            slot.setdefault(kind, desc)
+        elif cat == "sequence":
+            entries.append({"chords": [[p.strip() for p in key.split("->")]],
+                            "desc": desc, "context": ctx, "sequence": True})
+        elif cat == "axis":
+            pos_label, neg_label = _GUIDE_AXIS_LABELS.get(key, (f"{key} +", f"{key} -"))
+            mapped = axes.get(key, [])
+            mouse = [k for k, _ in mapped if _is_mouse_token(k)]
+            pos = [k for k, s in mapped if s > 0 and k in known_keys and not _is_mouse_token(k)]
+            neg = [k for k, s in mapped if s < 0 and k in known_keys and not _is_mouse_token(k)]
+            if pos:
+                entries.append({"chords": [[k] for k in pos], "desc": pos_label, "context": "Movement"})
+            if neg and neg_label:
+                entries.append({"chords": [[k] for k in neg], "desc": neg_label, "context": "Movement"})
+            if mouse:
+                entries.append({"chords": [[k] for k in mouse], "desc": pos_label, "context": "Movement"})
+        elif cat == "action":
+            chords = actions.get(key, [])
+            chords = [c for c in chords if all(_guide_canon(kb, p) for p in c.split("+"))]
+            if chords:
+                entries.append({"chords": [c.split("+") for c in chords], "desc": desc or key,
+                                "context": ctx})
+
+    for (key, ctx), slot in keyed.items():
+        if "press" in slot:
+            desc = slot["press"]
+            if "release" in slot and "hold" not in desc.lower():
+                desc += " (hold)"
+        else:
+            desc = slot["release"] + " (on release)"
+        entries.append({"chords": [key.split("+")], "desc": desc, "context": ctx})
+
+    for chords, desc, ctx in _GUIDE_MANUAL_BINDINGS:
+        entries.append({"chords": [c.split("+") for c in chords], "desc": desc, "context": ctx})
+
+    # Same chord bound from two files in one context (e.g. gizmo LMB) -> keep one.
+    seen, unique = set(), []
+    for e in entries:
+        sig = (e["context"], tuple(tuple(c) for c in e["chords"]))
+        if sig in seen:
+            continue
+        seen.add(sig)
+        unique.append(e)
+    return unique
+
+
+def _guide_font(size, bold=False):
+    import os
+    from PIL import ImageFont
+    fonts_dir = os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts")
+    names = ["segoeuib.ttf", "arialbd.ttf"] if bold else ["segoeui.ttf", "arial.ttf"]
+    for n in names + ["DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"]:
+        for p in (os.path.join(fonts_dir, n), n):
+            try:
+                return ImageFont.truetype(p, size)
+            except OSError:
+                pass
+    return ImageFont.load_default()
+
+
+def _guide_text_size(draw, text, font):
+    if not text:
+        return 0, 0
+    try:
+        l, t, r, b = draw.textbbox((0, 0), text, font=font)
+        return r - l, b - t
+    except AttributeError:   # Pillow < 8
+        return font.getsize(text)
+
+
+def _guide_rrect(draw, box, radius, fill=None, outline=None, width=1):
+    try:
+        draw.rounded_rectangle(box, radius=radius, fill=fill, outline=outline, width=width)
+    except AttributeError:   # Pillow < 8.2
+        draw.rectangle(box, fill=fill, outline=outline, width=width)
+
+
+def _guide_fit(draw, text, font, max_w):
+    """Trim *text* with an ellipsis until it fits in *max_w* pixels."""
+    if _guide_text_size(draw, text, font)[0] <= max_w:
+        return text
+    while len(text) > 1 and _guide_text_size(draw, text + "\u2026", font)[0] > max_w:
+        text = text[:-1]
+    return text.rstrip() + "\u2026"
+
+
+def _guide_wrap(draw, text, font, max_w, max_lines=2):
+    words, lines, cur = text.split(), [], ""
+    for w in words:
+        trial = f"{cur} {w}".strip()
+        if _guide_text_size(draw, trial, font)[0] <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
+    if len(lines) > max_lines:
+        lines = lines[:max_lines]
+        lines[-1] = lines[-1] + " \u2026"
+    return [_guide_fit(draw, ln, font, max_w) for ln in lines]
+
+
+def _guide_layout_rows(rows):
+    """Layout rows -> ([[(legend, width_units), ...], ...], total_units), stretched
+    so every row matches the most common row width (the widest key flexes)."""
+    from collections import Counter
+    out = [[(k, _GUIDE_KEY_WIDTHS.get(k, 1.0)) for k in row if k is not None] for row in rows]
+    widths = [round(sum(w for _, w in r), 2) for r in out if r]
+    if not widths:
+        return out, 0
+    counts = Counter(widths)
+    target = max(counts, key=lambda w: (counts[w], w))
+    for r in out:
+        diff = target - sum(w for _, w in r)
+        if abs(diff) < 1e-6 or not r:
+            continue
+        i = max(range(len(r)), key=lambda j: (r[j][0] == "Space", r[j][1]))
+        if r[i][1] + diff >= 1.0:
+            r[i] = (r[i][0], r[i][1] + diff)
+    return out, max(sum(w for _, w in r) for r in out)
+
+
+def generate_keyboard_guide_image(layout="razerblade152019", output_path=None,
+                                  scripts_dir=None, title=None, unit=64):
+    """Render a shortcut-guide PNG for a saved keyboard layout.
+
+    layout      : name of a saved layout on Keyboard ("razerblade152019",
+                  "ANSI", "wootingtwohe") or a list of legend rows.
+    output_path : default Scripts/keyboard_guide_<layout>.png
+    unit        : pixel size of a 1u key.
+
+    Keys that trigger something are filled blue with a short description on
+    the keycap; keys only used as chord modifiers are outlined blue. Below the
+    keyboard, every shortcut is listed as key tiles + description, grouped by
+    context. Returns the output path.
+    """
+    import os
+    from PIL import Image, ImageDraw
+
+    kb = Keyboard()
+    if isinstance(layout, str):
+        name = layout
+        rows = getattr(kb, f"keyboard_{layout}", None)
+        if rows is None:
+            saved = [a[len("keyboard_"):] for a in vars(kb)
+                     if a.startswith("keyboard_") and not a.endswith("_shift")]
+            raise ValueError(f"Unknown keyboard layout {layout!r}; saved layouts: {saved}")
+        shift_rows = getattr(kb, f"keyboard_{layout}_shift", None)
+    else:
+        name, rows, shift_rows = "custom", layout, None
+
+    if scripts_dir is None:
+        try:
+            scripts_dir = os.path.join(os.path.abspath(ue.get_content_dir()), "Scripts")
+        except Exception:
+            scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    if output_path is None:
+        output_path = os.path.join(scripts_dir, f"keyboard_guide_{name}.png")
+
+    entries = collect_keyboard_guide_entries(scripts_dir, kb)
+
+    # Which UE keys are triggers / modifiers, and the first description per key.
+    primary_desc, modifier_keys = {}, set()
+    for e in entries:
+        for chord in e["chords"]:
+            for i, tok in enumerate(chord):
+                is_primary = e.get("sequence") or i == len(chord) - 1
+                for k in _guide_canon(kb, tok):
+                    if is_primary:
+                        primary_desc.setdefault(k, e["desc"])
+                    else:
+                        modifier_keys.add(k)
+
+    # Colors (RGBA so the PNG can be overlaid as a texture).
+    BG = (14, 14, 16, 238)
+    KEY = (44, 44, 48, 255)
+    KEY_TEXT = (165, 165, 170, 255)
+    ACCENT = (0, 120, 215, 255)
+    WHITE = (255, 255, 255, 255)
+    DESC = (232, 232, 235, 255)
+    HEAD = (130, 185, 245, 255)
+    MUTED = (125, 125, 134, 255)
+    CAP_TEXT = (222, 236, 252, 255)
+
+    f_title = _guide_font(30, bold=True)
+    f_head = _guide_font(19, bold=True)
+    f_legend = _guide_font(max(12, unit // 4), bold=True)
+    f_shift = _guide_font(max(10, unit // 6))
+    f_cap = _guide_font(max(9, unit // 6))
+    f_tile = _guide_font(19, bold=True)
+    f_desc = _guide_font(20)
+    f_or = _guide_font(17)
+
+    scratch = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
+    pad, gap = 44, max(4, unit // 11)
+    title = title or f"Shortcuts \u2014 {name}"
+
+    key_rows, kb_units = _guide_layout_rows(rows)
+    kb_w, kb_h = int(kb_units * unit), len(key_rows) * unit
+
+    tile_h, row_h, head_h, sec_gap, col_gap = 40, 50, 44, 18, 48
+
+    def tiles_for(entry):
+        """[(text, kind)] where kind is 'tile', 'plus' or 'or'."""
+        chords, seq = entry["chords"], entry.get("sequence")
+        parts = []
+        mods = [tuple(c[:-1]) for c in chords]
+        # "Ctrl + <- or ->" when alternatives share the same modifiers.
+        if len(chords) > 1 and len(set(mods)) == 1 and mods[0] and not seq:
+            for m in mods[0]:
+                parts += [(_guide_tile_text(kb, m), "tile"), ("+", "plus")]
+            for i, c in enumerate(chords):
+                if i:
+                    parts.append(("or", "or"))
+                parts.append((_guide_tile_text(kb, c[-1]), "tile"))
+            return parts
+        for i, c in enumerate(chords):
+            if i:
+                parts.append(("or", "or"))
+            if not seq:   # modifiers first, in Ctrl/Shift/Alt/Win order
+                c = sorted(c[:-1], key=lambda t: _GUIDE_MOD_ORDER.get(
+                    _clean(_guide_tile_text(kb, t)), 9)) + c[-1:]
+            for j, tok in enumerate(c):
+                if j:
+                    parts.append(("\u2192" if seq else "+", "plus"))
+                parts.append((_guide_tile_text(kb, tok), "tile"))
+        return parts
+
+    def part_w(text, kind):
+        if kind == "tile":
+            return max(tile_h, _guide_text_size(scratch, text, f_tile)[0] + 22)
+        return _guide_text_size(scratch, text, f_or if kind == "or" else f_desc)[0] + 14
+
+    for e in entries:
+        e["_parts"] = tiles_for(e)
+        e["_tiles_w"] = sum(part_w(t, k) for t, k in e["_parts"])
+        e["_desc_w"] = _guide_text_size(scratch, e["desc"], f_desc)[0]
+
+    order = ["Global", "Movement", "Drone", "Gizmo", "Text editing", "Code cells"]
+    contexts = sorted({e["context"] for e in entries},
+                      key=lambda c: (order.index(c) if c in order else len(order), c))
+    sections = [(c, [e for e in entries if e["context"] == c]) for c in contexts]
+
+    ncols = 3 if len(entries) > 10 else max(1, min(2, len(sections)))
+
+    # Flow whole sections into columns, aiming for even heights.
+    def sec_height(items):
+        return head_h + len(items) * row_h + sec_gap
+    target_h = sum(sec_height(i) for _, i in sections) / ncols
+    columns, cur_h = [[]], 0
+    for sec in sections:
+        h = sec_height(sec[1])
+        if columns[-1] and cur_h + h / 2 > target_h and len(columns) < ncols:
+            columns.append([])
+            cur_h = 0
+        columns[-1].append(sec)
+        cur_h += h
+    list_h = max((sum(sec_height(i) for _, i in col) for col in columns), default=0)
+
+    # Each column is as wide as its own tiles + descriptions; spare width
+    # (when the keyboard is wider than the list) goes into the gaps.
+    col_tiles, col_ws = [], []
+    for col in columns:
+        items = [e for _, sec_items in col for e in sec_items]
+        tw = max((e["_tiles_w"] for e in items), default=0)
+        dw = max((e["_desc_w"] for e in items), default=0)
+        col_tiles.append(tw)
+        col_ws.append(max(tw + 18 + min(dw, 420),
+                          max(_guide_text_size(scratch, s.upper(), f_head)[0] for s, _ in col)))
+    list_w = sum(col_ws) + (len(columns) - 1) * col_gap
+    img_w = max(kb_w + 2 * pad, list_w + 2 * pad)
+    if len(columns) > 1:
+        col_gap = (img_w - 2 * pad - sum(col_ws)) / (len(columns) - 1)
+
+    title_h = 64
+    img_h = pad + title_h + kb_h + 40 + list_h + pad - sec_gap
+    img = Image.new("RGBA", (img_w, img_h), BG)
+    d = ImageDraw.Draw(img)
+
+    # Title + color legend
+    d.text((pad, pad - 6), title, font=f_title, fill=WHITE)
+    lx = img_w - pad
+    for label, fill, outline in (("Modifier", KEY, ACCENT), ("Bound key", ACCENT, None)):
+        lx -= _guide_text_size(d, label, f_or)[0]
+        d.text((lx, pad + 2), label, font=f_or, fill=DESC)
+        lx -= 30
+        _guide_rrect(d, (lx, pad + 3, lx + 22, pad + 25), 4, fill=fill, outline=outline, width=2)
+        lx -= 28
+
+    # Keyboard
+    kx0, ky0 = (img_w - kb_w) // 2, pad + title_h
+    for r, row in enumerate(key_rows):
+        shift_row = None
+        if shift_rows and r < len(shift_rows):
+            shift_row = [k for k in shift_rows[r] if k is not None]
+            if len(shift_row) != len(row):
+                shift_row = None
+        x = kx0
+        for i, (legend, wu) in enumerate(row):
+            w = int(round(wu * unit))
+            box = (x + gap // 2, ky0 + r * unit + gap // 2,
+                   x + w - gap // 2, ky0 + (r + 1) * unit - gap // 2)
+            x += w
+            canon = _guide_canon(kb, legend) if legend else ()
+            ue_key = canon[0] if canon else None
+            bound = ue_key in primary_desc
+            is_mod = ue_key in modifier_keys and not bound
+            _guide_rrect(d, box, max(4, unit // 10), fill=ACCENT if bound else KEY,
+                         outline=ACCENT if is_mod else None, width=3 if is_mod else 1)
+
+            face = _GUIDE_LEGEND_TEXT.get(legend, legend or "")
+            if len(face) == 1 and face.isalpha():
+                face = face.upper()
+            fg = WHITE if (bound or is_mod) else KEY_TEXT
+            bx0, by0, bx1, by1 = box
+            if bound:
+                # Legend top-left, description along the bottom of the cap.
+                d.text((bx0 + 7, by0 + 2), face, font=f_legend, fill=fg)
+                lh = _guide_text_size(d, "Ag", f_cap)[1] + 3
+                lines = _guide_wrap(d, primary_desc[ue_key], f_cap, bx1 - bx0 - 10, 2)
+                for li, line in enumerate(lines):
+                    d.text((bx0 + 5, by1 - 6 - lh * (len(lines) - li)), line,
+                           font=f_cap, fill=CAP_TEXT)
+                continue
+            tw, th = _guide_text_size(d, face, f_legend)
+            shifted = shift_row[i] if shift_row else None
+            if shifted and shifted != legend and shifted.upper() != (legend or "").upper():
+                d.text((bx0 + 7, by0 + 3), shifted, font=f_shift, fill=MUTED)
+                d.text((bx0 + 7, by1 - th - 12), face, font=f_legend, fill=fg)
+            else:
+                d.text(((bx0 + bx1 - tw) / 2, (by0 + by1 - th) / 2 - 4), face,
+                       font=f_legend, fill=fg)
+
+    # Shortcut list
+    ly0 = ky0 + kb_h + 40
+    cx = pad
+    for ci, col in enumerate(columns):
+        col_w, tiles_col = col_ws[ci], col_tiles[ci]
+        if ci:
+            cx += col_ws[ci - 1] + col_gap
+        y = ly0
+        for sec_name, items in col:
+            d.text((cx, y + 4), sec_name.upper(), font=f_head, fill=HEAD)
+            d.line((cx, y + head_h - 8, cx + col_w, y + head_h - 8), fill=(62, 62, 68, 255))
+            y += head_h
+            for e in items:
+                x = cx
+                for text, kind in e["_parts"]:
+                    w = part_w(text, kind)
+                    if kind == "tile":
+                        _guide_rrect(d, (x, y, x + w, y + tile_h), 4, fill=ACCENT)
+                        font, color = f_tile, WHITE
+                    else:
+                        font = f_or if kind == "or" else f_desc
+                        color = MUTED if kind == "or" else DESC
+                    tw, th = _guide_text_size(d, text, font)
+                    d.text((x + (w - tw) / 2, y + (tile_h - th) / 2 - 5), text, font=font, fill=color)
+                    x += w
+                dx = cx + tiles_col + 18
+                desc = _guide_fit(d, e["desc"], f_desc, cx + col_w - dx)
+                d.text((dx, y + 6), desc, font=f_desc, fill=DESC)
+                y += row_h
+            y += sec_gap
+
+    img.save(output_path)
+    print(f"Generated {output_path} ({len(entries)} shortcuts, layout {name})")
     return output_path

@@ -103,36 +103,64 @@ class GizmoController:
         self._hov = None
 
     def setup(self, uobject, input_manager, target, handles, piece_offsets,
-              bbox_dynamic=None):
+              bbox_dynamic=None, bind_input=True):
         """Wire the controller to gizmo pieces + input. Bindings happen here,
         not in begin_play, because begin_play has no access to the host's
         HotkeyManager.
 
         bbox_dynamic: optional dict of {actor: (kind, data)} for bounding-box
         pieces whose world transform must be recomputed each tick from the
-        target's current scale/rotation."""
-        self._uobject_ref = uobject
-        self._target = target
-        self._handles = handles
-        self._piece_offsets = piece_offsets
-        self._bbox_dynamic = bbox_dynamic or {}
-        # Only handle actors (interactable) + target participate in hover/drag.
-        # Wireframe pieces live in _bbox_dynamic but have collision disabled,
-        # so they won't appear as cursor hits anyway.
-        self._all_actors = set(handles.keys()) | {target}
+        target's current scale/rotation.
 
+        bind_input: False when the caller forwards LMB itself via _press /
+        _release (gizmo_edit_mode does this so selection clicks and drag
+        clicks are ordered deterministically). target may be None — the
+        controller then idles until retarget()."""
+        self._uobject_ref = uobject
         try:
             self._player_controller = uobject.get_player_controller()
         except Exception:
             self._player_controller = None
 
-        input_manager.bind_press("LeftMouseButton",   self._press)
-        input_manager.bind_release("LeftMouseButton", self._release)
+        self.retarget(target, handles, piece_offsets, bbox_dynamic)
+
+        if bind_input and input_manager is not None:
+            input_manager.bind_press("LeftMouseButton",   self._press)
+            input_manager.bind_release("LeftMouseButton", self._release)
 
         self._ready = True
         _log("GizmoController: ready")
 
+    def retarget(self, target, handles=None, piece_offsets=None, bbox_dynamic=None):
+        """Point the controller at a new target + gizmo pieces (or None to
+        idle). Cancels any drag in progress."""
+        if self._hov is not None:
+            try:
+                from gizmo import _hover_exit
+                _hover_exit(self._hov)
+            except Exception:
+                pass
+        self._hov = None
+        self._down = False
+        self._drag = False
+        self._target = target
+        self._handles = handles or {}
+        self._piece_offsets = piece_offsets or {}
+        self._bbox_dynamic = bbox_dynamic or {}
+        # Only handle actors (interactable) + target participate in hover/drag.
+        # Wireframe pieces live in _bbox_dynamic but have collision disabled,
+        # so they won't appear as cursor hits anyway.
+        self._all_actors = set(self._handles.keys())
+        if target is not None:
+            self._all_actors.add(target)
+
+    def owns(self, actor):
+        """True if *actor* is the current target or one of its gizmo pieces."""
+        return actor is not None and (actor in self._all_actors
+                                      or actor in self._piece_offsets)
+
     def _press(self):
+        """Drag a gizmo handle"""
         self._down = True
 
     def _release(self):

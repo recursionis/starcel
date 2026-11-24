@@ -327,16 +327,51 @@ def test_gizmos(location=None):
     gizmo_root.StaticMeshComponent.Mobility = EComponentMobility.Movable
     gizmo_root.set_actor_label("GizmoRoot")
 
+    info = build_gizmo(target)
+    return target, gizmo_root, info['handles']
+
+
+def gizmo_size_for(target):
+    """Size multiplier so the handles clear the target's bounds. 1.0 for
+    anything up to ~60uu radius (the demo cylinder), grows linearly after."""
+    try:
+        _, extent = target.GetActorBounds()
+        radius = max(abs(extent.x), abs(extent.y), abs(extent.z))
+        return max(1.0, min(50.0, radius / 60.0))
+    except Exception as e:
+        _log(f"gizmo_size_for fail, using 1.0: {e}")
+        return 1.0
+
+
+def build_gizmo(target, size=1.0):
+    """
+    Build the full gizmo (arrows, rings, scale cubes, planes, bbox) around an
+    already-existing *target* actor.
+
+    size — multiplier for handle offsets + scales (see gizmo_size_for).
+
+    Returns a dict:
+      handles        actor → (kind, data)      interactive pieces
+      piece_offsets  actor → FVector           every piece's offset from target
+      bbox_dynamic   actor → (kind, data)      pieces that follow bbox each tick
+      actors         list of every spawned piece (for destroy_gizmo)
+
+    Pieces are also registered in the module-level dicts (hover colours,
+    bbox updates), so destroy_gizmo() must be used to remove them cleanly.
+    """
     base = target.get_actor_location()
     handles = {}
+    before_off = set(_piece_off.keys())
+    before_bbox = set(_bbox_dynamic.keys())
+    s = size
 
     # ── move arrows  (Cone, tip points along axis, centered 100 u from base)
     # Cone is authored along +Z (tip at top). _rot(ax) points the tip toward ax.
     # Scale (0.12, 0.12, 0.9): 12 uu wide, 90 uu tall → tip at base + ax*145
     _log("-- arrows --")
     for name, ax, rgb in AXES6:
-        off = ax * 100
-        a = _spawn(SH_CONE, base + off, _rot(ax), FVector(0.12, 0.12, 0.9), f"GM_{name}", off)
+        off = ax * (100 * s)
+        a = _spawn(SH_CONE, base + off, _rot(ax), FVector(0.12, 0.12, 0.9) * s, f"GM_{name}", off)
         if a:
             _apply_color(a, *rgb)
             handles[a] = ('axis', ax)
@@ -355,7 +390,7 @@ def test_gizmos(location=None):
     _log("-- rings --")
     for ring_idx, (name, ax, rgb) in enumerate(AXES3):
         off = FVector(0, 0, 0)
-        a = _spawn(SH_CYL, base, _rot(ax), FVector(1.8, 1.8, 0.10), f"GR_{name}", off)
+        a = _spawn(SH_CYL, base, _rot(ax), FVector(1.8, 1.8, 0.10) * s, f"GR_{name}", off)
         if a:
             _apply_color(a, *rgb, emissive=1.8)
             try:
@@ -367,9 +402,9 @@ def test_gizmos(location=None):
     # ── scale handles  (small Cube, 175 uu along axis past arrows)
     _log("-- scale --")
     for name, ax, rgb in AXES6:
-        off = ax * 175
+        off = ax * (175 * s)
         a = _spawn(SH_CUBE, base + off, FRotator(0, 0, 0),
-                     FVector(0.18, 0.18, 0.18), f"GS_{name}", off)
+                     FVector(0.18, 0.18, 0.18) * s, f"GS_{name}", off)
         if a:
             _apply_color(a, *rgb, emissive=1.0)
             handles[a] = ('scale', ax)
@@ -380,9 +415,9 @@ def test_gizmos(location=None):
     # so the flat face lies in the correct plane.
     _log("-- planes --")
     for pname, normal, rgb, d1, d2 in PLANES:
-        off = d1 * 35 + d2 * 35
+        off = d1 * (35 * s) + d2 * (35 * s)
         a = _spawn(SH_CUBE, base + off, _rot(normal),
-                     FVector(0.28, 0.28, 0.05), f"GP_{pname}", off)
+                     FVector(0.28, 0.28, 0.05) * s, f"GP_{pname}", off)
         if a:
             _apply_color(a, *rgb, emissive=1.5)
             handles[a] = ('plane', (d1, d2))
@@ -437,8 +472,34 @@ def test_gizmos(location=None):
             handles[a] = ('bbox_edge', (ai, dj, dk))
             _bbox_dynamic[a] = ('edge', (ai, dj, dk))
 
-    _log(f"=== done: {len(handles)} handles, {len(_bbox_dynamic)} bbox pieces ===")
-    return target, gizmo_root, handles
+    piece_offsets = {a: off for a, off in _piece_off.items() if a not in before_off}
+    bbox_dynamic = {a: spec for a, spec in _bbox_dynamic.items() if a not in before_bbox}
+    _log(f"=== done: {len(handles)} handles, {len(bbox_dynamic)} bbox pieces ===")
+    return {
+        'handles': handles,
+        'piece_offsets': piece_offsets,
+        'bbox_dynamic': bbox_dynamic,
+        'actors': list(piece_offsets.keys()),
+    }
+
+
+def destroy_gizmo(info):
+    """Destroy every piece produced by build_gizmo() and forget it in the
+    module-level bookkeeping dicts."""
+    if not info:
+        return
+    for a in info.get('actors', []):
+        for d in (_piece_off, _actor_mid, _actor_colors, _bbox_dynamic, _hover_groups):
+            d.pop(a, None)
+        try:
+            a.actor_destroy()
+        except Exception as e:
+            _log(f"destroy_gizmo: {e}")
+
+
+def forget_target(target):
+    """Drop the cached local extent for a target (call when deselecting)."""
+    _local_extent_cache.pop(target, None)
 
 # Interaction logic migrated to pyactor_gizmo.GizmoController.
 # Spawn via spawn_pyactor('pyactor_gizmo', 'GizmoController') and call its

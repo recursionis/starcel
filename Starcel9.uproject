@@ -131,7 +131,7 @@
 		},
 		{
 			"Name": "PixelStreaming",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "CesiumForUnreal",

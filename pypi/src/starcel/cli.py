@@ -110,7 +110,7 @@ def _run_client(args: argparse.Namespace) -> int:
         print(" ".join(launcher.dry_run_args("client", opts)))
         return 0
     # First run downloads the build; later runs pick up newer GitHub releases.
-    downloader.ensure_build(offline=args.offline)
+    downloader.ensure_build(offline=args.offline, on_download=_gui_download_notice if _GUI else None)
     proc = launcher.launch_client(opts)
     return proc.wait()
 
@@ -354,9 +354,58 @@ def main_editor() -> int:
     return main(["editor"] + sys.argv[1:])
 
 
+_GUI = False
+
+
+def _gui_message(text: str, *, error: bool = False) -> None:
+    import ctypes
+    flags = 0x10 if error else 0x40  # MB_ICONERROR / MB_ICONINFORMATION
+    ctypes.windll.user32.MessageBoxW(None, text, "Starcel", flags | 0x10000)  # MB_SETFOREGROUND
+
+
+def _gui_download_notice(release: dict) -> None:
+    _gui_message(
+        f"Downloading {release['name']} ({release['size'] / 1e9:.2f} GB).\n\n"
+        f"Starcel will start automatically when the download finishes.\n"
+        f"Progress is logged to {_gui_log_path()}."
+    )
+
+
+def _gui_log_path() -> Path:
+    return config.INSTALL_ROOT / "starcelw.log"
+
+
 def main_run_gui() -> int:
-    """GUI-mode entry (no console window) — same as `starcel run` but suppresses stdout."""
-    return main(["run"] + sys.argv[1:])
+    """GUI-mode entry (starcelw.exe, run by pythonw with no console).
+
+    pythonw sets sys.stdout/sys.stderr to None, so any print or progress bar
+    would crash invisibly. Send output to starcelw.log and show errors in a dialog.
+    """
+    global _GUI
+    _GUI = True
+    log = None
+    if sys.stdout is None or sys.stderr is None:
+        try:
+            config.INSTALL_ROOT.mkdir(parents=True, exist_ok=True)
+            log = open(_gui_log_path(), "w", encoding="utf-8", buffering=1)
+        except OSError:
+            log = open(os.devnull, "w", encoding="utf-8")
+        sys.stdout = sys.stdout or log
+        sys.stderr = sys.stderr or log
+    try:
+        return main(["run"] + sys.argv[1:])
+    except SystemExit as exc:
+        if exc.code not in (None, 0):
+            _gui_message(str(exc.code), error=True)
+        raise
+    except BaseException as exc:
+        import traceback
+        traceback.print_exc()
+        _gui_message(f"Starcel failed to start:\n\n{exc}\n\nDetails: {_gui_log_path()}", error=True)
+        return 1
+    finally:
+        if log:
+            log.flush()
 
 
 if __name__ == "__main__":

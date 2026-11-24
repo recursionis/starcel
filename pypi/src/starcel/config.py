@@ -11,7 +11,7 @@ from pathlib import Path
 
 from . import winfolders
 
-VERSION = "0.2.0a2"
+VERSION = "0.2.0a3"
 
 # --- Install locations ---
 # Default is Documents\Starcel so users can find and edit
@@ -114,8 +114,13 @@ PROJECT_FOLDER_CANDIDATES = [
 
 # --- Shortcut targets ---
 SHORTCUT_DESKTOP_DIR             = winfolders.desktop()
-SHORTCUT_START_MENU_ALLUSERS_DIR = Path(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Starcel")
-SHORTCUT_START_MENU_USER_DIR     = Path.home() / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Starcel"
+SHORTCUT_START_MENU_ALLUSERS_DIR = Path(r"C:\ProgramData\Microsoft\Windows\Start Menu\Programs")
+SHORTCUT_START_MENU_USER_DIR     = Path.home() / "AppData" / "Roaming" / "Microsoft" / "Windows" / "Start Menu" / "Programs"
+# Older versions put four shortcuts in a "Starcel" subfolder; kept so they get cleaned up.
+SHORTCUT_LEGACY_START_MENU_DIRS  = (
+    SHORTCUT_START_MENU_ALLUSERS_DIR / "Starcel",
+    SHORTCUT_START_MENU_USER_DIR / "Starcel",
+)
 
 # --- Launch defaults ---
 # Every _StartClient.bat / _StartServer.bat flag has a key here. User overrides

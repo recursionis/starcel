@@ -31,6 +31,7 @@ import unreal_engine as ue
 from unreal_engine import FVector, FRotator, FTransform
 from unreal_engine.classes import (
     StaticMeshActor, StaticMesh, Material, Blueprint, SkeletalMesh,
+    KismetMathLibrary,
 )
 from unreal_engine.enums import EComponentMobility, EPixelFormat
 from unreal_engine_tools import pil_image_to_texture, get_world, find_component, load_blueprint_class
@@ -1777,6 +1778,85 @@ def spawn_text3d_executor(text='', location=None, rotation=None, scale=None,
         name=name or 'Text3DExecutor')
 
 
+_focus_tickers = []  # UEP GCs tickers with no live reference
+
+
+def spawn_focused_text3d_executor(text='', distance=400.0, focus_delay=0.1):
+    """
+    Spawn a Text3D executor in front of the player camera (upright, facing
+    the camera) and give it keyboard focus with the caret at the end of
+    *text*, so the user can start typing immediately.
+
+    Focus is applied after *focus_delay* seconds so Text3D has built its
+    glyph geometry (the caret placement reads it).
+
+    Returns the BP_PyActorEmpty parent (child at ``.text3d_actor``).
+    """
+    from pyactor_text3d import PyActorText3D
+
+    location, rotation = FVector(0, 0, 200), FRotator(0, 0, 0)
+    try:
+        pcm = ue.get_player_controller(0).PlayerCameraManager
+        cam_loc = pcm.GetCameraLocation()
+        cam_rot = pcm.GetCameraRotation()
+        fwd = KismetMathLibrary.GetForwardVector(cam_rot)
+        location = cam_loc + fwd * distance
+        # Text3D reads left→right along +Y when viewed looking down +X, so
+        # matching the camera's yaw makes it face the viewer. Keep it upright.
+        rotation = FRotator(0, 0, 0)
+        rotation.yaw = cam_rot.yaw
+    except Exception as e:
+        ue.log_warning(f'spawn_focused_text3d_executor: camera lookup failed ({e})')
+
+    parent = spawn_text3d_executor(text=text, location=location, rotation=rotation)
+    child = getattr(parent, 'text3d_actor', None) if parent is not None else None
+    if child is None:
+        ue.log_warning('spawn_focused_text3d_executor: no Text3D child spawned')
+        return parent
+
+    # Register for typing now (the executor would only do it on its first
+    # tick) so focus can be set right away.
+    PyActorText3D.register_actor(child)
+    PyActorText3D._ensure_global_typing()
+    # The key that triggered this spawn may still be held; mark every
+    # currently-down key as already seen so it isn't typed into the new cell.
+    try:
+        if PyActorText3D._WIN32_TYPING_OK:
+            for vk in range(256):
+                if PyActorText3D._user32.GetAsyncKeyState(vk) & 0x8000:
+                    PyActorText3D._prev_vk_down[vk] = 1
+    except Exception:
+        pass
+
+    def _focus(_dt):
+        try:
+            t3d = child.get_actor_component(PyActorText3D.TEXT_COMPONENT_NAME)
+            cur = str(t3d.Text or '') if t3d is not None else ''
+            PyActorText3D._set_focused_actor(child)
+            n = len(cur)
+            PyActorText3D._string_idx = n
+            PyActorText3D._anchor = n
+            PyActorText3D._hide_highlights()
+            if not PyActorText3D.show_cursor_at(
+                    child, PyActorText3D._string_idx_to_glyph(cur, n),
+                    string_idx=n, text=cur):
+                # Empty text has no glyph geometry — park the caret at the
+                # actor's origin instead.
+                proxy = PyActorText3D._get_or_spawn_cursor(child)
+                if proxy is not None:
+                    proxy.move_to(child.get_actor_location(),
+                                  FVector(0.01, 0.04, 0.5),
+                                  child.get_actor_rotation())
+            ue.log('Text3D executor spawned + focused (Ctrl+Enter to run)')
+        except Exception as e:
+            ue.log_warning(f'spawn_focused_text3d_executor: focus failed: {e}')
+        return False
+
+    _focus_tickers.append(ue.add_ticker(_focus, focus_delay))
+    del _focus_tickers[:-8]
+    return parent
+
+
 # spawn_desktop_icons — grid of BP_Icon actors from a folder's shell icons
 
 def spawn_desktop_icons(location=None, desktop_path=None, spacing=150,
@@ -2096,8 +2176,10 @@ def spawn_gizmo(location=None, rotation=None, scale=None,
                 input_manager=input_manager,
                 target=target,
                 handles=handles,
-                piece_offsets=_piece_off,
-                bbox_dynamic=_bbox_dynamic,
+                # Snapshots — the module dicts also hold pieces of any
+                # gizmo built later by gizmo_edit_mode.
+                piece_offsets=dict(_piece_off),
+                bbox_dynamic=dict(_bbox_dynamic),
             )
         except Exception as e:
             ue.log_warning(f'spawn_gizmo: GizmoController setup failed: {e}')

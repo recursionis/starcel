@@ -6,7 +6,7 @@
 /NAME:"UE4Editor-LogViewer.dll"
 /IGNORE:4221
 /NODEFAULTLIB
-"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Intermediate\Build\Win64\Starcel9Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
+"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.h.obj"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Module.LogViewer.cpp.obj"
-"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\Default.rc2.res"
+"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Default.rc2.res"
 /OUT:"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\LogVIewer\Intermediate\Build\Win64\UE4Editor\Development\LogViewer\UE4Editor-LogViewer.lib"

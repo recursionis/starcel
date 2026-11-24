@@ -136,6 +136,24 @@ class Main:
             self._window_transparent = True
             ue.log("Window transparency: ON")
 
+    @staticmethod
+    def _unless_typing(fn):
+        """Wrap a hotkey so it does nothing while a Text3D has keyboard
+        focus — the key is being typed as text, not used as a command."""
+        def _wrapped(*args):
+            try:
+                from pyactor_global_click import PyActorGlobalClick
+                if PyActorGlobalClick.is_any_focused():
+                    return
+            except Exception:
+                pass
+            return fn(*args)
+        return _wrapped
+
+    def spawn_executor(self):
+        from ue_spawn import spawn_focused_text3d_executor
+        spawn_focused_text3d_executor()
+
     def shift_click(self):
         """Shift + Click action"""
         ue.log("Shift + Click")
@@ -264,6 +282,16 @@ class Main:
             self.trace = TraceHelper(self.uobject)
 
             self.input.bind_press("M", self.input.toggle_cursor)
+
+            # G: gizmo editing mode — click any actor to attach the
+            # translate/rotate/scale gizmo to it.
+            from gizmo_edit_mode import GizmoEditMode
+            self.gizmo_mode = GizmoEditMode(self.uobject, self.input)
+            self.input.bind_press("G", self._unless_typing(self.gizmo_mode.toggle))
+
+            # =: spawn a Text3D Python executor in front of the camera and
+            # focus it (caret ready for typing, Ctrl+Enter to run).
+            self.input.bind_press("=", self._unless_typing(self.spawn_executor))
             # self.input.bind_press("T", self.toggle_window_transparency)
 
         if is_dedicated_server: # WARNING, Only Client -> Server sending of Multi-GB strings currently implemented

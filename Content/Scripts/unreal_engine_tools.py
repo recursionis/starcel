@@ -1310,11 +1310,12 @@ def rotate_background():
         current_bg_index = 0
 
 def rebuild_generated_modules():
-    from input_devices import generate_input_bindings_doc
+    from input_devices import generate_input_bindings_doc, generate_keyboard_guide_image
     libraries_to_build = [ # languages.py self builds
         os.path.join(os.path.abspath(ue.get_content_dir()), "Scripts", "unreal_engine", "gen_autocomplete_stub.py"),
         os.path.join(os.path.abspath(ue.get_content_dir()), "Scripts", "gen_cli.py"),
         generate_input_bindings_doc,
+        generate_keyboard_guide_image,  # Scripts/keyboard_guide_razerblade152019.png
     ]
     print("Building libraries:", libraries_to_build)
     for library in libraries_to_build:

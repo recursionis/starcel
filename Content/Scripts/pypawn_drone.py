@@ -302,6 +302,7 @@ class PyPawnDrone:
     def _on_mouse_y(self, v):      self._axis_mouse_y = 0.0 if self._is_typing() else v
 
     def _on_mmb_pressed(self):
+        """Roll the drone (hold)"""
         if self._is_typing():
             return
         self.roll_mode = True
@@ -316,6 +317,7 @@ class PyPawnDrone:
     # #
 
     def _on_alt_pressed(self):
+        """Free-look camera (hold)"""
         if self._is_typing():
             return
         if self.input.is_key_down("Ctrl"):
@@ -355,6 +357,7 @@ class PyPawnDrone:
     # #
 
     def _on_scroll_up(self):
+        """Ctrl: grow / Alt: camera closer / Shift: faster"""
         if self._is_typing():
             return
         if self.input.is_key_down("Ctrl"):
@@ -365,6 +368,7 @@ class PyPawnDrone:
             self._on_shift_scroll_up()
 
     def _on_scroll_down(self):
+        """Ctrl: shrink / Alt: camera farther / Shift: slower"""
         if self._is_typing():
             return
         if self.input.is_key_down("Ctrl"):

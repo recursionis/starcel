@@ -8,6 +8,7 @@
 /wd4819
 /D_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1
 /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1
+/D_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING=1
 /D_WINDLL
 /D_DISABLE_EXTENDED_ALIGNED_STORAGE
 /source-charset:utf-8
@@ -104,7 +105,6 @@
 /I Runtime\Experimental\ChaosCore\Public
 /I ThirdParty\Intel
 /I Runtime\Experimental\Voronoi\Public
-/I ThirdParty
 /I Runtime\SignalProcessing\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\AudioExtensions
 /I Runtime\AudioExtensions\Public
@@ -184,6 +184,7 @@
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\ContentBrowserData
 /I Editor\ContentBrowserData\Public
 /I Developer\CollectionManager\Public
+/I ThirdParty
 /I ThirdParty\libSampleRate\Public
 /I Runtime\NetworkFileSystem\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\UMG
@@ -200,6 +201,13 @@
 /I Runtime\PropertyPath\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\NavigationSystem
 /I Runtime\NavigationSystem\Public
+/I ..\Intermediate\Build\Win64\UE4Editor\Inc\GeometryCollectionEngine
+/I Runtime\Experimental\GeometryCollectionEngine\Public
+/I ..\Intermediate\Build\Win64\UE4Editor\Inc\FieldSystemEngine
+/I Runtime\Experimental\FieldSystem\Source
+/I Runtime\Experimental\FieldSystem\Source\FieldSystemEngine\Public
+/I ..\Intermediate\Build\Win64\UE4Editor\Inc\ChaosSolverEngine
+/I Runtime\Experimental\ChaosSolverEngine\Public
 /I Developer\MeshBuilder\Public
 /I ..\Intermediate\Build\Win64\UE4Editor\Inc\MaterialShaderQualitySettings
 /I Runtime\MaterialShaderQualitySettings\Classes
@@ -248,18 +256,6 @@
 /I ThirdParty\PhysX3\PhysX_3.4\Include\common
 /I ThirdParty\PhysX3\PhysX_3.4\Include\extensions
 /I ThirdParty\PhysX3\PhysX_3.4\Include\geometry
-/I ThirdParty\PhysX3\APEX_1.4\include
-/I ThirdParty\PhysX3\APEX_1.4\include\clothing
-/I ThirdParty\PhysX3\APEX_1.4\include\nvparameterized
-/I ThirdParty\PhysX3\APEX_1.4\include\legacy
-/I ThirdParty\PhysX3\APEX_1.4\include\PhysX3
-/I ThirdParty\PhysX3\APEX_1.4\common\include
-/I ThirdParty\PhysX3\APEX_1.4\common\include\autogen
-/I ThirdParty\PhysX3\APEX_1.4\framework\include
-/I ThirdParty\PhysX3\APEX_1.4\framework\include\autogen
-/I ThirdParty\PhysX3\APEX_1.4\shared\general\RenderDebug\public
-/I ThirdParty\PhysX3\APEX_1.4\shared\general\PairFilter\include
-/I ThirdParty\PhysX3\APEX_1.4\shared\internal\include
 /I ThirdParty\FreeImage\FreeImage-3.18.0\Dist
 /I "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.29.30133\INCLUDE"
 /I "C:\Program Files (x86)\Windows Kits\NETFXSDK\4.6.2\include\um"
@@ -267,9 +263,9 @@
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\shared"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um"
 /I "C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\winrt"
-/FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Intermediate\Build\Win64\Starcel9Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
-/Yu"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Intermediate\Build\Win64\Starcel9Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
-/Fp"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Intermediate\Build\Win64\Starcel9Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
+/FI"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
+/Yu"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h"
+/Fp"C:\UE_4.27Chaos_Source\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.ShadowErrors.h.pch"
 "C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Source\RuntimeImageLoader\Private\ImageReaders\ImageReaderFactory.cpp"
 /FI"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\Definitions.RuntimeImageLoader.h"
 /Fo"C:\Users\Nick\Documents\Unreal Projects\Starcel9\Plugins\RuntimeImageLoader_4.27\Intermediate\Build\Win64\UE4Editor\Development\RuntimeImageLoader\ImageReaderFactory.cpp.obj"

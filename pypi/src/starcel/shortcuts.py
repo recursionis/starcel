@@ -1,12 +1,11 @@
-"""Create Desktop + Start Menu shortcuts for the four launch profiles.
+"""Create the Desktop + Start Menu "Starcel" shortcut.
 
 Attempts all-users Start Menu first (requires admin). Falls back to per-user
 on PermissionError.
 
-Targets point at the pip-generated wrapper exes in the Starcel install folder
-(starcelw.exe for client, starcel-server.exe, starcel-editor.exe) so flag logic
-stays in starcel.cli / starcel.launcher rather than being baked into each
-shortcut's Arguments field.
+The shortcut points at the pip-generated wrapper exe in the Starcel install
+folder (starcelw.exe) so flag logic stays in starcel.cli / starcel.launcher.
+The other profiles (standalone, server, editor) are available from the CLI.
 """
 from __future__ import annotations
 
@@ -26,29 +25,20 @@ class _Shortcut:
 
 _SHORTCUTS: tuple[_Shortcut, ...] = (
     _Shortcut(
-        filename="Starcel (Play).lnk",
+        filename="Starcel.lnk",
         target_exe="starcelw.exe",
         arguments="",
-        description="Launch Starcel (server from settings.ini, if set)",
+        description="Launch Starcel",
     ),
-    _Shortcut(
-        filename="Starcel (Standalone).lnk",
-        target_exe="starcelw.exe",
-        arguments="--standalone",
-        description="Launch Starcel without connecting to a server",
-    ),
-    _Shortcut(
-        filename="Starcel (Host Server).lnk",
-        target_exe="starcel-server.exe",
-        arguments="",
-        description="Start the Starcel dedicated server",
-    ),
-    _Shortcut(
-        filename="Starcel (Editor).lnk",
-        target_exe="starcel-editor.exe",
-        arguments="",
-        description="Open Starcel9.uproject in the UE4.27 editor",
-    ),
+)
+
+# Filenames created by older versions (four launch profiles). Removed on
+# install/uninstall so upgrades don't leave them behind.
+_LEGACY_FILENAMES: tuple[str, ...] = (
+    "Starcel (Play).lnk",
+    "Starcel (Standalone).lnk",
+    "Starcel (Host Server).lnk",
+    "Starcel (Editor).lnk",
 )
 
 
@@ -82,7 +72,8 @@ def _install_dir_exe(exe_name: str) -> Path:
 
 
 def create_all() -> list[Path]:
-    """Create all four shortcuts on Desktop + Start Menu. Returns list of paths created."""
+    """Create the Starcel shortcut on Desktop + Start Menu. Returns list of paths created."""
+    _remove_legacy()
     try:
         icon = paths.client_exe()
     except FileNotFoundError:
@@ -116,23 +107,23 @@ def _resolve_start_menu_dir() -> Path:
         return user_dir
 
 
-def remove_all() -> list[Path]:
-    """Delete every shortcut this module may have created. Returns list of paths removed."""
+def _unlink(lnk: Path, removed: list[Path]) -> None:
+    if lnk.exists():
+        try:
+            lnk.unlink()
+            removed.append(lnk)
+        except OSError:
+            pass
+
+
+def _remove_legacy() -> list[Path]:
+    """Delete shortcuts (and the "Starcel" Start Menu folder) left by older versions."""
     removed: list[Path] = []
-    for directory in (
-        config.SHORTCUT_DESKTOP_DIR,
-        config.SHORTCUT_START_MENU_ALLUSERS_DIR,
-        config.SHORTCUT_START_MENU_USER_DIR,
-    ):
-        for entry in _SHORTCUTS:
-            lnk = directory / entry.filename
-            if lnk.exists():
-                try:
-                    lnk.unlink()
-                    removed.append(lnk)
-                except OSError:
-                    pass
-        if directory.exists() and directory.name == "Starcel" and not any(directory.iterdir()):
+    for directory in (config.SHORTCUT_DESKTOP_DIR, *config.SHORTCUT_LEGACY_START_MENU_DIRS):
+        for name in _LEGACY_FILENAMES:
+            _unlink(directory / name, removed)
+    for directory in config.SHORTCUT_LEGACY_START_MENU_DIRS:
+        if directory.exists() and not any(directory.iterdir()):
             try:
                 directory.rmdir()
             except OSError:
@@ -140,9 +131,21 @@ def remove_all() -> list[Path]:
     return removed
 
 
+def remove_all() -> list[Path]:
+    """Delete every shortcut this module may have created. Returns list of paths removed."""
+    removed = _remove_legacy()
+    for directory in (
+        config.SHORTCUT_DESKTOP_DIR,
+        config.SHORTCUT_START_MENU_ALLUSERS_DIR,
+        config.SHORTCUT_START_MENU_USER_DIR,
+    ):
+        for entry in _SHORTCUTS:
+            _unlink(directory / entry.filename, removed)
+    return removed
+
+
 def manual_instructions() -> str:
     return (
         "Create a Desktop shortcut by right-clicking 'starcelw.exe' in "
-        f"{config.BIN_DIR} and selecting 'Send to → Desktop (create shortcut)'. "
-        "Repeat for starcel-server.exe and starcel-editor.exe."
+        f"{config.BIN_DIR} and selecting 'Send to → Desktop (create shortcut)'."
     )

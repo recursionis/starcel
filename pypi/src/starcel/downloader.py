@@ -9,6 +9,7 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path, PurePosixPath
+from typing import Callable
 
 import requests
 from tqdm import tqdm
@@ -170,10 +171,12 @@ def install_release(release: dict) -> None:
     print(f"Installed {release['name']} to {paths.build_root()}")
 
 
-def ensure_build(*, offline: bool = False, force: bool = False) -> None:
+def ensure_build(*, offline: bool = False, force: bool = False,
+                 on_download: Callable[[dict], None] | None = None) -> None:
     """Install the newest release if missing or out of date.
 
     Network errors fall back to the installed build when there is one.
+    `on_download(release)` is called just before a download starts.
     """
     if offline:
         if not paths.is_installed():
@@ -187,6 +190,8 @@ def ensure_build(*, offline: bool = False, force: bool = False) -> None:
             return
         raise SystemExit(f"Could not reach GitHub to download Starcel: {exc}")
     if force or not paths.is_installed() or not is_current(installed_release(), release):
+        if on_download:
+            on_download(release)
         install_release(release)
     else:
         print(f"{release['name']} is up to date.")
