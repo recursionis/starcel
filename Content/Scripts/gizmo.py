@@ -502,5 +502,5 @@ def forget_target(target):
     _local_extent_cache.pop(target, None)
 
 # Interaction logic migrated to pyactor_gizmo.GizmoController.
-# Spawn via spawn_pyactor('pyactor_gizmo', 'GizmoController') and call its
+# Spawn via spawn_pyactor('actors.pyactor_gizmo', 'GizmoController') and call its
 # setup(uobject, input_manager, target, handles, piece_offsets=_piece_off).

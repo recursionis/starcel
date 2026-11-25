@@ -98,7 +98,7 @@ _EVERYTHING_OK = False
 _EVERYTHING = None
 if _IS_WIN:
     try:
-        from everything_api import EverythingAPI as _EverythingAPI
+        from everything.everything_api import EverythingAPI as _EverythingAPI
         _EVERYTHING = _EverythingAPI()
         _EVERYTHING_OK = True
     except Exception:

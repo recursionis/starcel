@@ -11,7 +11,7 @@ from pathlib import Path
 
 from . import winfolders
 
-VERSION = "0.2.0a3"
+VERSION = "0.3.0a1"
 
 # --- Install locations ---
 # Default is Documents\Starcel so users can find and edit
@@ -67,7 +67,7 @@ INSTALLER_ASSET_NAME  = "StarcelInstaller.exe"
 PYTHON_INSTALLER_URL  = "https://www.python.org/ftp/python/3.9.13/python-3.9.13-amd64.exe"
 VS2019_INSTALLER_URL  = "https://aka.ms/vs/16/release/vs_community.exe"
 UE_SOURCE_REPO        = "https://github.com/EpicGames/UnrealEngine.git"
-UE_SOURCE_BRANCH      = "4.27-chaos"
+UE_SOURCE_BRANCH      = "4.27"
 UE_ON_GITHUB_DOC_URL  = "https://www.unrealengine.com/en-US/ue-on-github"
 
 # --- VS 2019 workload component IDs (needed to build UE4.27 from source) ---
@@ -179,7 +179,7 @@ INSTALL_PREREQS           = True
 INSTALL_FIREWALL_RULE     = True
 INSTALL_ENV_VARS          = True
 DEV_BUILD_UE_FROM_SOURCE  = True
-DEV_BUILD_UE_DEFAULT_DIR  = Path(r"C:\UnrealEngine-4.27-chaos")
+DEV_BUILD_UE_DEFAULT_DIR  = Path(r"C:\UnrealEngine-4.27")
 
 # --- Donation / support ---
 DONATION_URLS = {

@@ -23,39 +23,13 @@ from test_spawn import test_spawn_all
 
 
 # Warning:
-# BUG: imported classes are not reloaded, you need to restart the editor
+# BUG: imported classes are not reloaded, you need to restart the unreal engine editor if you are using that (doesn't affect .exe)
 # Code placed outside the Main class will not run when connecting to a server and may run twice
 # You can ignore and delete .uasset files as you'd like. They are regenerated on run
 
 ue.log('I am a Python module.')
 
 #TODO: Completely empty main.py
-def get_public_ip_via_dns(resolver="8.8.4.4", timeout=3.0):
-    """Ask Google Public DNS for our public IP by querying the special TXT
-    record o-o.myaddr.l.google.com, which the resolver answers with the
-    client's egress IP. In-process UDP DNS, no HTTP server hop."""
-    # serious shit below
-    # identity function be like
-    qname = b"".join(struct.pack("B", len(p)) + p
-                     for p in b"o-o.myaddr.l.google.com".split(b".")) + b"\x00"
-    # Header: id=0x1234, RD flag set, 1 question; QTYPE=16 (TXT), QCLASS=1 (IN)
-    query = struct.pack(">HHHHHH", 0x1234, 0x0100, 1, 0, 0, 0) + qname + struct.pack(">HH", 16, 1)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.settimeout(timeout)
-        sock.sendto(query, (resolver, 53))
-        resp, _ = sock.recvfrom(512)
-    finally:
-        sock.close()
-    # Skip the echoed header(12) + question, then walk to the TXT rdata.
-    idx = 12
-    while resp[idx] != 0:
-        idx += resp[idx] + 1
-    idx += 5  # null label byte + QTYPE(2) + QCLASS(2)
-    # Answer RR: name(2, compressed ptr) type(2) class(2) ttl(4) rdlen(2)
-    idx += 12
-    txt_len = resp[idx]  # first byte of TXT rdata is the string length
-    return resp[idx + 1: idx + 1 + txt_len].decode("ascii")
 
 # Use this if you want to rebuild the unreal_engine intellisense(.pyi, etc.) and cli
 # rebuild_generated_modules()
@@ -64,191 +38,7 @@ def get_public_ip_via_dns(resolver="8.8.4.4", timeout=3.0):
 # if ret == ue.APP_RETURN_TYPE_YES:
 #     ue.log('You choose "YES"')
 
-# help_cmd("ls")
-
 class Main:
-    def end_play(self, reason):
-        ue.log("Ending play")
-        import unreal_engine_tools
-        unreal_engine_tools.invalidate_world_cache()
-        for i, ticker in enumerate(tickers):
-            ue.remove_ticker(ticker)
-            del tickers[i]
-            print(ticker, "stopped.")
-            self.input.release_mouse()
-        if hasattr(self, 'input'):
-            self.input.shutdown()
-
-    def ctrl_shift_b(self):
-        ue.log("Pressed Ctrl+Shift+B")
-
-    def left_click(self):
-        ue.log("Left mouse button")
-
-    def mouse_wheel(self, value):
-        ue.log("Wheel: {}".format(value))
-
-    def sequence_action(self):
-        ue.log("Sequence fired: Ctrl+K → MouseX → Click")
-
-    def print_mouse_world(self):
-        data = self.input.get_mouse_position(deproject=True)
-        if not data:
-            return
-        x, y, world, dir = data
-        ue.log(f"Mouse {x},{y}")
-        ue.log(f"World {world} Dir {dir}")
-
-    def on_move_forward(self, value):
-        """Handle analog movement input"""
-        if value != 0:
-            ue.log(f"Moving forward: {value:.2f}")
-            # Add movement code here
-
-    def interact(self):
-        """Interaction bound to multiple keys"""
-        ue.log("Interact!")
-        # Perform interaction
-
-    def toggle_window_transparency(self):
-        """T-key: flip the game window between per-pixel transparent (DWM) and opaque.
-        First call lazily resolves UWindowTransparencyLibrary and caches a transient
-        instance — UEP's pattern for invoking static UFUNCTIONs on a
-        UBlueprintFunctionLibrary (matches ue_spawn.spawn_gltf_runtime's lib usage).
-        No-op in PIE / editor — the underlying library guards on GIsEditor."""
-        if not hasattr(self, "_wt_lib") or self._wt_lib is None:
-            wt_cls = ue.find_class("WindowTransparencyLibrary")
-            if wt_cls is None:
-                ue.log_warning(
-                    "toggle_window_transparency: WindowTransparencyLibrary not found — "
-                    "is the WindowTransparency plugin enabled and compiled?")
-                return
-            self._wt_lib = ue.new_object(wt_cls)
-            self._window_transparent = False
-
-        if self._window_transparent:
-            self._wt_lib.call_function("DisableWindowTransparency")
-            self._window_transparent = False
-            ue.log("Window transparency: OFF")
-        else:
-            # bKeepBorder=True matches the C++ default; flip to False for borderless.
-            self._wt_lib.call_function("EnableWindowTransparency", True)
-            self._window_transparent = True
-            ue.log("Window transparency: ON")
-
-    @staticmethod
-    def _unless_typing(fn):
-        """Wrap a hotkey so it does nothing while a Text3D has keyboard
-        focus — the key is being typed as text, not used as a command."""
-        def _wrapped(*args):
-            try:
-                from pyactor_global_click import PyActorGlobalClick
-                if PyActorGlobalClick.is_any_focused():
-                    return
-            except Exception:
-                pass
-            return fn(*args)
-        return _wrapped
-
-    def spawn_executor(self):
-        from ue_spawn import spawn_focused_text3d_executor
-        spawn_focused_text3d_executor()
-
-    def shift_click(self):
-        """Shift + Click action"""
-        ue.log("Shift + Click")
-        # Multi-select logic, etc.
-
-    def on_ctrl_shift_b(self):
-        ue.log("Pressed Ctrl+Shift+B")
-
-    def on_left_click(self):
-        ue.log("Left mouse button clicked")
-
-    def check_key_states(self):
-        """Example of manually checking key states without binding"""
-        if self.input.is_key_down("W"):
-            ue.log("W is currently down")
-        if self.input.is_key_down("LeftControl"):
-            ue.log("Left Control is currently down")
-        if self.input.is_chord_down("Ctrl+Shift"):
-            ue.log("Ctrl+Shift combo is down")
-
-    def print_mouse_world(self):
-        """Print mouse screen position and world projection"""
-        data = self.input.get_mouse_position(deproject=True)
-        if not data:
-            ue.log("Could not get mouse position")
-            return
-
-        x, y, world, direction = data
-        ue.log(f"Mouse Screen: ({x:.1f}, {y:.1f})")
-        ue.log(f"World Pos: {world}")
-        ue.log(f"World Dir: {direction}")
-
-    def print_cursor_and_trace(self):
-        """Get and print cursor info using the new get_cursor_info() method"""
-        # Method 1: Using get_cursor_info()
-        cursor_info = self.input.get_cursor_info()
-        if cursor_info:
-            ue.log("=== CURSOR INFO ===")
-            ue.log(f"Screen X: {cursor_info['screen_x']:.1f}")
-            ue.log(f"Screen Y: {cursor_info['screen_y']:.1f}")
-            ue.log(f"World Pos: {cursor_info['world_pos']}")
-            ue.log(f"World Dir: {cursor_info['world_dir']}")
-
-        # Method 2: Trace to see what we're pointing at
-        hit = self.trace.trace_cursor()
-        if hit:
-            ue.log(f"Hit Actor: {hit.get('actor')}")
-            ue.log(f"Hit Location: {hit.get('location')}")
-        else:
-            ue.log("No hit under cursor")
-
-    def trace_from_cursor(self):
-        """Trace from cursor into the world"""
-        ue.log("=== CURSOR TRACE ===")
-        hit = self.trace.trace_cursor(ECollisionChannel.ECC_Visibility)
-
-        if hit:
-            actor = hit.get('actor')
-            location = hit.get('location')
-            normal = hit.get('normal')
-
-            ue.log(f"Hit Actor: {actor.get_name() if actor else 'None'}")
-            ue.log(f"Hit Location: {location}")
-            ue.log(f"Hit Normal: {normal}")
-        else:
-            ue.log("Nothing hit under cursor")
-
-    def trace_from_camera(self):
-        """Trace forward from camera/pawn"""
-        ue.log("=== FORWARD TRACE ===")
-        hit = self.trace.trace_forward(dist=5000)
-
-        if hit:
-            actor = hit.get('actor')
-            location = hit.get('location')
-
-            ue.log(f"Hit Actor: {actor.get_name() if actor else 'None'}")
-            ue.log(f"Hit Location: {location}")
-            ue.log(f"Distance: {hit.get('distance', 0):.1f}")
-        else:
-            ue.log("Nothing hit in forward trace")
-
-    def print_key_registry(self, key):
-        """Print all bindings registered for a specific key"""
-        bindings = self.input.get_key_bindings(key)
-        ue.log(f"=== Bindings for '{key}' ===")
-        for binding in bindings:
-            ue.log(f"  Type: {binding['type']}, Keys: {binding['keys']}, Callback: {binding['callback']}")
-
-    def move_icon(self):
-        # self.icon.get_actor_component('PhysicsHandle').SetTargetLocation(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100))) # not needed
-        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(False) # not needed
-        self.icon.set_actor_transform(FTransform(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100)), FRotator(0, 0, 0), FVector(1, 1, 1)))
-        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(True) # not needed
-
     # this is called on game start
     def begin_play(self):
         ue.log('Begin Play on Main class')
@@ -256,19 +46,11 @@ class Main:
         ue.log('Running startup')
         startup()
 
-        # Stop the background music
-        bg_music = find_actor("BackgroundMusic")
-        if bg_music is not None:
-            for ac in bg_music.get_components_by_type(AudioComponent):
-                ac.call('Stop')
-
         global world
         world = get_world()
         print("begin_play found world", world)
         unreal_engine_tools.world = world
         # print(world)
-        global tickers
-        tickers = []
 
         is_dedicated_server = KismetSystemLibrary.IsDedicatedServer(self.uobject)
 
@@ -292,6 +74,11 @@ class Main:
             # =: spawn a Text3D Python executor in front of the camera and
             # focus it (caret ready for typing, Ctrl+Enter to run).
             self.input.bind_press("=", self._unless_typing(self.spawn_executor))
+
+            # P: switch possession between the drone and the stickman.
+            self.input.bind_press("P", self._unless_typing(self.toggle_pawn))
+            # L: toggle background music on/off (temporary).
+            self.input.bind_press("L", self._unless_typing(self.toggle_music))
             # self.input.bind_press("T", self.toggle_window_transparency)
 
         if is_dedicated_server: # WARNING, Only Client -> Server sending of Multi-GB strings currently implemented
@@ -310,93 +97,9 @@ class Main:
                 player = world.actor_spawn(drone_class)
                 transform = FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), FVector(1, 1, 1))
                 player.set_actor_transform(transform)
-                # player.get_actor_component('Text3DComponent').Text = "HI"
                 player_controller.Possess(player)
                 py_player = player.get_py_proxy()
                 py_player._setup_input()
-
-                # print("Begin StickMan Possession")
-                # bp_stickman = ue.load_object(Blueprint, '/Game/ThirdPersonCPP/Blueprints/StickManCharacter.StickManCharacter')
-                # player = world.actor_spawn(bp_stickman.GeneratedClass)
-                # transform = FTransform(FVector(100, 100, 200), FRotator(0, 0, 0), FVector(1, 1, 1))
-                # player.set_actor_transform(transform)
-                # uobject.get_player_controller().Possess(player)
-                # py_player = player.get_py_proxy()
-                # py_player._setup_input()
-
-                # apply_material(
-                #     actor_name="StickManCharacter",  # runtime instance name (check via print)
-                #     component_name="SkeletalMeshOutline",
-                #     material_path="/Game/Materials/M_Outline.M_Outline",
-                #     params={
-                #         "LineThickness": 3.0,
-                #         "Color": (0, 0, 0, 1),
-                #     }
-                # )
-                # apply_material(
-                #     actor_name="StickManCharacter",  # runtime instance name (check via print)
-                #     component_name="SkeletalMeshHeadlessOutline",
-                #     material_path="/Game/Materials/M_Outline.M_Outline",
-                #     params={
-                #         "LineThickness": 3.0,
-                #         "Color": (0, 0, 0, 1),
-                #     }
-                # )
-
-                global RPC_ACTOR, SERVER_HELPER
-
-                if not RPC_ACTOR:
-                    print("RPC_ACTOR not found, making one")
-                    try:
-                        ue.log("Server making a LargeStringRPCActor.")
-                        RPC_ACTOR = world.actor_spawn(LargeStringRPCActor)
-                        RPC_ACTOR.SetOwner(player_controller)
-                        RPC_ACTOR.LargeString = ue.new_object(LargeStringAsync)  # attach ULargeStringAsync
-                        print("Created new LargeStringAsync instance", RPC_ACTOR, RPC_ACTOR.LargeString)
-
-                        # Bind the C++ event manually after creating LargeString
-                        try:
-                            RPC_ACTOR.LargeString.bind_event('OnFullyReceived', RPC_ACTOR.Server_OnFullStringReceived)
-                            ue.log_warning("[SERVER] Manually bound OnFullyReceived to Server_OnFullStringReceived")
-                        except Exception as e:
-                            ue.log_error(f"Failed to bind OnFullyReceived: {e}")
-
-                    except Exception as e:
-                        ue.log_error(f"Actor creation error: {e}")
-                        return
-                else:
-                    ue.log_warning(f"[SERVER PY] LargeStringRPCActor already created")
-
-                # Create SERVER helper with SERVER callback
-                if not SERVER_HELPER:
-                    ue.log_warning("[SERVER] Creating SERVER helper")
-                    SERVER_HELPER = LargeStringAsyncStandalone(
-                        large_string_obj=RPC_ACTOR.LargeString,
-                        rpc_actor=RPC_ACTOR,
-                        on_received_callback=None,  # Server doesn't need client callback
-                        on_server_received_callback=server_on_full_string_received,  # THIS is the key
-                        on_progress_callback=None,
-                        auto_send=False  # Server doesn't auto-send from OnChunksBuilt
-                    )
-                    ue.log_warning("[SERVER] Server rpc helper created and bound")
-            if gm:
-                gm.bind_event("OnPlayerJoined", on_player_joined)
-                ue.log_warning("[SERVER] Bound OnPlayerJoined")
-
-            hostname = socket.gethostname()
-            local_ip = socket.gethostbyname(hostname)
-            ue.log(f"Server LAN IP: {local_ip}")
-            public_ip = None
-            try:
-                public_ip = get_public_ip_via_dns()
-                ue.log(f"Public IP: {public_ip}")
-            except Exception as e:
-                ue.log(f"Could not fetch public IP: {e}")
-            if public_ip:
-                ue.log("If you correctly port forwarded the LAN IP, the server is on the public IP: " + public_ip)
-            # # Server-originated multicast test
-            # ue.log("Calling test_multicast_flag() from server")
-            # self.test_multicast_flag("hello via multicast flag")
 
         else:
             if self.uobject.HasAuthority():
@@ -406,8 +109,8 @@ class Main:
 
 
             apply_material(
-                actor_name="TestSphere",  # M_Color is default
-                material_path="/Game/Materials/M_Color.M_Color",
+                actor_name="TestSphere",
+                material_path="/Game/Materials/M_Color.M_Color", # M_Color is default
                 params = {
                     "Color": (0, 1, 0, 1),
                     "Metallic": 0.5,
@@ -419,7 +122,6 @@ class Main:
                 }
             )
 
-        if not is_dedicated_server:
             # Explicit drone possession method (same as master's main.py): spawn
             # BP_PyDroneCharacter and Possess it so it overrides whatever pawn the
             # GameMode auto-possessed. Single possession only — the duplicate
@@ -432,22 +134,17 @@ class Main:
             self.uobject.get_player_controller().Possess(player)
             py_player = player.get_py_proxy()
             py_player._setup_input()
+            self.pawn = player          # the visible, possessed pawn
+            self.controlling_drone = True
+            self._pawns = {"drone": player}   # stickman added on first P
 
-
-            self.test_kingdon()
             # self.test_cylinder()
             # self.test_text()
 
             results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_text3d_click', 'test_text3d_executor', 'test_3d_table_5x5x5'])
             print(results)
 
-        # post_startup() re-spawned and possessed a second drone (with a stale
-        # world global), competing with the possession done above. Disabled so
-        # there is a single possession method in main.py, as on master.
-        # post_startup(self.uobject)
-
-
-
+        post_startup(self.uobject)
 
     # this is called at every 'tick'
     def tick(self, delta_time):
@@ -460,31 +157,190 @@ class Main:
 
         # self.input.print_cursor_info()
 
-        # Gizmo + Text3D ticks now run on their own PyActors
-        # (pyactor_gizmo.GizmoController, pyactor_global_click.PyActorGlobalClick).
+    def end_play(self, reason):
+        ue.log("Ending play")
+        import unreal_engine_tools
+        unreal_engine_tools.invalidate_world_cache()
+        for ticker in unreal_engine_tools.tickers:
+            ue.remove_ticker(ticker)
+            print(ticker, "stopped.")
+        unreal_engine_tools.tickers.clear()
+        if hasattr(self, 'input'):
+            self.input.shutdown()
 
+    def ctrl_shift_b(self):
+        ue.log("Pressed Ctrl+Shift+B")
 
-    def test_kingdon(self):
-        import unicodedata
-        ue.log("testing kingdon:")
-        from kingdon import Algebra
-        alg = Algebra(3, 0, 1)
-        locals().update(alg.blades)
-        b = alg.bivector(name='b')
-        ue.log(unicodedata.normalize('NFKC', str(b)))
+    def on_ctrl_shift_b(self):
+        ue.log("Pressed Ctrl+Shift+B")
+
+    def left_click(self):
+        ue.log("Left mouse button")
+
+    def on_left_click(self):
+        ue.log("Left mouse button clicked")
+
+    def shift_click(self):
+        """Shift + Click action"""
+        ue.log("Shift + Click")
+        # Multi-select logic, etc.
+
+    def mouse_wheel(self, value):
+        ue.log("Wheel: {}".format(value))
+
+    def sequence_action(self):
+        ue.log("Sequence fired: Ctrl+K → MouseX → Click")
+
+    def on_move_forward(self, value):
+        """Handle analog movement input"""
+        if value != 0:
+            ue.log(f"Moving forward: {value:.2f}")
+            # Add movement code here
+
+    def check_key_states(self):
+        """Example of manually checking key states without binding"""
+        if self.input.is_key_down("W"):
+            ue.log("W is currently down")
+        if self.input.is_key_down("LeftControl"):
+            ue.log("Left Control is currently down")
+        if self.input.is_chord_down("Ctrl+Shift"):
+            ue.log("Ctrl+Shift combo is down")
+
+    @staticmethod
+    def _unless_typing(fn):
+        """Wrap a hotkey so it does nothing while a Text3D has keyboard
+        focus — the key is being typed as text, not used as a command."""
+        def _wrapped(*args):
+            try:
+                from actors.pyactor_global_click import PyActorGlobalClick
+                if PyActorGlobalClick.is_any_focused():
+                    return
+            except Exception:
+                pass
+            return fn(*args)
+        return _wrapped
+
+    def toggle_music(self):
+        """L-key (temporary): stop the BackgroundMusic actor's audio if it's
+        playing, otherwise start it again."""
+        bg_music = find_actor("BackgroundMusic")
+        if bg_music is None:
+            ue.log_warning("toggle_music: no BackgroundMusic actor")
+            return
+        for ac in bg_music.get_components_by_type(AudioComponent):
+            if ac.IsPlaying():
+                ac.call('Stop')
+                ue.log("Background music: off")
+            else:
+                ac.call('Play')
+                ue.log("Background music: on")
+
+    def spawn_executor(self):
+        from ue_spawn import spawn_focused_text3d_executor
+        spawn_focused_text3d_executor()
+
+    def toggle_pawn(self):
+        """P-key: swap between the drone and the stickman. Both stay alive;
+        the outgoing one is hidden (no collision, movement paused) and the
+        incoming one is shown and moved to where the outgoing one was. Each
+        keeps its own size; the first stickman matches the drone."""
+        if getattr(self, "pawn", None) is None:
+            return
+        pc = self.uobject.get_player_controller()
+
+        old = self.pawn
+        old_kind = "drone" if self.controlling_drone else "stickman"
+        new_kind = "stickman" if self.controlling_drone else "drone"
+        py_old = self._pawn_py(old)
+        loc = old.get_actor_location()
+
+        # Park the outgoing pawn first so its spot is free.
+        self._set_pawn_shown(old, False)
+        if old_kind == "drone" and py_old is not None:
+            # Detaches the PC InputComponent holding the drone's bindings
+            # (they consume WASD/mouse before the stickman sees them).
+            py_old.set_suspended(True)
+
+        new_pawn = self._pawns.get(new_kind)
+        if new_pawn is None:
+            # First stickman: spawn it where the drone is, at the drone's size.
+            s = old.get_actor_scale()
+            size = max(s.x, s.y, s.z)
+            for lift in (0, 100, 300, 600):
+                try:
+                    new_pawn = world.actor_spawn(
+                        load_blueprint_class(self._PAWN_CLASSES[new_kind]),
+                        FVector(loc.x, loc.y, loc.z + lift * size),
+                        FRotator(0, 0, 0))
+                    break
+                except Exception:
+                    continue
+            if new_pawn is None:
+                self._set_pawn_shown(old, True)
+                if old_kind == "drone" and py_old is not None:
+                    py_old.set_suspended(False)
+                ue.log_warning(f"toggle_pawn: no free spot to spawn the {new_kind}")
+                return
+            new_pawn.set_actor_scale(FVector(size, size, size))
+            self._pawns[new_kind] = new_pawn
+        else:
+            new_pawn.set_actor_location(loc)
+            self._set_pawn_shown(new_pawn, True)
+
+        pc.Possess(new_pawn)
+        py_new = self._pawn_py(new_pawn)
+        if new_kind == "drone":
+            if py_new is not None:
+                py_new.set_suspended(False)   # re-attach its PC bindings
+        elif py_new is not None and hasattr(py_new, "_setup_input"):
+            py_new._setup_input()   # no-op after the first time
+
+        self.pawn = new_pawn
+        self.controlling_drone = new_kind == "drone"
+        ue.log(f"Possessing: {new_kind}")
+
+    def _set_pawn_shown(self, actor, shown):
+        """Show/hide a pawn in game. Hidden pawns also lose collision and
+        have their movement component paused — otherwise a hidden Character
+        with no collision falls forever and gets killed at KillZ."""
+        actor.SetActorHiddenInGame(not shown)
+        actor.SetActorEnableCollision(shown)
+        move = getattr(actor, "CharacterMovement", None)
+        if move is not None:
+            if shown:
+                move.StopMovementImmediately()
+            move.SetComponentTickEnabled(shown)
+        py = self._pawn_py(actor)
+        if py is not None and hasattr(py, "set_hidden"):
+            py.set_hidden(not shown)   # e.g. the stickman's attached crosshair
+
+    _PAWN_CLASSES = {
+        "drone": '/Game/Blueprints/Assets/DroneCharacter/BP_PyDroneCharacter.BP_PyDroneCharacter',
+        "stickman": '/Game/ThirdPersonCPP/Blueprints/StickManCharacter.StickManCharacter',
+    }
+
+    @staticmethod
+    def _pawn_py(actor):
+        """Python object driving a pawn. The drone is a Python pawn (proxy on
+        the actor); StickManCharacter is a C++ Character with a Python
+        *component* (PyActorStickMan), so its proxy is on that component."""
+        py = actor.get_py_proxy()
+        if py is not None:
+            return py
+        for c in actor.get_components():
+            py = c.get_py_proxy()
+            if py is not None and hasattr(py, "_setup_input"):
+                return py
+        return None
+
+    def move_icon(self):
+        # self.icon.get_actor_component('PhysicsHandle').SetTargetLocation(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100))) # not needed
+        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(False) # not needed
+        self.icon.set_actor_transform(FTransform(FVector(random.randint(1, 100), random.randint(1, 100), random.randint(1, 100)), FRotator(0, 0, 0), FVector(1, 1, 1)))
+        # self.icon.get_actor_component('Sphere').SetSimulatePhysics(True) # not needed
 
     def test_cylinder(self):
         ue.log("testing cylinder:")
-        # new_actor = world.actor_spawn(Actor)
-        # new_actor.set_actor_label('Test Actor')
-        # new_actor.add_actor_root_component(InstancedStaticMeshComponent, 'Root')
-        # instanced_component = actor.get_component_by_type(InstancedStaticMeshComponent)
-        # instanced_component.StaticMesh = mesh
-        # instanced_component.PerInstanceSMData = [
-        #     InstancedStaticMeshInstanceData(Transform=FTransform(FVector(0, 0, 200), FRotator(90, 90, 0)).get_matrix()),
-        #     InstancedStaticMeshInstanceData(Transform=FTransform(FVector(0, 0, 0), FRotator(90, 90, 45)).get_matrix()),
-        # ]
-        # instanced_component = actor.get_component_by_type(InstancedStaticMeshComponent # if you need to access the component again, you need to retrieve it back as the old instance will be garbaged
 
         point1 = FVector(0, 0, 0)
         point2 = FVector(100, 100, 100)
@@ -498,7 +354,6 @@ class Main:
         smc.SetStaticMesh(cylinder_mesh)
         smc.Mobility = EComponentMobility.Movable
         transform = FTransform(midpoint, cylinder_rotation, FVector(.1, .1, distance_between_points/100))
-        # print(transform)
         cylinder.set_actor_transform(transform)
         # FTransform().get_matrix() # if needed
 

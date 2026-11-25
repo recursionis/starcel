@@ -397,6 +397,33 @@ class TraceHelper:
             return world_pos, world_dir
         return None, None
 
+    # Debug logging
+    @staticmethod
+    def _log_hit(hit, label, show_normal=False, show_distance=False):
+        ue.log(f"=== {label} ===")
+        if not hit:
+            ue.log("Nothing hit")
+            return
+        actor = hit.get('actor')
+        ue.log(f"Hit Actor: {actor.get_name() if actor else 'None'}")
+        ue.log(f"Hit Location: {hit.get('location')}")
+        if show_normal:
+            ue.log(f"Hit Normal: {hit.get('normal')}")
+        if show_distance:
+            ue.log(f"Distance: {hit.get('distance', 0):.1f}")
+
+    def log_cursor_hit(self, channel=ECollisionChannel.ECC_Visibility):
+        """Trace from the cursor into the world and log what was hit"""
+        hit = self.trace_cursor(channel)
+        self._log_hit(hit, "CURSOR TRACE", show_normal=True)
+        return hit
+
+    def log_forward_hit(self, dist=5000):
+        """Trace forward from the pawn along the control rotation and log what was hit"""
+        hit = self.trace_forward(dist=dist)
+        self._log_hit(hit, "FORWARD TRACE", show_distance=True)
+        return hit
+
 
 class HotkeyManager:
     def __init__(self, uobject, keyboard, mouse, poll_rate=0.02):
@@ -546,6 +573,26 @@ class HotkeyManager:
             'world_pos': world,
             'world_dir': direction
         }
+
+    def log_mouse_world(self):
+        """Log the cursor's screen position and its deprojected world position/direction"""
+        info = self.get_cursor_info()
+        if not info:
+            ue.log("Could not get mouse position")
+            return None
+        ue.log("=== CURSOR INFO ===")
+        ue.log(f"Mouse Screen: ({info['screen_x']:.1f}, {info['screen_y']:.1f})")
+        ue.log(f"World Pos: {info['world_pos']}")
+        ue.log(f"World Dir: {info['world_dir']}")
+        return info
+
+    def log_key_bindings(self, key):
+        """Log every binding registered for a specific key"""
+        bindings = self.get_key_bindings(key)
+        ue.log(f"=== Bindings for '{key}' ===")
+        for binding in bindings:
+            ue.log(f"  Type: {binding['type']}, Keys: {binding['keys']}, Callback: {binding['callback']}")
+        return bindings
 
     # Normalize
     def normalize_input_token(self, token):
@@ -1302,6 +1349,7 @@ def _write_input_bindings_md(output_path, bind_rows, check_rows, files_scanned, 
 _GUIDE_CONTEXTS = {
     "main.py": "Global",
     "pypawn_drone.py": "Drone",
+    "pyactor_stickman.py": "StickMan",
     "gizmo_edit_mode.py": "Gizmo",
     "pyactor_gizmo.py": "Gizmo",
     "pyactor_text3d.py": "Text editing",

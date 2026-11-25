@@ -89,7 +89,7 @@ class GizmoEditMode:
         try:
             from ue_spawn import spawn_pyactor
             self._controller_actor = spawn_pyactor(
-                'pyactor_gizmo', 'GizmoController', name='GizmoEditController')
+                'actors.pyactor_gizmo', 'GizmoController', name='GizmoEditController')
             self._controller = self._controller_actor.get_py_proxy()
             self._controller.setup(
                 uobject=self.uobject, input_manager=None, target=None,

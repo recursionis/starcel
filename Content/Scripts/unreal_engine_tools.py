@@ -606,7 +606,8 @@ def convert_hdr_to_cubemap(bp_helper, hdr_path, callback):
             return False  # stop ticker
         return True  # continue ticking
 
-    tickers.append(ue.add_ticker(poll)) # assignment required or gc will destroy
+    # Reference required or gc will destroy; main.Main.end_play clears this list
+    tickers.append(ue.add_ticker(poll))
 
 
 

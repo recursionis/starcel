@@ -1,0 +1,377 @@
+"""
+pyactor_stickman.py — Crosshair overlay for StickManCharacter
+==============================================================
+Spawns a tiny image plane (same pattern as spawn_image) textured with
+crosshair.png and attaches it to the center of the Screen component.
+
+The Screen cube represents the physical display — its size maps 1:1 to
+the monitor when fullscreen.  The crosshair is a separate actor parented
+to Screen so it stays centered regardless of camera movement.
+
+Blueprint requirements (StickManCharacter):
+  • Python component → pyactor_stickman.PyActorStickMan
+  • A StaticMeshComponent named `Screen` parented to the first-person
+    camera (already exists)
+
+Material note:
+  Uses M_TexturePicture for the crosshair plane.
+"""
+
+import os
+import unreal_engine as ue
+from unreal_engine import FVector, FRotator, FTransform
+
+try:
+    from unreal_engine.classes import StaticMeshActor, StaticMesh, Material
+    from unreal_engine.enums import EComponentMobility
+except Exception:
+    StaticMeshActor = None
+    StaticMesh = None
+    Material = None
+    EComponentMobility = None
+
+from unreal_engine_tools import find_component
+
+
+def _spawn_crosshair_plane(world, crosshair_path, material_path, fallback_mat,
+                           param_name):
+    """
+    Spawn a StaticMeshActor cube textured with the crosshair PNG,
+    scaled to the image's pixel size (1 px = 1 UU).  Same pattern as
+    ue_spawn.spawn_image.
+
+    Returns (actor, img_w, img_h) or (None, 0, 0).
+    """
+    from PIL import Image as PILImage
+    from unreal_engine_tools import pil_image_to_texture
+
+    if not os.path.exists(crosshair_path):
+        ue.log_warning(f'PyActorStickMan: crosshair not found: "{crosshair_path}"')
+        return None, 0, 0
+
+    try:
+        pil_img = PILImage.open(crosshair_path).convert('RGBA')
+    except Exception as e:
+        ue.log_warning(f'PyActorStickMan: cannot open crosshair: {e}')
+        return None, 0, 0
+
+    img_w, img_h = float(pil_img.width), float(pil_img.height)
+
+    # Spawn cube actor
+    actor = world.actor_spawn(StaticMeshActor)
+    smc = actor.StaticMeshComponent
+    cube = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube')
+    smc.SetStaticMesh(cube)
+    smc.Mobility = EComponentMobility.Movable
+
+    # Load material (try primary, then fallbacks)
+    mat = None
+    mat_paths = [p for p in (material_path, fallback_mat) if p is not None]
+    # Also try M_TextureUnlit as extra fallback
+    if '/Game/Materials/M_TextureUnlit' not in mat_paths:
+        mat_paths.append('/Game/Materials/M_TextureUnlit')
+    for mp in mat_paths:
+        if mat is not None:
+            break
+        for path in (mp + '.' + mp.split('/')[-1], mp):
+            try:
+                mat = ue.load_object(Material, path)
+                break
+            except Exception:
+                pass
+
+    # Apply MID with crosshair texture — destroy actor on failure to avoid
+    # leaving a black untextured cube that covers the Screen.
+    if mat is None:
+        ue.log_warning('PyActorStickMan: no usable material — destroying crosshair '
+                       'to avoid black screen')
+        actor.actor_destroy()
+        return None, 0, 0
+
+    try:
+        tex = pil_image_to_texture(pil_img)
+        if tex is None:
+            ue.log_warning('PyActorStickMan: texture conversion failed — '
+                           'destroying crosshair')
+            actor.actor_destroy()
+            return None, 0, 0
+        mid = smc.create_material_instance_dynamic(mat)
+        mid.set_material_texture_parameter(param_name, tex)
+        smc.set_material(0, mid)
+    except Exception as e:
+        ue.log_warning(f'PyActorStickMan: MID setup failed: {e} — '
+                       'destroying crosshair')
+        actor.actor_destroy()
+        return None, 0, 0
+
+    # Scale: vertical picture frame, 1 px = 1 UU
+    # Cube default = 100 UU per side → divide by 100
+    scale = FVector(img_w / 100.0, 0.01, img_h / 100.0)
+    actor.set_actor_transform(
+        FTransform(FVector(0, 0, 0), FRotator(0, 0, 0), scale))
+
+    return actor, img_w, img_h
+
+
+class PyActorStickMan:
+    """
+    Adds a StaticMeshComponent (crosshair cube) to the owning actor and
+    attaches it to the Screen component.  Does NOT touch Screen's material.
+    """
+
+    # Content/Scripts/assets/crosshair.png — lives under Scripts so it is staged
+    # as a raw file in packaged builds (Content/Materials only ships the .uasset).
+    crosshair_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'assets', 'crosshair.png')
+    material_paths = (
+        '/Game/Materials/M_TexturePicture',
+        '/Game/Materials/M_TextureUnlit',
+    )
+    param_name = 'Texture'
+    component_name = 'Screen'
+    CROSSHAIR_SCALE = 3.0   # world-size multiplier (1 UU per pixel × this)
+
+    def begin_play(self):
+        self.crosshair_comp = None
+
+        from unreal_engine.classes import StaticMeshComponent
+
+        screen = find_component(self.uobject, self.component_name)
+        if screen is None:
+            ue.log_warning(
+                f'PyActorStickMan: no "{self.component_name}" component on '
+                f'{self.uobject.get_name()}')
+            return
+
+        if not os.path.exists(self.crosshair_path):
+            ue.log_warning(f'PyActorStickMan: crosshair not found: '
+                           f'"{self.crosshair_path}"')
+            return
+
+        try:
+            from PIL import Image as PILImage
+            from unreal_engine_tools import pil_image_to_texture
+
+            pil_img = PILImage.open(self.crosshair_path).convert('RGBA')
+            img_w, img_h = float(pil_img.width), float(pil_img.height)
+
+            # Load material
+            mat = None
+            mat_name = None
+            for mp in self.material_paths:
+                if mat is not None:
+                    break
+                for path in (mp + '.' + mp.split('/')[-1], mp):
+                    try:
+                        mat = ue.load_object(Material, path)
+                        mat_name = mp.split('/')[-1]
+                        break
+                    except Exception:
+                        pass
+            if mat is None:
+                ue.log_warning('PyActorStickMan: no usable crosshair material')
+                return
+
+            tex = pil_image_to_texture(pil_img)
+            if tex is None:
+                ue.log_warning('PyActorStickMan: texture conversion failed')
+                return
+
+            # Spawn a SEPARATE actor for the crosshair (add_actor_component
+            # crashes BP actors with construction scripts during begin_play)
+            from unreal_engine_tools import get_world
+            world = self.uobject.get_world() or get_world()
+            actor = world.actor_spawn(StaticMeshActor)
+            smc = actor.StaticMeshComponent
+            cube = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cube.Cube')
+            smc.SetStaticMesh(cube)
+            smc.Mobility = EComponentMobility.Movable
+
+            mid = smc.create_material_instance_dynamic(mat)
+            mid.set_material_texture_parameter(self.param_name, tex)
+            smc.set_material(0, mid)
+
+            actor.attach_to_component(screen)
+
+            # Target WORLD scale: square aspect preserved regardless of
+            # Screen's own (possibly non-uniform) scale. 1 UU per pixel ×
+            # CROSSHAIR_SCALE, divided by parent scale to yield the relative.
+            try:
+                p = screen.get_world_scale()
+                px = abs(p.x) or 1e-6
+                py = abs(p.y) or 1e-6
+                pz = abs(p.z) or 1e-6
+            except Exception:
+                px = py = pz = 1.0
+            tgt_wx = img_w * self.CROSSHAIR_SCALE / 100.0
+            tgt_wz = img_h * self.CROSSHAIR_SCALE / 100.0
+            rel_scale = FVector(tgt_wx / px, 0.001 / py, tgt_wz / pz)
+            try:
+                actor.set_actor_relative_scale(rel_scale)
+            except Exception:
+                actor.set_actor_scale(rel_scale)
+
+            # Front face of default cube is at local Y = -50. Add a small
+            # world-space epsilon (scaled to local by parent Y) to avoid
+            # z-fighting with the Screen plane.
+            y_rel = -(50.0 + 0.5 / py)
+            actor.K2_SetActorRelativeLocation(FVector(0, y_rel, 0))
+
+            self.crosshair_comp = actor
+            ue.log(f'PyActorStickMan: crosshair {int(img_w)}x{int(img_h)} px '
+                   f'actor attached to "{self.component_name}" (mat={mat_name})')
+        except Exception as e:
+            ue.log_warning(f'PyActorStickMan: crosshair spawn failed: {e}')
+
+    # #
+    #  Modifier controls (mirrors PyPawnDrone)                             #
+    #    Ctrl  + Scroll : grow / shrink (lerped)      [Ctrl > Alt > Shift] #
+    #    Shift + Scroll : walk faster / slower                             #
+    #    Alt   + Scroll : camera closer / farther (CameraBoom, lerped)     #
+    #    Hold Alt       : free look - orbit the camera, snaps back on      #
+    #                     release                                          #
+    # #
+
+    LERP_SPEED = 20.0
+
+    def _setup_input(self):
+        """Called by Main.toggle_pawn right after Possess. Binds on the
+        character's own InputComponent (not the PlayerController's), so the
+        bindings drop out of the input stack automatically on unpossess and
+        can't swallow the drone's keys."""
+        from constants import FiniteRepetitionSelector
+        from input_devices import Keyboard, Mouse, HotkeyManager
+
+        actor = self.uobject.get_owner()
+        comp = getattr(actor, "InputComponent", None)
+        if comp is None:
+            ue.log_warning("PyActorStickMan: _setup_input before Possess; aborting")
+            return
+        if getattr(self, "_bound_input_component", None) == comp:
+            return   # already bound on this InputComponent (re-possess)
+        self._bound_input_component = comp
+
+        self.actor = actor
+        self._boom = find_component(actor, "CameraBoom")
+        try:
+            self._move = actor.CharacterMovement
+        except Exception:
+            self._move = None
+        self._target_scale = actor.get_actor_scale()
+        self._target_arm_length = self._boom.TargetArmLength if self._boom else None
+        self._freelook_rot = None
+
+        self.size_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
+        self.speed_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
+        self.arm_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
+
+        self.input = HotkeyManager(actor, Keyboard(), Mouse())
+        self.input.bind_press("LeftAlt", self._on_alt_pressed)
+        self.input.bind_release("LeftAlt", self._on_alt_released)
+        self.input.bind_press("MouseScrollUp", self._on_scroll_up)
+        self.input.bind_press("MouseScrollDown", self._on_scroll_down)
+        ue.log("PyActorStickMan: modifier controls bound")
+
+    def _is_typing(self):
+        try:
+            from actors.pyactor_global_click import PyActorGlobalClick
+            return PyActorGlobalClick.is_any_focused()
+        except Exception:
+            return False
+
+    def _pc(self):
+        return self.uobject.get_player_controller()
+
+    def _on_alt_pressed(self):
+        """Free-look camera (hold)"""
+        if self._is_typing() or self.input.is_key_down("Ctrl"):
+            return
+        pc = self._pc()
+        if pc is not None:
+            self._freelook_rot = pc.GetControlRotation()
+
+    def _on_alt_released(self):
+        pc = self._pc()
+        if pc is not None and self._freelook_rot is not None:
+            pc.SetControlRotation(self._freelook_rot)
+        self._freelook_rot = None
+
+    def _on_scroll_up(self):
+        """Ctrl: grow / Alt: camera closer / Shift: faster"""
+        if self._is_typing():
+            return
+        if self.input.is_key_down("Ctrl"):
+            new = max(0.0, self.size_selector.increase_value(self._target_scale.x))
+            self._target_scale = FVector(new, new, new)
+        elif self.input.is_key_down("LeftAlt"):
+            if self._target_arm_length is not None:
+                self._target_arm_length = max(0.0, self.arm_selector.decrease_value(self._target_arm_length))
+        elif self.input.is_key_down("Shift"):
+            self._scale_speed(self.speed_selector.increase_value)
+
+    def _on_scroll_down(self):
+        """Ctrl: shrink / Alt: camera farther / Shift: slower"""
+        if self._is_typing():
+            return
+        if self.input.is_key_down("Ctrl"):
+            new = max(0.0, self.size_selector.decrease_value(self._target_scale.x))
+            self._target_scale = FVector(new, new, new)
+        elif self.input.is_key_down("LeftAlt"):
+            if self._target_arm_length is not None:
+                self._target_arm_length = max(0.0, self.arm_selector.increase_value(self._target_arm_length))
+        elif self.input.is_key_down("Shift"):
+            self._scale_speed(self.speed_selector.decrease_value)
+
+    def _scale_speed(self, fn):
+        if self._move is None:
+            return
+        self._move.MaxWalkSpeed = max(0.0, fn(self._move.MaxWalkSpeed))
+        ue.log(f"PyActorStickMan: walk speed -> {self._move.MaxWalkSpeed:.0f}")
+
+    def tick(self, dt):
+        if getattr(self, "actor", None) is None:
+            return   # _setup_input not run yet
+        a = min(1.0, self.LERP_SPEED * dt)
+        cur = self.actor.get_actor_scale()
+        tgt = self._target_scale
+        if abs(tgt.x - cur.x) > 1e-4:
+            self.actor.set_actor_scale(FVector(
+                cur.x + (tgt.x - cur.x) * a,
+                cur.y + (tgt.y - cur.y) * a,
+                cur.z + (tgt.z - cur.z) * a))
+        if self._boom is not None and self._target_arm_length is not None:
+            cur_len = self._boom.TargetArmLength
+            if abs(self._target_arm_length - cur_len) > 0.01:
+                self._boom.TargetArmLength = cur_len + (self._target_arm_length - cur_len) * a
+
+    def set_hidden(self, hidden):
+        """Called by Main.toggle_pawn. The crosshair is a separate actor
+        attached to Screen, so hiding the stickman doesn't hide it."""
+        if getattr(self, "crosshair_comp", None) is not None:
+            try:
+                self.crosshair_comp.SetActorHiddenInGame(hidden)
+            except Exception:
+                pass
+
+    def end_play(self, reason):
+        if getattr(self, "input", None):
+            self.input.shutdown()
+        # The crosshair is a separate actor attached to Screen; attached
+        # actors outlive their parent, so destroy it with the stickman.
+        if getattr(self, "crosshair_comp", None) is not None:
+            try:
+                self.crosshair_comp.actor_destroy()
+            except Exception:
+                pass
+            self.crosshair_comp = None
+
+    def set_crosshair(self, path):
+        """Swap the crosshair image at runtime."""
+        self.crosshair_path = path
+        if self.crosshair_comp is not None:
+            try:
+                self.crosshair_comp.DestroyComponent()
+            except Exception:
+                pass
+            self.crosshair_comp = None
+        self.begin_play()

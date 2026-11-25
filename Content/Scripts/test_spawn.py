@@ -323,7 +323,7 @@ def _check_prerequisites():
 def _check_everything_dll():
     candidates = [
         'Everything64.dll',
-        os.path.join(os.path.dirname(__file__), 'Everything64.dll'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'everything', 'Everything64.dll'),
         r'C:\Program Files\Everything\Everything64.dll',
         r'C:\Program Files (x86)\Everything\Everything64.dll',
     ]
@@ -1658,7 +1658,7 @@ def test_text3d_click(uobject=None, input_manager=None, location=None, base_y=0)
       - Collision response to WorldDynamic = Block
     """
     from ue_spawn import spawn_blueprint
-    from pyactor_text3d import PyActorText3D
+    from actors.pyactor_text3d import PyActorText3D
 
     if location is None:
         location = FVector(400, base_y, 450)

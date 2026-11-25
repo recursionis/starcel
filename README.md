@@ -3,9 +3,9 @@ Hi! I'm Nick, the developer of Starcel
 
 
 ## What is it? 
-A Python controlled 3D spreadsheet. A full Unreal Engine 4 instance with Chaos physics. Support for Client and Server. It can be used as a visualization or education tool.
+A Python controlled 3D spreadsheet. A full Unreal Engine 4 instance. Support for Client and Server. It can be used as a visualization or education tool.
 
-Currently, Starcel is an Unreal Engine 4.27Chaos Client and Server which can be controlled with Python 3.9. There is 3D spreadsheet functionality, a Python calculation engine, everything Unreal engine offers, and there are many more features planned. It is very powerful. 
+Currently, Starcel is an Unreal Engine 4.27.2 Client and Server which can be controlled with Python 3.9. There is 3D spreadsheet functionality, a Python calculation engine, everything Unreal engine offers, and there are many more features planned. It is very powerful. 
 
 This project is intended for content creators, hobbyists, developers, spreadsheet users, physicists, engineers, scientists, gamers, unreal engine prototypes, and more. 
 
@@ -42,7 +42,7 @@ You may need to set the UE_PYTHON_DIR, PYTHONPATH, and PYTHONHOME environment va
 
 You may need to move Python3.dll and python39.dll into C:\Program Files\Epic Games\UE_4.27\Engine\Binaries\ThirdParty\Python3
 
-Replace C:\UE_4.27Chaos_Source\Engine\Binaries\ThirdParty\Python3 with a copy of your Python3.9 instance. 
+Replace C:\UE_4.27_Source\Engine\Binaries\ThirdParty\Python3 with a copy of your Python3.9 instance. 
 
 ## Startup map and mod paks
 You can set which map opens first and which mod `.pak` files load in the ini files. You don't need any command-line arguments.
@@ -114,7 +114,7 @@ Unreal's replication system can be confusing. Clients cannot directly invoke fun
 
 I recommend starting a fresh UE C++ project and getting familiar with Blueprints and maybe also C++ to get a feel for how to use Unreal and its editor. 
 
-If you want to manually build the dedicated server source, you cannot use UE4.27Chaos from the launcher, you must download the Engine directly from [EpicGame's github branch](https://github.com/EpicGames/UnrealEngine/tree/4.27-chaos), which requires signing up for their developer program. My UE Source folder is ~150GB, whereas the download from the Epic Games Launcher is ~45GB. I needed to add the following lines to my "C:\Program Files\Epic Games\UE_4.27Chaos_Source\Engine\Config\BaseEngine.ini" among a few other fixes for compiling this project. 
+If you want to manually build the dedicated server source, you cannot use UE4.27 from the launcher, you must download the Engine directly from [EpicGame's github branch](https://github.com/EpicGames/UnrealEngine/tree/4.27), which requires signing up for their developer program. My UE Source folder is ~150GB, whereas the download from the Epic Games Launcher is ~45GB. I needed to add the following lines to my "C:\Program Files\Epic Games\UE_4.27_Source\Engine\Config\BaseEngine.ini" among a few other fixes for compiling this project. 
 ```
 [PlatformPaths]
 UnrealBuildTool=Engine/Binaries/DotNET/UnrealBuildTool.exe
@@ -139,7 +139,7 @@ It is not recommended to control any elements in Starcel with a 2D UI. You can b
 
 
 ## UE5 and Python upgrade? 
-You can use the included interop.py(untested) to help run newer Python versions with this version, but it will be slow and you will have to add workarounds for using functions like begin_play and tick. You will need to have both versions of Python installed. The latest edition of Starcel is written in Python 3.9 and Unreal Engine 4.27Chaos. This likely will not change for a while as Python's C++ bindings have been deprecated and changed in Python 3.10. This could take a month or few to upgrade. An [Unreal Engine 5 upgrade of the UnrealEnginePython plugin](https://github.com/20tab/UnrealEnginePython/pull/880) will require header, module, and api changes. This could take a month to upgrade. If you plan on working on this, you can message me for some info that could help you begin. 
+You can use the included interop.py(untested) to help run newer Python versions with this version, but it will be slow and you will have to add workarounds for using functions like begin_play and tick. You will need to have both versions of Python installed. The latest edition of Starcel is written in Python 3.9 and Unreal Engine 4.27.2. This likely will not change for a while as Python's C++ bindings have been deprecated and changed in Python 3.10. This could take a month or few to upgrade. An [Unreal Engine 5 upgrade of the UnrealEnginePython plugin](https://github.com/20tab/UnrealEnginePython/pull/880) will require header, module, and api changes. This could take a month to upgrade. If you plan on working on this, you can message me for some info that could help you begin. 
 
 
 ## What happened to the last Starcel and its features? 

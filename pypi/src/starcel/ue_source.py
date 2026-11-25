@@ -1,4 +1,4 @@
-"""Clone + build UE4.27-chaos from the EpicGames GitHub repo.
+"""Clone + build UE4.27.2 from the EpicGames GitHub repo.
 
 The EpicGames/UnrealEngine repo is gated — access requires that the user's
 Epic Games account be linked to GitHub (see UE_ON_GITHUB_DOC_URL). If the
@@ -138,7 +138,7 @@ def install_ue_source(target_dir: Path | None = None) -> None:
     run_setup(target)
     run_generate_project_files(target)
     build_engine(target)
-    print(f"UE4.27-chaos built successfully at {target}")
+    print(f"UE4.27.2 built successfully at {target}")
 
 
 def manual_instructions() -> str:

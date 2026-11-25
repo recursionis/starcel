@@ -12,7 +12,7 @@ Required for everyone:
 
 Optional for developers:
   5. Visual Studio 2019 Community with the listed components.
-  6. UE4.27-chaos from the EpicGames GitHub repo (requires linking your Epic
+  6. UE4.27.2 from the EpicGames GitHub repo (requires linking your Epic
      Games account to GitHub first).
 
 The sections below cover each step in detail.

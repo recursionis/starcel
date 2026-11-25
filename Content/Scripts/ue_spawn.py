@@ -741,7 +741,7 @@ def _play_audio_file_as_actor(path, location, volume, pitch):
         return None
 
     actor = spawn_pyactor(
-        'pyactor_sound', 'SoundSphere',
+        'actors.pyactor_sound', 'SoundSphere',
         location=location,
         components=[dict(class_name='StaticMeshComponent',
                          name='Sphere', root=True,
@@ -831,7 +831,7 @@ def spawn_sound(path, location=None, volume=1.0, pitch=1.0,
     if as_actor:
         try:
             actor = spawn_pyactor(
-                'pyactor_sound', 'SoundSphere',
+                'actors.pyactor_sound', 'SoundSphere',
                 location=loc,
                 components=[dict(class_name='StaticMeshComponent',
                                  name='Sphere', root=True,
@@ -1530,7 +1530,7 @@ def spawn_table_actor(table=None, location=None, rotation=None,
     ``cell_actors`` / ``gridline_actors``.
     """
     actor = spawn_pyactor(
-        'pyactor_table', 'PyActorTable',
+        'actors.pyactor_table', 'PyActorTable',
         location=location, rotation=rotation,
         name=name if name else 'Table')
     if actor is None:
@@ -1769,7 +1769,7 @@ def spawn_text3d_executor(text='', location=None, rotation=None, scale=None,
     ``actor.text3d_actor``).
     """
     return spawn_text3d_pyactor(
-        'pyactor_text3d_executor', 'PyActorText3DExecutor',
+        'actors.pyactor_text3d_executor', 'PyActorText3DExecutor',
         text=text, location=location, rotation=rotation, scale=scale,
         pyactor_bp_path=pyactor_bp_path,
         text3d_bp_path=text3d_bp_path,
@@ -1792,7 +1792,7 @@ def spawn_focused_text3d_executor(text='', distance=400.0, focus_delay=0.1):
 
     Returns the BP_PyActorEmpty parent (child at ``.text3d_actor``).
     """
-    from pyactor_text3d import PyActorText3D
+    from actors.pyactor_text3d import PyActorText3D
 
     location, rotation = FVector(0, 0, 200), FRotator(0, 0, 0)
     try:
@@ -1924,7 +1924,7 @@ def spawn_system_monitor(location=None, rotation=None, scale=None,
       - activity_tracker.py daemon running (optional; gracefully skipped)
     """
     actor = spawn_pyactor(
-        'pyactor_sysmon', 'PyActorSysmon',
+        'actors.pyactor_sysmon', 'PyActorSysmon',
         location=location, rotation=rotation, scale=scale,
         components=[dict(class_name='Text3DComponent',
                          name='Text3DComponent', root=True)],
@@ -1961,7 +1961,7 @@ def spawn_camera_actor(location=None, rotation=None,
     lens/DOF settings automatically in begin_play.
     """
     actor = spawn_pyactor(
-        'pyactor_camera', 'PyActorCamera',
+        'actors.pyactor_camera', 'PyActorCamera',
         location=location, rotation=rotation,
         components=[
             dict(class_name='CineCameraComponent',
@@ -2003,7 +2003,7 @@ def spawn_file_explorer(location=None, rotation=None,
 
     Requires:
       - Everything (Voidtools) running in background
-      - Everything64.dll next to everything_api.py
+      - Everything64.dll next to everything/everything_api.py
       - BP_Icon at /Game/Blueprints/Assets/BP_Icon.BP_Icon
     """
     if name is None:
@@ -2013,7 +2013,7 @@ def spawn_file_explorer(location=None, rotation=None,
         else:
             name = 'FileExplorer'
     actor = spawn_pyactor(
-        'pyactor_file_explorer', 'FileExplorer',
+        'actors.pyactor_file_explorer', 'FileExplorer',
         location=location, rotation=rotation, name=name)
     if actor is None:
         return None
@@ -2085,7 +2085,7 @@ def spawn_plot(function_expr='sin(x)+cos(y)',
     # the requested params take effect (begin_play may have already fired
     # with defaults by the time we reach here).
     actor = spawn_pyactor(
-        'pyactor_plotter', 'PyActorPlotter',
+        'actors.pyactor_plotter', 'PyActorPlotter',
         location=location, rotation=rotation,
         name=name if name else f'Plot_{function_expr}')
     if actor is None:
@@ -2167,7 +2167,7 @@ def spawn_gizmo(location=None, rotation=None, scale=None,
     if uobject is not None and input_manager is not None:
         try:
             pyactor = spawn_pyactor(
-                'pyactor_gizmo', 'GizmoController',
+                'actors.pyactor_gizmo', 'GizmoController',
                 location=location,
                 name=name if name else 'GizmoController')
             proxy = pyactor.get_py_proxy()

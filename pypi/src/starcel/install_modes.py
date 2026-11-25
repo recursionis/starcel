@@ -39,7 +39,7 @@ def auto_install() -> None:
 
 
 def auto_install_dev(ue_target_dir: Path | None = None) -> None:
-    """Dev flow: VS 2019 + UE4.27-chaos from source."""
+    """Dev flow: VS 2019 + UE4.27.2 from source."""
     donations.print_start()
     vs_installer.install_vs2019()
     ue_source.install_ue_source(ue_target_dir)
@@ -68,7 +68,7 @@ def _render_manual_guide() -> str:
         ("Environment variables & long paths", env.manual_instructions()),
         ("Firewall rule for dedicated server", firewall.manual_instructions()),
         ("Visual Studio 2019 (dev only)", vs_installer.manual_instructions()),
-        ("UE4.27-chaos from source (dev only)", ue_source.manual_instructions()),
+        ("UE4.27.2 from source (dev only)", ue_source.manual_instructions()),
     ]
 
     sections_html = "\n".join(

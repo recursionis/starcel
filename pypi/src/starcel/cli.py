@@ -262,7 +262,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_scripts.add_argument("--open", action="store_true", help="open it in Explorer")
     p_scripts.set_defaults(func=_scripts)
 
-    p_dev = sub.add_parser("install-dev", help="install VS 2019 + build UE4.27-chaos from source")
+    p_dev = sub.add_parser("install-dev", help="install VS 2019 + build UE4.27.2 from source")
     p_dev.add_argument("--manual", action="store_true")
     p_dev.add_argument("--ue-dir", metavar="PATH", help=f"UE source clone dir (default: {config.DEV_BUILD_UE_DEFAULT_DIR})")
     p_dev.set_defaults(func=_install_dev)
