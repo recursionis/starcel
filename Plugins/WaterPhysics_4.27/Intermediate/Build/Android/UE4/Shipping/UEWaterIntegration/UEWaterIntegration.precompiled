@@ -1,0 +1,8 @@
+{
+	"OutputFiles": [
+		"Module.UEWaterIntegration.cppa7.o",
+		"Module.UEWaterIntegration.cppa8.o",
+		"Module.UEWaterIntegration.gen.cppa7.o",
+		"Module.UEWaterIntegration.gen.cppa8.o"
+	]
+}

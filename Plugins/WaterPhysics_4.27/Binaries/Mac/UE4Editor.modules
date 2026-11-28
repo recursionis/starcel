@@ -1,0 +1,11 @@
+{
+	"BuildId": "17155196",
+	"Modules": 
+	{
+		"OceanologyIntegration": "UE4Editor-OceanologyIntegration.dylib",
+		"RiverologyIntegration": "UE4Editor-RiverologyIntegration.dylib",
+		"UEWaterIntegration": "UE4Editor-UEWaterIntegration.dylib",
+		"WaterPhysics": "UE4Editor-WaterPhysics.dylib",
+		"WaterPhysicsEditor": "UE4Editor-WaterPhysicsEditor.dylib"
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"OutputFiles": [
+		"Module.RiverologyIntegration.cppa7.o",
+		"Module.RiverologyIntegration.cppa8.o",
+		"Module.RiverologyIntegration.gen.cppa7.o",
+		"Module.RiverologyIntegration.gen.cppa8.o"
+	]
+}

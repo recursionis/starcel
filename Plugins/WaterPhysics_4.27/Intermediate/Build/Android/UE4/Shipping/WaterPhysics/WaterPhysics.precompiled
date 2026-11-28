@@ -1,0 +1,8 @@
+{
+	"OutputFiles": [
+		"Module.WaterPhysics.cppa7.o",
+		"Module.WaterPhysics.cppa8.o",
+		"Module.WaterPhysics.gen.cppa7.o",
+		"Module.WaterPhysics.gen.cppa8.o"
+	]
+}

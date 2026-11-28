@@ -1,0 +1,8 @@
+{
+	"OutputFiles": [
+		"Module.OceanologyIntegration.cppa7.o",
+		"Module.OceanologyIntegration.cppa8.o",
+		"Module.OceanologyIntegration.gen.cppa7.o",
+		"Module.OceanologyIntegration.gen.cppa8.o"
+	]
+}
