@@ -1646,13 +1646,21 @@ def _guide_layout_rows(rows):
 
 
 def generate_keyboard_guide_image(layout="razerblade152019", output_path=None,
-                                  scripts_dir=None, title=None, unit=64):
+                                  scripts_dir=None, title=None, unit=64,
+                                  colors=None, keyboard_only=False,
+                                  draw_legends=True):
     """Render a shortcut-guide PNG for a saved keyboard layout.
 
     layout      : name of a saved layout on Keyboard ("razerblade152019",
                   "ANSI", "wootingtwohe") or a list of legend rows.
     output_path : default Scripts/keyboard_guide_<layout>.png
     unit        : pixel size of a 1u key.
+    colors      : optional dict overriding any of the palette entries
+                  BG, KEY, KEY_TEXT, ACCENT, WHITE, DESC, HEAD, MUTED,
+                  CAP_TEXT (RGBA tuples), e.g. a green theme.
+    keyboard_only : crop the result to just the keyboard (no title or
+                  shortcut list) — used as a backplate texture.
+    draw_legends  : False draws empty keycaps (legends drawn elsewhere).
 
     Keys that trigger something are filled blue with a short description on
     the keycap; keys only used as chord modifiers are outlined blue. Below the
@@ -1706,6 +1714,16 @@ def generate_keyboard_guide_image(layout="razerblade152019", output_path=None,
     HEAD = (130, 185, 245, 255)
     MUTED = (125, 125, 134, 255)
     CAP_TEXT = (222, 236, 252, 255)
+    if colors:
+        BG = colors.get("BG", BG)
+        KEY = colors.get("KEY", KEY)
+        KEY_TEXT = colors.get("KEY_TEXT", KEY_TEXT)
+        ACCENT = colors.get("ACCENT", ACCENT)
+        WHITE = colors.get("WHITE", WHITE)
+        DESC = colors.get("DESC", DESC)
+        HEAD = colors.get("HEAD", HEAD)
+        MUTED = colors.get("MUTED", MUTED)
+        CAP_TEXT = colors.get("CAP_TEXT", CAP_TEXT)
 
     f_title = _guide_font(30, bold=True)
     f_head = _guide_font(19, bold=True)
@@ -1832,6 +1850,8 @@ def generate_keyboard_guide_image(layout="razerblade152019", output_path=None,
             is_mod = ue_key in modifier_keys and not bound
             _guide_rrect(d, box, max(4, unit // 10), fill=ACCENT if bound else KEY,
                          outline=ACCENT if is_mod else None, width=3 if is_mod else 1)
+            if not draw_legends:
+                continue
 
             face = _GUIDE_LEGEND_TEXT.get(legend, legend or "")
             if len(face) == 1 and face.isalpha():
@@ -1887,6 +1907,8 @@ def generate_keyboard_guide_image(layout="razerblade152019", output_path=None,
                 y += row_h
             y += sec_gap
 
+    if keyboard_only:
+        img = img.crop((kx0, ky0, kx0 + kb_w, ky0 + kb_h))
     img.save(output_path)
     print(f"Generated {output_path} ({len(entries)} shortcuts, layout {name})")
     return output_path

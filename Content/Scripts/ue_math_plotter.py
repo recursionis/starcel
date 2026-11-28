@@ -444,8 +444,8 @@ class UnrealActorFactory:
             actor = self.world.actor_spawn(StaticMeshActor)
             smc = actor.StaticMeshComponent
             mesh = ue.load_object(StaticMesh, '/Engine/BasicShapes/Cylinder.Cylinder')
+            smc.Mobility = EComponentMobility.Movable  # before SetStaticMesh
             smc.SetStaticMesh(mesh)
-            smc.Mobility = EComponentMobility.Movable
             actor.set_actor_transform(FTransform(
                 midpoint,
                 rot,
@@ -470,8 +470,8 @@ class UnrealActorFactory:
             actor = self.world.actor_spawn(StaticMeshActor)
             smc = actor.StaticMeshComponent
             mesh = ue.load_object(StaticMesh, self.point_mesh)
+            smc.Mobility = EComponentMobility.Movable  # before SetStaticMesh
             smc.SetStaticMesh(mesh)
-            smc.Mobility = EComponentMobility.Movable
             actor.set_actor_transform(FTransform(p, FRotator(0,0,0), FVector(s,s,s)))
             self._apply_color(smc, color)
             self._spawned.append(actor)
@@ -557,8 +557,8 @@ class UnrealActorFactory:
 
                 actor = self.world.actor_spawn(StaticMeshActor)
                 smc = actor.StaticMeshComponent
+                smc.Mobility = EComponentMobility.Movable  # before SetStaticMesh
                 smc.SetStaticMesh(plane_mesh)
-                smc.Mobility = EComponentMobility.Movable
                 actor.set_actor_transform(FTransform(
                     FVector(cx, cy, cz),
                     FRotator(pitch, yaw, 0),

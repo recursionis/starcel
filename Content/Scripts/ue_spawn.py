@@ -1410,7 +1410,7 @@ EARTH_PRESETS = {
     'night':            3812,  # Earth at Night
 }
 
-def spawn_earth(location=None, rotation=None, scale=None,
+def spawn_earth(location=None, rotation=None, scale=FVector(0.00001, 0.00001, 0.00001),
                 preset='satellite',
                 asset_id=None,
                 bp_path='/Game/Blueprints/Assets/BP_CesiumEarth'):
@@ -1859,6 +1859,84 @@ def spawn_focused_text3d_executor(text='', distance=400.0, focus_delay=0.1):
     return parent
 
 
+# spawn_focused_shell_executor — Text3D command line (Enter runs it as a shell
+# command) placed at a given spot and focused for typing
+
+def focus_text3d(child, focus_delay=0.1, log_msg='Text3D focused'):
+    """Give the Text3D actor *child* keyboard focus with the caret at the
+    end of its text, after *focus_delay* seconds (glyphs must exist first).
+    Same steps spawn_focused_text3d_executor uses."""
+    from actors.pyactor_text3d import PyActorText3D
+
+    PyActorText3D.register_actor(child)
+    PyActorText3D._ensure_global_typing()
+    try:
+        if PyActorText3D._WIN32_TYPING_OK:
+            for vk in range(256):
+                if PyActorText3D._user32.GetAsyncKeyState(vk) & 0x8000:
+                    PyActorText3D._prev_vk_down[vk] = 1
+    except Exception:
+        pass
+
+    def _focus(_dt):
+        try:
+            t3d = child.get_actor_component(PyActorText3D.TEXT_COMPONENT_NAME)
+            cur = str(t3d.Text or '') if t3d is not None else ''
+            PyActorText3D._set_focused_actor(child)
+            n = len(cur)
+            PyActorText3D._string_idx = n
+            PyActorText3D._anchor = n
+            PyActorText3D._hide_highlights()
+            if not PyActorText3D.show_cursor_at(
+                    child, PyActorText3D._string_idx_to_glyph(cur, n),
+                    string_idx=n, text=cur):
+                proxy = PyActorText3D._get_or_spawn_cursor(child)
+                if proxy is not None:
+                    s = child.get_actor_scale()
+                    proxy.move_to(child.get_actor_location(),
+                                  FVector(0.01, 0.04 * s.y, 0.5 * s.z),
+                                  child.get_actor_rotation())
+            ue.log(log_msg)
+        except Exception as e:
+            ue.log_warning(f'focus_text3d: focus failed: {e}')
+        return False
+
+    _focus_tickers.append(ue.add_ticker(_focus, focus_delay))
+    del _focus_tickers[:-8]
+
+
+def spawn_focused_shell_executor(text='', location=None, rotation=None, scale=None,
+                                 shell=None, focus=True, focus_delay=0.1,
+                                 name='ShellExecutor'):
+    """
+    Spawn a Text3D shell prompt (actors.pyactor_shell_executor) at
+    *location* and focus it so typing goes straight in. Enter runs the line.
+
+    *shell*: optional object with ``run(cmd)`` that receives each command
+    (attached as ``parent.shell``; without it commands run in PowerShell and
+    print to the log).
+
+    Returns the BP_PyActorEmpty parent (Text3D child at ``.text3d_actor``).
+    """
+    parent = spawn_text3d_pyactor(
+        'actors.pyactor_shell_executor', 'PyActorShellExecutor',
+        text=text, location=location, rotation=rotation, scale=scale, name=name)
+    if parent is None:
+        return None
+    if shell is not None:
+        try:
+            parent.shell = shell
+        except Exception as e:
+            ue.log_warning(f'spawn_focused_shell_executor: could not attach shell: {e}')
+    child = getattr(parent, 'text3d_actor', None)
+    if child is None:
+        ue.log_warning('spawn_focused_shell_executor: no Text3D child spawned')
+        return parent
+    if focus:
+        focus_text3d(child, focus_delay, 'Shell executor spawned + focused (Enter to run)')
+    return parent
+
+
 # spawn_desktop_icons — grid of BP_Icon actors from a folder's shell icons
 
 def spawn_desktop_icons(location=None, desktop_path=None, spacing=150,
@@ -2199,6 +2277,8 @@ GIZMO_KEYWORDS = {'gizmo', 'transform_gizmo', 'transformgizmo'}
 TEXT3D_KEYWORDS = {'text3d', 'text_3d', 'cell', 'bp_cell'}
 NDTABLE_KEYWORDS = {'nd_table_grid', 'ndtablegrid', 'nd_grid'}
 PYACTOR_KEYWORDS = {'pyactor', 'py_actor', 'pyactorempty'}
+FILE_EXPLORER_KEYWORDS = {'file_explorer', 'fileexplorer', 'explorer', 'files'}
+SHELL_KEYWORDS = {'shell', 'terminal', 'shell_executor'}
 
 def spawn_icon(pil_image, location=None, rotation=None, scale=None,
                material_path='/Game/Materials/M_Icon.M_Icon',
@@ -2379,6 +2459,9 @@ def _detect_type(path_or_name):
     if lower in GIZMO_KEYWORDS:   return 'gizmo'
     if lower in TEXT3D_KEYWORDS:  return 'text3d'
     if lower in PYACTOR_KEYWORDS: return 'pyactor'
+    if lower in PLOT_KEYWORDS:    return 'plot'
+    if lower in FILE_EXPLORER_KEYWORDS: return 'file_explorer'
+    if lower in SHELL_KEYWORDS:   return 'shell'
     ext = os.path.splitext(lower)[1]
     if ext in IMAGE_EXTS:         return 'image'
     if ext in VIDEO_EXTS:         return 'video'
@@ -2596,6 +2679,16 @@ def spawn(
 
     elif detected == 'sysmon':
         return spawn_system_monitor(location, rotation, scale)
+
+    elif detected == 'plot':
+        return spawn_plot(location=location, rotation=rotation)
+
+    elif detected == 'file_explorer':
+        return spawn_file_explorer(location=location, rotation=rotation)
+
+    elif detected == 'shell':
+        return spawn_focused_shell_executor(location=location, rotation=rotation,
+                                            scale=scale)
 
     elif detected == 'desktop':
         return spawn_desktop_icons(location, desktop_path=desktop_path,
