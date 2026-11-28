@@ -15,8 +15,23 @@ You can donate on [Paypal](https://www.paypal.com/paypalme/RecursionIs) or [Patr
 
 
 ## Quickstart
-The current release includes the client, the server, and the no-editor for Windows. Each compiled source is ~1GB. 
-The full Unreal Engine Starcel source project folder is quite a large download, >50GB. The project files on github are ~1GB, check the .gitignore to see what is missing. 
+Download https://www.python.org/downloads/release/python-3913/ add it to Path and disable path length limit. 
+```
+python -m pip install --upgrade pip
+python -m pip install starcel
+python -m starcel install
+
+# Starcel executable:
+C:\Users\Nick\Documents\Starcel\WindowsNoEditor\Starcel9.exe
+
+# Scripts folder:
+C:\Users\Nick\Documents\Starcel\WindowsNoEditor\Starcel9\Content\Scripts
+```
+
+
+## Quickstart for Project Files
+The current release includes only the no-editor for Windows. The client and server are coming soon. Each compiled source is ~2GB. 
+The full Unreal Engine Starcel source project folder is quite a large download, >50GB. The project files on github are ~2GB, check the .gitignore to see what is missing. 
 
 You need to use Visual Studio 2019 for compiling ([download community edition](https://aka.ms/vs/16/release/vs_community.exe)). I recommend [PyCharm Community](https://www.jetbrains.com/pycharm/download/?section=windows) for editing until IDE support is added.
 
@@ -43,6 +58,7 @@ You may need to set the UE_PYTHON_DIR, PYTHONPATH, and PYTHONHOME environment va
 You may need to move Python3.dll and python39.dll into C:\Program Files\Epic Games\UE_4.27\Engine\Binaries\ThirdParty\Python3
 
 Replace C:\UE_4.27_Source\Engine\Binaries\ThirdParty\Python3 with a copy of your Python3.9 instance. 
+
 
 ## Startup map and mod paks
 You can set which map opens first and which mod `.pak` files load in the ini files. You don't need any command-line arguments.
