@@ -227,12 +227,29 @@ class PyActorStickMan:
     #  Modifier controls (mirrors PyPawnDrone)                             #
     #    Ctrl  + Scroll : grow / shrink (lerped)      [Ctrl > Alt > Shift] #
     #    Shift + Scroll : walk faster / slower                             #
-    #    Alt   + Scroll : camera closer / farther (CameraBoom, lerped)     #
+    #    Alt   + Scroll : camera closer / farther (FreeLookSpringArm)     #
     #    Hold Alt       : free look - orbit the camera, snaps back on      #
     #                     release                                          #
     # #
 
     LERP_SPEED = 20.0
+    # Free-look camera / arm names in StickManCharacter, in order of
+    # preference (FreeLook* were added in the BP; Follow*/CameraBoom are the
+    # C++ ThirdPerson defaults).
+    FREELOOK_CAMS = ("FreeLookCamera", "FollowCamera")
+    FREELOOK_ARM = "FreeLookSpringArm"
+
+    @staticmethod
+    def _set(obj, name, value):
+        """Write a UPROPERTY without `obj.Name = value`. In editor builds
+        UEP follows a plain assignment with PostEditChangeProperty, which on
+        a component of this Blueprint actor reruns the construction script:
+        every BP-added component is recreated, this Python component included,
+        so all our references (and self.uobject) go invalid and the bindings
+        die. set_property writes the value raw, with no editor notification.
+        (The drone avoids the same trap with UFUNCTIONs such as
+        SetOwnerNoSee / SetFreeLookArmLength.)"""
+        obj.set_property(name, value)
 
     def _setup_input(self):
         """Called by Main.toggle_pawn right after Possess. Binds on the
@@ -251,8 +268,31 @@ class PyActorStickMan:
             return   # already bound on this InputComponent (re-possess)
         self._bound_input_component = comp
 
+        # Bindings from a previous _setup_input (old InputComponent, or a
+        # component that was reinstanced by a BP recompile) must not keep
+        # firing into this instance.
+        old_input = getattr(self, "input", None)
+        if old_input is not None:
+            try:
+                old_input.shutdown()
+            except Exception:
+                pass
+
         self.actor = actor
-        self._boom = find_component(actor, "CameraBoom")
+        # Alt+scroll zooms the free-look camera's arm: the new
+        # FreeLookSpringArm when the BP has one, else the C++ CameraBoom.
+        self._boom = (find_component(actor, self.FREELOOK_ARM)
+                      or find_component(actor, "CameraBoom"))
+        if self._boom is not None:
+            # The boom's collision probe shortens the arm whenever the ground
+            # or a wall is behind the character, so Alt+scroll never showed
+            # the full doubled distance.
+            self._set(self._boom, "bDoCollisionTest", False)
+            # FreeLookSpringArm is left at the SpringArm defaults in the BP
+            # (bUsePawnControlRotation = False), so it only inherited the
+            # capsule's rotation: yaw because the body turns with the
+            # controller, never pitch. Drive it from the control rotation.
+            self._set(self._boom, "bUsePawnControlRotation", True)
         try:
             self._move = actor.CharacterMovement
         except Exception:
@@ -260,6 +300,34 @@ class PyActorStickMan:
         self._target_scale = actor.get_actor_scale()
         self._target_arm_length = self._boom.TargetArmLength if self._boom else None
         self._freelook_rot = None
+
+        # Cameras: the first name in FREELOOK_CAMS that exists is the
+        # free-look camera (like the drone's FreeLookCamera). The cameras
+        # active at possess time are the normal view; Alt swaps between them.
+        from unreal_engine.classes import CameraComponent
+        cams = {}
+        for c in actor.get_components():
+            if c.is_a(CameraComponent):
+                cams[c.get_name()] = c
+                ue.log(f"PyActorStickMan: camera {c.get_name()} active={c.IsActive()}")
+        self._follow_cam = next((cams[n] for n in self.FREELOOK_CAMS if n in cams), None)
+        self._normal_cams = [c for c in cams.values()
+                             if c is not self._follow_cam and c.IsActive()]
+        if self._follow_cam is not None and self._normal_cams:
+            self._follow_cam.SetActive(False, False)
+        ue.log("PyActorStickMan: free-look camera = "
+               f"{self._follow_cam.get_name() if self._follow_cam else None}, "
+               f"normal = {[c.get_name() for c in self._normal_cams]}")
+
+        # Meshes: in the normal view the owner sees the headless body; in free
+        # look (third person) show the full body instead, like the drone's
+        # _set_mesh_owner_no_see. Remember the BP's flags to restore them.
+        from unreal_engine.classes import SkeletalMeshComponent
+        self._mesh_flags = []
+        for c in actor.get_components():
+            if c.is_a(SkeletalMeshComponent):
+                self._mesh_flags.append(
+                    (c, "Headless" in c.get_name(), bool(c.bOwnerNoSee)))
 
         self.size_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
         self.speed_selector = FiniteRepetitionSelector(current_operator="*", current_operand=2.0)
@@ -279,26 +347,79 @@ class PyActorStickMan:
         except Exception:
             return False
 
+    def _alive(self):
+        """False once this instance's UObject is gone (e.g. the BP was
+        recompiled during PIE and the component reinstanced). Its key
+        bindings can still fire, so drop them instead of raising
+        'PyUObject is in invalid state' on every key press."""
+        try:
+            if self.uobject.is_valid() and self.actor.is_valid():
+                return True
+        except Exception:
+            pass
+        inp = getattr(self, "input", None)
+        if inp is not None:
+            try:
+                inp.shutdown()
+            except Exception:
+                pass
+            self.input = None
+        return False
+
     def _pc(self):
-        return self.uobject.get_player_controller()
+        # The possessing controller, not "player 0 of whatever world".
+        try:
+            return self.actor.Controller or self.actor.get_player_controller()
+        except Exception:
+            return None
 
     def _on_alt_pressed(self):
         """Free-look camera (hold)"""
+        if not self._alive():
+            return
         if self._is_typing() or self.input.is_key_down("Ctrl"):
             return
         pc = self._pc()
         if pc is not None:
             self._freelook_rot = pc.GetControlRotation()
+        # Orbit the camera only: the body must not turn with the mouse
+        # while free-looking (restored on release).
+        self._body_yaw = bool(self.actor.bUseControllerRotationYaw)
+        self._set(self.actor, "bUseControllerRotationYaw", False)
+        self._set_freelook_camera(True)
 
     def _on_alt_released(self):
+        if not self._alive():
+            return
         pc = self._pc()
         if pc is not None and self._freelook_rot is not None:
             pc.SetControlRotation(self._freelook_rot)
         self._freelook_rot = None
+        body_yaw = getattr(self, "_body_yaw", None)
+        if body_yaw is not None:
+            self._set(self.actor, "bUseControllerRotationYaw", body_yaw)
+            self._body_yaw = None
+        self._set_freelook_camera(False)
+
+    def _set_freelook_camera(self, on):
+        """Swap to FollowCamera while Alt is held (no-op when FollowCamera
+        is already the only view)."""
+        if self._follow_cam is None or not self._normal_cams:
+            return
+        self._follow_cam.SetActive(on, False)
+        for c in self._normal_cams:
+            c.SetActive(not on, False)
+        # UFUNCTION setters only (see _set): full body visible to the owner
+        # in free look, headless hidden; restore the BP flags afterwards.
+        for c, headless, owner_no_see in getattr(self, "_mesh_flags", ()):
+            try:
+                c.SetOwnerNoSee(headless if on else owner_no_see)
+            except Exception as e:
+                ue.log_warning(f"PyActorStickMan: SetOwnerNoSee({c.get_name()}): {e}")
 
     def _on_scroll_up(self):
         """Ctrl: grow / Alt: camera closer / Shift: faster"""
-        if self._is_typing():
+        if not self._alive() or self._is_typing():
             return
         if self.input.is_key_down("Ctrl"):
             new = max(0.0, self.size_selector.increase_value(self._target_scale.x))
@@ -306,12 +427,13 @@ class PyActorStickMan:
         elif self.input.is_key_down("LeftAlt"):
             if self._target_arm_length is not None:
                 self._target_arm_length = max(0.0, self.arm_selector.decrease_value(self._target_arm_length))
+                ue.log(f"PyActorStickMan: camera distance -> {self._target_arm_length:.0f}")
         elif self.input.is_key_down("Shift"):
             self._scale_speed(self.speed_selector.increase_value)
 
     def _on_scroll_down(self):
         """Ctrl: shrink / Alt: camera farther / Shift: slower"""
-        if self._is_typing():
+        if not self._alive() or self._is_typing():
             return
         if self.input.is_key_down("Ctrl"):
             new = max(0.0, self.size_selector.decrease_value(self._target_scale.x))
@@ -319,14 +441,28 @@ class PyActorStickMan:
         elif self.input.is_key_down("LeftAlt"):
             if self._target_arm_length is not None:
                 self._target_arm_length = max(0.0, self.arm_selector.increase_value(self._target_arm_length))
+                ue.log(f"PyActorStickMan: camera distance -> {self._target_arm_length:.0f}")
         elif self.input.is_key_down("Shift"):
             self._scale_speed(self.speed_selector.decrease_value)
 
     def _scale_speed(self, fn):
+        """Scale walk speed AND acceleration/braking by the same factor.
+        Raising MaxWalkSpeed alone does nothing visible: with the default
+        MaxAcceleration (2048 cm/s^2) the character takes seconds to reach
+        even 10000 cm/s, so the speed looked capped."""
         if self._move is None:
             return
-        self._move.MaxWalkSpeed = max(0.0, fn(self._move.MaxWalkSpeed))
-        ue.log(f"PyActorStickMan: walk speed -> {self._move.MaxWalkSpeed:.0f}")
+        old = self._move.MaxWalkSpeed
+        new = max(0.0, fn(old))
+        if old <= 0.0 or new <= 0.0:
+            return   # can't scale out of zero
+        k = new / old
+        self._set(self._move, "MaxWalkSpeed", new)
+        self._set(self._move, "MaxAcceleration", self._move.MaxAcceleration * k)
+        self._set(self._move, "BrakingDecelerationWalking",
+                  self._move.BrakingDecelerationWalking * k)
+        ue.log(f"PyActorStickMan: walk speed -> {new:.0f} "
+               f"(accel {self._move.MaxAcceleration:.0f})")
 
     def tick(self, dt):
         if getattr(self, "actor", None) is None:
@@ -342,7 +478,8 @@ class PyActorStickMan:
         if self._boom is not None and self._target_arm_length is not None:
             cur_len = self._boom.TargetArmLength
             if abs(self._target_arm_length - cur_len) > 0.01:
-                self._boom.TargetArmLength = cur_len + (self._target_arm_length - cur_len) * a
+                self._set(self._boom, "TargetArmLength",
+                          cur_len + (self._target_arm_length - cur_len) * a)
 
     def set_hidden(self, hidden):
         """Called by Main.toggle_pawn. The crosshair is a separate actor

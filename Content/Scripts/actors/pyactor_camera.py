@@ -222,7 +222,7 @@ class PyActorCamera:
         self._enter_view(blend_time=blend_time)
 
     def _enter_view(self, blend_time=0.2):
-        pc = self.player_controller or ue.get_player_controller(0)
+        pc = self.player_controller or self.uobject.get_player_controller()
         if pc is None:
             return
         try:
@@ -241,7 +241,7 @@ class PyActorCamera:
             ue.log_warning(f'PyActorCamera._enter_view: {e}')
 
     def _leave_view(self, blend_time=0.2):
-        pc = self.player_controller or ue.get_player_controller(0)
+        pc = self.player_controller or self.uobject.get_player_controller()
         if pc is None:
             return
         target = self._previous_view_target

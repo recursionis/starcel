@@ -854,7 +854,13 @@ class HotkeyManager:
                     return False
                 if not self.uobject or not self.uobject.is_valid():
                     return False
-                v = self.uobject.get_input_axis(axis)
+                try:
+                    v = self.uobject.get_input_axis(axis)
+                except Exception:
+                    # No InputComponent right now (e.g. the drone detached
+                    # the PC's while the stickman is possessed) — skip this
+                    # tick instead of logging a traceback every frame.
+                    return True
                 _handler(v)
                 return True
 

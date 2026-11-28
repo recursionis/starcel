@@ -2127,7 +2127,7 @@ class PyActorText3D:
         trace_obj = cls._global_actor
         pc = None
         try:
-            pc = ue.get_player_controller(0)
+            pc = get_world().get_player_controller(0)
         except Exception:
             pass
         for channel in (ECollisionChannel.ECC_Visibility,
@@ -2161,7 +2161,7 @@ class PyActorText3D:
     def _mouse_ray(cls):
         """(origin, direction) of the mouse ray in world space, or None."""
         try:
-            pc = ue.get_player_controller(0)
+            pc = get_world().get_player_controller(0)
             ok, o, d = pc.DeprojectMousePositionToWorld()
             if ok:
                 return o, d

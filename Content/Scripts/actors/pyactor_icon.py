@@ -125,6 +125,12 @@ class IconSphere:
         # hover scale lerp
         cur = self.uobject.get_actor_scale()
         tgt = self.target_scale
+        # Skip when already at target: re-setting scale every frame on a
+        # physics-simulating sphere rebuilds its collision shape, which
+        # makes touching balls depenetrate violently (get flung).
+        if (abs(tgt.x - cur.x) < 1e-3 and abs(tgt.y - cur.y) < 1e-3
+                and abs(tgt.z - cur.z) < 1e-3):
+            return
         a = min(1.0, self.LERP_SPEED * dt)
         self.uobject.set_actor_scale(FVector(
             cur.x + (tgt.x - cur.x) * a,

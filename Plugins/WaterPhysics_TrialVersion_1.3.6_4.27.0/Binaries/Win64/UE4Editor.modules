@@ -1,0 +1,10 @@
+{
+	"BuildId": "17155196",
+	"Modules": 
+	{
+		"OceanologyIntegration": "UE4Editor-OceanologyIntegration.dll",
+		"UEWaterIntegration": "UE4Editor-UEWaterIntegration.dll",
+		"WaterPhysics": "UE4Editor-WaterPhysics.dll",
+		"WaterPhysicsEditor": "UE4Editor-WaterPhysicsEditor.dll"
+	}
+}

@@ -1140,7 +1140,7 @@ def spawn_camera(location=None, rotation=None,
         r.ScreenPercentage <pct>
     This affects the entire viewport. After spawning, set the camera as the
     view target to take effect:
-        ue.get_player_controller(0).SetViewTarget(cam)
+        get_world().get_player_controller(0).SetViewTarget(cam)
     Call disable_panini() to revert (D=0, S=0, ScreenPercentage=100).
 
     Returns
@@ -1232,7 +1232,7 @@ def spawn_camera(location=None, rotation=None,
         _exec_console(f'r.ScreenPercentage {pct}')
         ue.log(f'spawn_camera: Panini ON (D={d}, S={s}, ScreenPercentage={pct}). '
                'Set this camera as view target: '
-               'ue.get_player_controller(0).SetViewTarget(cam)')
+               'get_world().get_player_controller(0).SetViewTarget(cam)')
     else:
         _exec_console('r.Upscale.Panini.D 0')
         _exec_console('r.Upscale.Panini.S 0')
@@ -1796,7 +1796,9 @@ def spawn_focused_text3d_executor(text='', distance=400.0, focus_delay=0.1):
 
     location, rotation = FVector(0, 0, 200), FRotator(0, 0, 0)
     try:
-        pcm = ue.get_player_controller(0).PlayerCameraManager
+        # ue.get_player_controller doesn't exist at module level (it's a
+        # UObject method), so go through the world like the rest of this file.
+        pcm = _get_world().get_player_controller(0).PlayerCameraManager
         cam_loc = pcm.GetCameraLocation()
         cam_rot = pcm.GetCameraRotation()
         fwd = KismetMathLibrary.GetForwardVector(cam_rot)
@@ -2238,7 +2240,10 @@ def spawn_icon(pil_image, location=None, rotation=None, scale=None,
     # Spawn BP_Icon (hover/click/physics configured in Blueprint)
     try:
         bp = load_blueprint_class(bp_path)
-        actor = world.actor_spawn(bp)
+        # Spawn AT the location so the physics body is created there.
+        # set_actor_transform alone doesn't teleport the body; if the
+        # caller enables physics this frame, it snaps back to (0,0,0).
+        actor = world.actor_spawn(bp, location, rotation)
         actor.set_actor_transform(FTransform(location, rotation, scale))
         target_comp = find_component(actor, component_name)
     except Exception as e:
@@ -2691,7 +2696,7 @@ def spawn(
 #
 # # Camera — Panini projection (D=0.5, S=0.05, ScreenPercentage=150)
 # cam = spawn('camera', camera_preset='panini', location=FVector(0, 0, 100))
-# ue.get_player_controller(0).SetViewTarget(cam)  # activate Panini
+# get_world().get_player_controller(0).SetViewTarget(cam)  # activate Panini
 #
 # # Camera — Panini with custom values
 # cam = spawn('camera', panini=True, panini_d=0.5, panini_s=0.0,

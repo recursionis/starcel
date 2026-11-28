@@ -42,7 +42,7 @@ class Main:
     # this is called on game start
     def begin_play(self):
         ue.log('Begin Play on Main class')
-        change_background("transparent")  # window-transparency test — green sky punches through to desktop
+        change_background("sky")  # BP_SkySphere with the sun (time-of-day sun position)
         ue.log('Running startup')
         startup()
 
@@ -141,8 +141,10 @@ class Main:
             # self.test_cylinder()
             # self.test_text()
 
-            results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_text3d_click', 'test_text3d_executor', 'test_3d_table_5x5x5'])
+            results = test_spawn_all(uobject=self.uobject, input_manager=self.input, tests=['test_earth'])  # was: ['test_text3d_click', 'test_text3d_executor', 'test_3d_table_5x5x5']
             print(results)
+
+            self.spawn_icon_balls()
 
         post_startup(self.uobject)
 
@@ -154,6 +156,8 @@ class Main:
         location.z += 100 * delta_time
         # set new location
         self.uobject.set_actor_location(location)
+
+        self._tick_icon_balls(delta_time)
 
         # self.input.print_cursor_info()
 
@@ -253,6 +257,7 @@ class Main:
         new_kind = "stickman" if self.controlling_drone else "drone"
         py_old = self._pawn_py(old)
         loc = old.get_actor_location()
+        look = self._view_rotation(pc)   # where you're looking right now
 
         # Park the outgoing pawn first so its spot is free.
         self._set_pawn_shown(old, False)
@@ -294,10 +299,45 @@ class Main:
                 py_new.set_suspended(False)   # re-attach its PC bindings
         elif py_new is not None and hasattr(py_new, "_setup_input"):
             py_new._setup_input()   # no-op after the first time
+        # After Possess, which resets the control rotation to the pawn's.
+        self._apply_view_rotation(new_kind, new_pawn, py_new, pc, look)
 
         self.pawn = new_pawn
         self.controlling_drone = new_kind == "drone"
         ue.log(f"Possessing: {new_kind}")
+
+    @staticmethod
+    def _view_rotation(pc):
+        """Pitch/yaw of what's on screen (the active camera), roll dropped."""
+        try:
+            r = pc.PlayerCameraManager.GetCameraRotation()
+        except Exception:
+            try:
+                r = pc.GetControlRotation()
+            except Exception:
+                return None
+        return FRotator(0.0, r.pitch, r.yaw)   # FRotator(roll, pitch, yaw)
+
+    @staticmethod
+    def _apply_view_rotation(kind, pawn, py, pc, look):
+        """Point the incoming pawn's view along `look`. Only the rotation
+        carries over between swaps (location is handled by toggle_pawn)."""
+        if look is None:
+            return
+        try:
+            if kind == "drone":
+                # The drone looks along its actor rotation (first-person
+                # camera); keep its cached angles in sync for non-legacy mode.
+                pawn.set_actor_rotation(look)
+                if py is not None:
+                    py._roll, py._pitch, py._yaw = 0.0, look.pitch, look.yaw
+            else:
+                # The stickman looks along the control rotation; turn the
+                # body to the same yaw so it doesn't swing round first.
+                pawn.set_actor_rotation(FRotator(0.0, 0.0, look.yaw))
+            pc.SetControlRotation(look)
+        except Exception as e:
+            ue.log_warning(f"toggle_pawn: could not carry view rotation: {e}")
 
     def _set_pawn_shown(self, actor, shown):
         """Show/hide a pawn in game. Hidden pawns also lose collision and
@@ -331,6 +371,76 @@ class Main:
             py = c.get_py_proxy()
             if py is not None and hasattr(py, "_setup_input"):
                 return py
+        return None
+
+    # Moving desktop-icon balls, all spawned at one spot with physics on.
+    ICON_BALLS_ORIGIN = FVector(5850.0, -230.0, 200.0)
+    ICON_BALLS_MAX = 50        # cap on how many desktop icons to spawn
+    ICON_BALLS_RANGE = 200.0   # UU; random offset from origin on every axis
+    ICON_BALLS_MIN_GAP = 110.0 # UU; min distance between ball centers at spawn (sphere is 100 across)
+    ICON_BALLS_INTERVAL = 0.5  # seconds between spawns, so they don't pile up and explode
+    ICON_BALLS_SPEED = 150.0   # UU/s; max initial sideways speed
+
+    def spawn_icon_balls(self):
+        """Queue desktop icons (like StaringAtSkyMap) to spawn one at a time
+        at ICON_BALLS_ORIGIN; _tick_icon_balls does the actual spawning."""
+        from icon_to_image import get_folder_icons
+
+        self.icon_balls = []        # hold refs so GC doesn't eat them
+        self._icon_ball_queue = []
+        self._icon_ball_timer = 0.0
+        folder = os.path.join(os.path.expanduser('~'), 'Desktop')
+        try:
+            self._icon_ball_queue = list(get_folder_icons(folder).items())[:self.ICON_BALLS_MAX]
+        except Exception as e:
+            ue.log_warning(f'spawn_icon_balls: scan "{folder}" failed: {e}')
+
+    def _tick_icon_balls(self, delta_time):
+        queue = getattr(self, '_icon_ball_queue', None)
+        if not queue:
+            return
+        self._icon_ball_timer -= delta_time
+        if self._icon_ball_timer > 0:
+            return
+        self._icon_ball_timer = self.ICON_BALLS_INTERVAL
+
+        loc = self._free_icon_ball_spot()
+        if loc is None:
+            return   # crowded right now; try again next interval
+        path, pil_img = queue.pop(0)
+        v = self.ICON_BALLS_SPEED
+        try:
+            actor = spawn_icon(pil_img, location=loc, source_path=path)
+            if actor is None:
+                return
+            sphere = actor.get_actor_component('Sphere')
+            sphere.SetSimulatePhysics(True)
+            actor.set_actor_location(loc, False, True)   # teleport the physics body too
+            sphere.SetPhysicsLinearVelocity(FVector(
+                random.uniform(-v, v), random.uniform(-v, v), 0.0))
+            self.icon_balls.append(actor)
+        except Exception as e:
+            ue.log_warning(f'spawn_icon_balls: failed for "{path}": {e}')
+        if not queue:
+            ue.log(f'spawn_icon_balls: spawned {len(self.icon_balls)} at {self.ICON_BALLS_ORIGIN}')
+
+    def _free_icon_ball_spot(self, tries=20):
+        """Random point within ±ICON_BALLS_RANGE of the origin that isn't
+        inside an already-spawned ball (spawning overlapped = flung)."""
+        o, r, gap = self.ICON_BALLS_ORIGIN, self.ICON_BALLS_RANGE, self.ICON_BALLS_MIN_GAP
+        others = []
+        for b in self.icon_balls:
+            try:
+                others.append(b.get_actor_location())
+            except Exception:
+                pass
+        for _ in range(tries):
+            p = FVector(o.x + random.uniform(-r, r),
+                        o.y + random.uniform(-r, r),
+                        o.z + random.uniform(-r, r))
+            if all((p.x - q.x) ** 2 + (p.y - q.y) ** 2 + (p.z - q.z) ** 2 >= gap * gap
+                   for q in others):
+                return p
         return None
 
     def move_icon(self):
